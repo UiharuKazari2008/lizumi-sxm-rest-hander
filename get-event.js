@@ -52,7 +52,7 @@ try {
                     // Dig for CUE markers
                     const json = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['markerLists'].filter(e => e['layer'] === 'cut')[0]['markers']
                     // For each track that is longer then 65 Seconds
-                    const times = json.filter(e => e.duration >= 65).map(e => moment(e['time']).valueOf())
+                    const times = json.filter(e => e.duration >= 65 || !e.duration).map(e => moment(e['time']).valueOf())
                     const items = json.filter(e => e.duration >= 65 || !e.duration ).map(e => {
                         // Get localized timecode
                         const time = moment(e['time'])
