@@ -115,9 +115,9 @@ let metadata = {};
                     const endTime = new Date(stat.mtime).getTime() + 60000;
                     if (now > endTime) {
                         try {
-                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.backup_dir, eventFilename))
-                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.upload_dir, eventFilename))
-                            fs.unlinkSync(fs.existsSync(path.join(config.record_dir, `${e}.levt`)))
+                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.backup_dir, eventFilename).toString())
+                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.upload_dir, eventFilename).toString())
+                            //fs.unlinkSync(path.join(config.record_dir, `${e}.levt`).toString())
                         } catch (e) {
                             console.error(`${e} cant not be parsed because the file failed to be copied!`)
                         }
