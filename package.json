@@ -1,0 +1,8 @@
+{
+  "name": "lizumi-sxm-rest-hander",
+  "version": "1.0.0",
+  "dependencies": {
+    "moment": "^2.29.1",
+    "request": "^2.88.2"
+  }
+}
