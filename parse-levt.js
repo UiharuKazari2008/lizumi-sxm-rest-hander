@@ -108,15 +108,19 @@ let metadata = {};
                 const times = metadata[channelNumber]['times'];
                 const eventItem = items[findClosest(times, recStartTime.valueOf())]
                 const eventFilename = `${eventItem.title.replace("[\\\\/:*?\"<>|]", "_")} - ${eventItem.artist.replace("[\\\\/:*?\"<>|]", "_")} (${recStartTime.format("YYYY-MM-DD HH:mm")})${config.record_format}`
-                console.log(eventFilename)
 
                 if (fs.existsSync(path.join(config.record_dir, `${e}${config.record_format}`))) {
-                    try {
-                        fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.backup_dir, eventFilename))
-                        fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.upload_dir, eventFilename))
-                        fs.unlinkSync(fs.existsSync(path.join(config.record_dir, `${e}.levt`)))
-                    } catch (e) {
-                        console.error(`${e} cant not be parsed because the file failed to be copied!`)
+                    const stat = fs.statSync(path.join(config.record_dir, `${e}${config.record_format}`))
+                    const now = new Date().getTime();
+                    const endTime = new Date(stat.mtime).getTime() + 60000;
+                    if (now > endTime) {
+                        try {
+                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.backup_dir, eventFilename))
+                            fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`), path.join(config.upload_dir, eventFilename))
+                            fs.unlinkSync(fs.existsSync(path.join(config.record_dir, `${e}.levt`)))
+                        } catch (e) {
+                            console.error(`${e} cant not be parsed because the file failed to be copied!`)
+                        }
                     }
                 } else {
                     console.error(`${e} cant not be parsed because the file does not exists!`)
