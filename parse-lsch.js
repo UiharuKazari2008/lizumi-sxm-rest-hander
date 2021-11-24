@@ -97,7 +97,8 @@ const {spawn, exec} = require("child_process");
                     if (generateFile && fs.existsSync(fileDestination)) {
                         try {
                             fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
-                            fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, eventFilename).toString())
+                            fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
+                            fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
                             fs.renameSync(path.join(config.record_dir, `${e}.lsch`).toString(), path.join(config.record_dir, `${e}.completed-lsch`).toString())
                             console.log(`Extraction complete!`)
                         } catch (e) {
