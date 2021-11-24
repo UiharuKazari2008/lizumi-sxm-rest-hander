@@ -124,7 +124,11 @@ const findClosest = (arr, num) => {
                 console.error("FAULT");
             }
         }))
-        await fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
+        await new Promise(resolve => {
+            fs.writeFile(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata), () => {
+                resolve(null)
+            })
+        })
 
         if (config.icecase_meta) {
             const nowPlaying = metadata['52'].pop()
