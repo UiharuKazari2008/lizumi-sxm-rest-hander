@@ -120,23 +120,25 @@ const findClosest = (arr, num) => {
                     } else {
                         metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
-                    const nowPlaying = metadata['52'].pop()
-                    const nowPlayingText = (() => {
-                        if (nowPlaying.isEpisode) {
-                            return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
-                        } else if (nowPlaying.isSong) {
-                            return `${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
-                        } else {
-                            return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")}`
-                        }
-                    })()
+                    if (config.icecase_meta) {
+                        const nowPlaying = metadata['52'].pop()
+                        const nowPlayingText = (() => {
+                            if (nowPlaying.isEpisode) {
+                                return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
+                            } else if (nowPlaying.isSong) {
+                                return `${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
+                            } else {
+                                return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")}`
+                            }
+                        })()
 
-                    request.get({
-                        url: config.icecase_meta + encodeURIComponent(nowPlayingText),
-                        timeout: 5000
-                    }, async function (err, res, body) {
+                        request.get({
+                            url: config.icecase_meta + encodeURIComponent(nowPlayingText),
+                            timeout: 5000
+                        }, async function (err, res, body) {
 
-                    })
+                        })
+                    }
                 }
             } catch (e) {
                 console.error(e);
