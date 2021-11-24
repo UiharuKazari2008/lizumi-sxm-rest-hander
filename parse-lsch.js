@@ -64,7 +64,7 @@ const {spawn, exec} = require("child_process");
                     const fileItems = fileTimes.slice(startFile, endFile + 1)
                     const fileList = fileItems.map(e => e.file).join('|')
                     const fileStart = msToTime(moment(eventItem.syncStart) - fileItems[0].date.valueOf())
-                    const fileEnd = msToTime((eventItem.duration * 1000) + 60000)
+                    const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
                     const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
                     const eventFilename = (() => {
                         if (eventItem.isEpisode) {
