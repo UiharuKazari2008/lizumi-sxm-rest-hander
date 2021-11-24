@@ -77,6 +77,7 @@ const {spawn, exec} = require("child_process");
                     })()
 
                     console.log(`Found Requested Event! CH${channelNumber} "${eventFilename}"...`)
+                    console.log(`${fileStart} | ${fileEnd}`)
                     const generateFile = await new Promise(function (resolve) {
                         const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
                         exec(ffmpeg.join(' '), { cwd: config.record_dir, encoding: 'utf8' }, (err, stdout, stderr) => {
