@@ -114,37 +114,39 @@ const findClosest = (arr, num) => {
                 if (chmeta) {
                     if (metadata[channelNumber]) {
                         metadata[channelNumber] = [
-                            ...metadata[channelNumber].filter(e => chmeta.filter(f => f.syncStart === e.syncStart).length === 0),
+                            ...metadata[channelNumber].filter(e => chmeta.map(f => f.syncStart).indexOf(e.syncStart) === -1),
                             ...chmeta
                         ].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     } else {
                         metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
-                    if (config.icecase_meta) {
-                        const nowPlaying = metadata['52'].pop()
-                        const nowPlayingText = (() => {
-                            if (nowPlaying.isEpisode) {
-                                return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
-                            } else if (nowPlaying.isSong) {
-                                return `${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
-                            } else {
-                                return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")}`
-                            }
-                        })()
+                    console.log(metadata[channelNumber].pop())
 
-                        request.get({
-                            url: config.icecase_meta + encodeURIComponent('CH52: ' + nowPlayingText),
-                            timeout: 5000
-                        }, async function (err, res, body) {
-
-                        })
-                    }
                 }
             } catch (e) {
                 console.error(e);
                 console.error("FAULT");
             }
         }))
+        if (config.icecase_meta) {
+            const nowPlaying = metadata['52'].pop()
+            const nowPlayingText = (() => {
+                if (nowPlaying.isEpisode) {
+                    return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
+                } else if (nowPlaying.isSong) {
+                    return `${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
+                } else {
+                    return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")} - ${nowPlaying.artist.replace("[\\\\/:*?\"<>|]", "_")}`
+                }
+            })()
+
+            request.get({
+                url: config.icecase_meta + encodeURIComponent('CH52: ' + nowPlayingText),
+                timeout: 5000
+            }, async function (err, res, body) {
+
+            })
+        }
         fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
     } catch (e) {
         console.error(e);
