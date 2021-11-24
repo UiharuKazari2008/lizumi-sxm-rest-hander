@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require("path");
 const rimraf = require('rimraf');
 
+console.log('Lizumi Event Search Parser')
 let metadata = require(path.join(config.record_dir, `metadata.json`));
 const {spawn, exec} = require("child_process");
 (async () => {
@@ -63,7 +64,7 @@ const {spawn, exec} = require("child_process");
                     const fileItems = fileTimes.slice(startFile, endFile + 1)
                     const fileList = fileItems.map(e => e.file).join('|')
                     const fileStart = msToTime(moment(eventItem.syncStart) - fileItems[0].date.valueOf())
-                    const fileEnd = msToTime(eventItem.duration * 1000)
+                    const fileEnd = msToTime((eventItem.duration + 60) * 1000)
                     const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
                     const eventFilename = (() => {
                         if (eventItem.isEpisode) {
@@ -75,7 +76,7 @@ const {spawn, exec} = require("child_process");
                         }
                     })()
 
-                    console.log(`Found Event! CH${channelNumber} "${eventFilename}"...`)
+                    console.log(`Found Requested Event! CH${channelNumber} "${eventFilename}"...`)
                     const generateFile = await new Promise(function (resolve) {
                         const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
                         exec(ffmpeg.join(' '), { cwd: config.record_dir, timeout: 60000, encoding: 'utf8' }, (err, stdout, stderr) => {
