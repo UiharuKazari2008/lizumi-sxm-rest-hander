@@ -133,7 +133,7 @@ const findClosest = (arr, num) => {
                         })()
 
                         request.get({
-                            url: config.icecase_meta + encodeURIComponent(nowPlayingText),
+                            url: config.icecase_meta + encodeURIComponent('CH52: ' + nowPlayingText),
                             timeout: 5000
                         }, async function (err, res, body) {
 
