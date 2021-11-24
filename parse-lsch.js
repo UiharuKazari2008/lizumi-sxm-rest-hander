@@ -88,7 +88,7 @@ const {spawn, exec} = require("child_process");
                                 if (stderr.length > 1)
                                     console.error(stderr);
                                 console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                resolve(fs.statSync(fileDestination).size > (5 * 1024 * 1024))
+                                resolve(true)
                             }
                         });
                     })
