@@ -79,7 +79,7 @@ const {spawn, exec} = require("child_process");
                     console.log(`Found Requested Event! CH${channelNumber} "${eventFilename}"...`)
                     const generateFile = await new Promise(function (resolve) {
                         const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
-                        exec(ffmpeg.join(' '), { cwd: config.record_dir, timeout: 60000, encoding: 'utf8' }, (err, stdout, stderr) => {
+                        exec(ffmpeg.join(' '), { cwd: config.record_dir, encoding: 'utf8' }, (err, stdout, stderr) => {
                             if (err) {
                                 console.error(`Extraction failed ${e}: FFMPEG reported a error!`)
                                 console.error(err)
