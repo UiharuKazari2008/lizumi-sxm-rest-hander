@@ -38,10 +38,9 @@ const findClosest = (arr, num) => {
                         // Format to Lizumi Meta Format v2
                         return {
                             guid: e.assetGUID,
-                            fileSearch: time.format("YYYYMMDD-hhmmss"),
-                            duration: e.duration.toFixed(0),
                             syncStart: time.valueOf(),
                             syncEnd: time.add(e.duration, "seconds").valueOf(),
+                            duration: e.duration.toFixed(0),
 
                             title: e.cut.title,
                             artist: e.cut.artists.map(f => f.name).join('/'),
@@ -57,10 +56,9 @@ const findClosest = (arr, num) => {
                             const time = moment(e['time'])
                             return {
                                 guid: e.assetGUID,
-                                fileSearch: time.format("YYYYMMDD-hhmmss"),
-                                duration: e.duration.toFixed(0),
                                 syncStart: time.valueOf(),
                                 syncEnd: time.add(e.duration, "seconds").valueOf(),
+                                duration: e.duration.toFixed(0),
 
                                 title: e['episode']['longTitle'],
                                 isSong: false,
@@ -126,6 +124,8 @@ const findClosest = (arr, num) => {
                 console.error("FAULT");
             }
         }))
+        await fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
+
         if (config.icecase_meta) {
             const nowPlaying = metadata['52'].pop()
             const nowPlayingText = (() => {
@@ -145,7 +145,6 @@ const findClosest = (arr, num) => {
 
             })
         }
-        await fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
     } catch (e) {
         console.error(e);
         console.error("FAULT");
