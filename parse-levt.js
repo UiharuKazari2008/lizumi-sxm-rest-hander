@@ -53,7 +53,7 @@ let metadata = require(path.join(config.record_dir, `metadata.json`));
                         try {
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.backup_dir, eventFilename).toString())
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.upload_dir, eventFilename).toString())
-                            //fs.renameSync(path.join(config.record_dir, `${e}.levt`).toString(), path.join(config.record_dir, `${e}.completed-levt`).toString())
+                            fs.renameSync(path.join(config.record_dir, `${e}.levt`).toString(), path.join(config.record_dir, `${e}.completed-levt`).toString())
                         } catch (e) {
                             console.error(`${e} cant not be parsed because the file failed to be copied!`)
                         }
