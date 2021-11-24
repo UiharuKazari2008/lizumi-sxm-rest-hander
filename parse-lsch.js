@@ -61,51 +61,77 @@ const {spawn, exec} = require("child_process");
                 if (eventItem.duration > 0) {
                     const startFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncStart)
                     const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
-                    const fileItems = fileTimes.slice(startFile, endFile + 1)
-                    const fileList = fileItems.map(e => e.file).join('|')
-                    const fileStart = msToTime(moment(eventItem.syncStart) - fileItems[0].date.valueOf())
-                    const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
-                    const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-                    const eventFilename = (() => {
-                        if (eventItem.isEpisode) {
-                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
-                        } else if (eventItem.isSong) {
-                            return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
-                        } else {
-                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
-                        }
-                    })()
-
-                    console.log(`Found Requested Event! CH${channelNumber} "${eventFilename}"...`)
-                    console.log(`${fileStart} | ${fileEnd}`)
-                    const generateFile = await new Promise(function (resolve) {
-                        const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
-                        exec(ffmpeg.join(' '), { cwd: config.record_dir, encoding: 'utf8' }, (err, stdout, stderr) => {
-                            if (err) {
-                                console.error(`Extraction failed ${e}: FFMPEG reported a error!`)
-                                console.error(err)
-                                resolve(false)
+                    let allFilesReady
+                    if (endFile + 1 === fileTimes.length && config.record_split_script) {
+                        allFilesReady = await new Promise(function (resolve) {
+                            exec(['osascript', config.record_split_script].join(' '), { cwd: config.record_dir, encoding: 'utf8' }, (err, stdout, stderr) => {
+                                if (err) {
+                                    console.error(`Extraction failed ${e}: Unable to split file!`)
+                                    console.error(err)
+                                    resolve(false)
+                                } else {
+                                    if (stderr.length > 1)
+                                        console.error(stderr);
+                                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                    resolve(true)
+                                }
+                            });
+                        })
+                    } else {
+                        allFilesReady = true
+                    }
+                    if (allFilesReady) {
+                        const fileItems = fileTimes.slice(startFile, endFile + 1)
+                        const fileList = fileItems.map(e => e.file).join('|')
+                        const fileStart = msToTime(moment(eventItem.syncStart) - fileItems[0].date.valueOf())
+                        const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
+                        const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
+                        const eventFilename = (() => {
+                            if (eventItem.isEpisode) {
+                                return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
+                            } else if (eventItem.isSong) {
+                                return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
                             } else {
-                                if (stderr.length > 1)
-                                    console.error(stderr);
-                                console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                resolve(true)
+                                return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
                             }
-                        });
-                    })
+                        })()
 
-                    if (generateFile && fs.existsSync(fileDestination)) {
-                        try {
-                            fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
-                            fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
-                            fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
-                            fs.renameSync(path.join(config.record_dir, `${e}.lsch`).toString(), path.join(config.record_dir, `${e}.completed-lsch`).toString())
-                            console.log(`Extraction complete!`)
-                        } catch (e) {
-                            console.error(`Extraction failed ${e}: cant not be parsed because the file failed to be copied!`)
+                        console.log(`Found Requested Event! CH${channelNumber} "${eventFilename}"...`)
+                        console.log(`${fileStart} | ${fileEnd}`)
+                        const generateFile = await new Promise(function (resolve) {
+                            const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+                            exec(ffmpeg.join(' '), {
+                                cwd: config.record_dir,
+                                encoding: 'utf8'
+                            }, (err, stdout, stderr) => {
+                                if (err) {
+                                    console.error(`Extraction failed ${e}: FFMPEG reported a error!`)
+                                    console.error(err)
+                                    resolve(false)
+                                } else {
+                                    if (stderr.length > 1)
+                                        console.error(stderr);
+                                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                    resolve(true)
+                                }
+                            });
+                        })
+
+                        if (generateFile && fs.existsSync(fileDestination)) {
+                            try {
+                                fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
+                                fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
+                                fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
+                                fs.renameSync(path.join(config.record_dir, `${e}.lsch`).toString(), path.join(config.record_dir, `${e}.completed-lsch`).toString())
+                                console.log(`Extraction complete!`)
+                            } catch (e) {
+                                console.error(`Extraction failed ${e}: cant not be parsed because the file failed to be copied!`)
+                            }
+                        } else {
+                            console.error(`Extraction failed ${e}: cant not be parsed because the file does not exists!`)
                         }
                     } else {
-                        console.error(`Extraction failed ${e}: cant not be parsed because the file does not exists!`)
+                        console.error(`Extraction failed ${e}: cant not be parsed because not all files are ready!`)
                     }
                 }
             } else {
