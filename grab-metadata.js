@@ -120,8 +120,6 @@ const findClosest = (arr, num) => {
                     } else {
                         metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
-                    console.log(metadata[channelNumber].pop())
-
                 }
             } catch (e) {
                 console.error(e);
@@ -147,7 +145,7 @@ const findClosest = (arr, num) => {
 
             })
         }
-        fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
+        await fs.writeFileSync(path.join(config.record_dir, `metadata.json`), JSON.stringify(metadata))
     } catch (e) {
         console.error(e);
         console.error("FAULT");
