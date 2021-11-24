@@ -2,9 +2,7 @@ const config = require('./config.json')
 const moment = require('moment');
 const fs = require('fs');
 const path = require("path");
-const rimraf = require('rimraf');
 
-console.log('Lizumi Event Search Parser')
 let metadata = require(path.join(config.record_dir, `metadata.json`));
 const {spawn, exec} = require("child_process");
 (async () => {
