@@ -36,11 +36,11 @@ let metadata = require(path.join(config.record_dir, `metadata.json`));
                 const eventItem = items[findClosest(times, recStartTime.valueOf())]
                 const eventFilename = (() => {
                     if (eventItem.isEpisode) {
-                        return `${eventItem.title.replace("[\\\\/:*?\"<>|]", "_")} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
                     } else if (eventItem.isSong) {
-                        return `${eventItem.artist.replace("[\\\\/:*?\"<>|]", "_")} - ${eventItem.title.replace("[\\\\/:*?\"<>|]", "_")} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
                     } else {
-                        return `${eventItem.title.replace("[\\\\/:*?\"<>|]", "_")} - ${eventItem.artist.replace("[\\\\/:*?\"<>|]", "_")} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
                     }
                 })()
 
@@ -53,7 +53,7 @@ let metadata = require(path.join(config.record_dir, `metadata.json`));
                         try {
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.backup_dir, eventFilename).toString())
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.upload_dir, eventFilename).toString())
-                            //fs.unlinkSync(path.join(config.record_dir, `${e}.levt`).toString())
+                            //fs.renameSync(path.join(config.record_dir, `${e}.levt`).toString(), path.join(config.record_dir, `${e}.completed-levt`).toString())
                         } catch (e) {
                             console.error(`${e} cant not be parsed because the file failed to be copied!`)
                         }
