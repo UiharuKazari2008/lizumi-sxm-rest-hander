@@ -24,16 +24,23 @@ let metadata = require(path.join(config.record_dir, `metadata.json`));
             return creds.index;
         };
 
-        const eventsToParse = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".levt")).map(e => e.replace(".levt", ''));
+        const eventsToParse = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".lsch")).map(e => e.replace(".lsch", ''));
+        const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
+            return {
+                date: moment(e.replace(config.record_prefix, '').split('.')[0] + '', "YYYYMMDD-HHmmss"),
+                file: e
+            }
+        });
         eventsToParse.map(e => {
+
             const recStartTime = moment(e.replace(config.record_prefix, '') + '', "YYYYMMDD-HHmmss")
             if (recStartTime.isValid()) {
-                let channelNumber = fs.readFileSync(path.join(config.record_dir, `${e}.levt`), 'utf8').trim();
+                let channelNumber = fs.readFileSync(path.join(config.record_dir, `${e}.lsch`), 'utf8').trim();
                 if (channelNumber.length < 1)
                     channelNumber = '52'
-                const items = metadata[channelNumber].filter(e => !e.isSong).sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0);
-                const times = items.map(e => e.syncStart);
-                const eventItem = items[findClosest(times, recStartTime.valueOf() + 1200000)]
+                const items = metadata[channelNumber];
+                const times = metadata[channelNumber].map(e => e.syncStart);
+                const eventItem = items[findClosest(times, recStartTime.valueOf())]
                 const eventFilename = (() => {
                     if (eventItem.isEpisode) {
                         return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${recStartTime.format("YYYY-MM-DD HHmm")})${config.record_format}`
@@ -53,7 +60,7 @@ let metadata = require(path.join(config.record_dir, `metadata.json`));
                         try {
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.backup_dir, eventFilename).toString())
                             fs.copyFileSync(path.join(config.record_dir, `${e}${config.record_format}`).toString(), path.join(config.upload_dir, eventFilename).toString())
-                            fs.renameSync(path.join(config.record_dir, `${e}.levt`).toString(), path.join(config.record_dir, `${e}.completed-levt`).toString())
+                            fs.renameSync(path.join(config.record_dir, `${e}.lsch`).toString(), path.join(config.record_dir, `${e}.completed-lsch`).toString())
                         } catch (e) {
                             console.error(`${e} cant not be parsed because the file failed to be copied!`)
                         }
