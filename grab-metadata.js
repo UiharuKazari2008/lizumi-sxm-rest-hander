@@ -112,12 +112,12 @@ const findClosest = (arr, num) => {
                 if (chmeta) {
                     if (metadata[channelNumber]) {
                         for (let i in chmeta) {
-                            if (metadata[channelNumber].map(e => e.guid).indexOf(chmeta[i].guid) !== -1) {
-                                const index = metadata[channelNumber].indexOf(chmeta[i].guid)
+                            const index = metadata[channelNumber].map(e => e.guid).indexOf(chmeta[i].guid)
+                            if (index !== -1) {
                                 const data = metadata[channelNumber][index]
-                                metadata[channelNumber][index].duration = chmeta[i].duration
-                                metadata[channelNumber][index].syncStart = chmeta[i].syncStart
-                                metadata[channelNumber][index].syncEnd = chmeta[i].syncEnd
+                                data.duration = chmeta[i].duration
+                                data.syncStart = chmeta[i].syncStart
+                                data.syncEnd = chmeta[i].syncEnd
                             } else {
                                 metadata[channelNumber].push(chmeta[i])
                             }
@@ -137,6 +137,7 @@ const findClosest = (arr, num) => {
                 resolve(null)
             })
         })
+        //console.log(metadata['52'].slice(-4))
 
         if (config.icecase_meta) {
             const nowPlaying = metadata['52'].pop()
