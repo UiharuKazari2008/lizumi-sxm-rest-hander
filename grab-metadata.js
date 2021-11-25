@@ -111,10 +111,21 @@ const findClosest = (arr, num) => {
                 })
                 if (chmeta) {
                     if (metadata[channelNumber]) {
-                        metadata[channelNumber] = [
-                            ...metadata[channelNumber].filter(e => chmeta.map(f => f.syncStart).indexOf(e.syncStart) === -1),
-                            ...chmeta
-                        ].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
+                        for (let i in chmeta) {
+                            if (metadata[channelNumber].map(e => e.guid).indexOf(chmeta[i].guid) !== -1) {
+                                const index = metadata[channelNumber].indexOf(chmeta[i].guid)
+                                const data = metadata[channelNumber][index]
+                                metadata[channelNumber][index] = {
+                                    ...data,
+                                    duration: chmeta[i].duration,
+                                    syncStart: chmeta[i].syncStart,
+                                    syncEnd: chmeta[i].syncEnd,
+                                }
+                            } else {
+                                metadata[channelNumber].push(chmeta[i])
+                            }
+                        }
+                        metadata[channelNumber] = metadata[channelNumber].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     } else {
                         metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
