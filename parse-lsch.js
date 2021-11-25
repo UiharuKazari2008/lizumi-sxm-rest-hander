@@ -45,7 +45,7 @@ const {spawn, exec} = require("child_process");
 
         const channelNumber = await new Promise(resolve => {
             const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
-            const list = `choose from list {${listmeta.join(',')}} with title "Search Channel" with prompt "Select channel to search metadata for:" default items ${listmeta.pop()}`
+            const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Channel for CUE list:" default items ${listmeta.pop()} empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 resolve(result[0])
@@ -79,7 +79,7 @@ const {spawn, exec} = require("child_process");
                     })()
                     return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '✅'}] ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
                 })
-                const list = `choose from list {${listmeta.join(',')}} with title "Search for Event" with prompt "Select Event to Search for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
+                const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Event to save:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
                     if (err) return console.error(err)
                     console.log(result)
@@ -104,107 +104,84 @@ const {spawn, exec} = require("child_process");
                     if (startFile < 0)
                         startFile = 0
                     const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
-                    let allFilesReady = true
-                    /*if (endFile + 1 === fileTimes.length && config.record_split_script) {
-                        allFilesReady = await new Promise(function (resolve) {
-                            exec(['osascript', config.record_split_script].join(' '), { cwd: config.record_dir, encoding: 'utf8' }, (err, stdout, stderr) => {
-                                if (err) {
-                                    console.error(`Extraction failed ${e}: Unable to split file!`)
-                                    console.error(err)
-                                    resolve(false)
-                                } else {
-                                    if (stderr.length > 1)
-                                        console.error(stderr);
-                                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                    resolve(true)
-                                }
-                            });
-                        })
-                    } else {
-                        allFilesReady = true
-                    }*/
-                    if (allFilesReady) {
-                        const fileItems = fileTimes.slice(startFile, endFile + 1)
-                        const fileList = fileItems.map(e => e.file).join('|')
-                        const fileStart = msToTime(Math.abs(moment(eventItem.syncStart) - fileItems[0].date.valueOf()))
-                        const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
-                        const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-                        const _eventFilename = (() => {
-                            if (eventItem.isEpisode) {
-                                return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
-                            } else if (eventItem.isSong) {
-                                return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
-                            } else {
-                                return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
-                            }
-                        })()
-                        const eventFilename = await new Promise(resolve => {
-                            const dialog = [
-                                `set dialogResult to (display dialog "Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 300)`,
-                                `if the button returned of the dialogResult is "Update" then`,
-                                'return text returned of dialogResult',
-                                'else',
-                                `return "${_eventFilename}"`,
-                                'end if'
-                            ].join('\n');
-                            const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                                if (err) {
-                                    console.error(err)
-                                    resolve(_eventFilename);
-                                } else {
-                                    resolve(result)
-                                    clearTimeout(childKiller);
-                                }
-                            });
-                            const childKiller = setTimeout(function () {
-                                childProcess.stdin.pause();
-                                childProcess.kill();
-                                resolve(_eventFilename);
-                            }, 90000)
-                        })
-
-                        console.log(`Found Requested Event! "${eventFilename}"...`)
-                        console.log(`${fileStart} | ${fileEnd}`)
-                        const generateFile = await new Promise(function (resolve) {
-                            const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
-                            exec(ffmpeg.join(' '), {
-                                cwd: config.record_dir,
-                                encoding: 'utf8'
-                            }, (err, stdout, stderr) => {
-                                if (err) {
-                                    console.error(`Extraction failed: FFMPEG reported a error!`)
-                                    console.error(err)
-                                    resolve(false)
-                                } else {
-                                    if (stderr.length > 1)
-                                        console.error(stderr);
-                                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                    resolve(true)
-                                }
-                            });
-                        })
-
-                        if (generateFile && fs.existsSync(fileDestination)) {
-                            try {
-                                if (config.backup_dir) {
-                                    fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
-                                }
-                                if (config.upload_dir) {
-                                    fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
-                                    fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
-                                }
-                                if (eventItem.file) {
-                                    fs.renameSync(path.join(config.record_dir, `${eventItem.file}.lsch`).toString(), path.join(config.record_dir, `${eventItem.file}.completed-lsch`).toString())
-                                }
-                                console.log(`Extraction complete!`)
-                            } catch (e) {
-                                console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
-                            }
+                    const fileItems = fileTimes.slice(startFile, endFile + 1)
+                    const fileList = fileItems.map(e => e.file).join('|')
+                    const fileStart = msToTime(Math.abs(moment(eventItem.syncStart) - fileItems[0].date.valueOf()))
+                    const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
+                    const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
+                    const _eventFilename = (() => {
+                        if (eventItem.isEpisode) {
+                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        } else if (eventItem.isSong) {
+                            return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
                         } else {
-                            console.error(`Extraction failed: cant not be parsed because the file does not exists!`)
+                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        }
+                    })()
+                    const eventFilename = await new Promise(resolve => {
+                        const dialog = [
+                            `set dialogResult to (display dialog "Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 300)`,
+                            `if the button returned of the dialogResult is "Update" then`,
+                            'return text returned of dialogResult',
+                            'else',
+                            `return "${_eventFilename}"`,
+                            'end if'
+                        ].join('\n');
+                        const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                            if (err) {
+                                console.error(err)
+                                resolve(_eventFilename);
+                            } else {
+                                resolve(result)
+                                clearTimeout(childKiller);
+                            }
+                        });
+                        const childKiller = setTimeout(function () {
+                            childProcess.stdin.pause();
+                            childProcess.kill();
+                            resolve(_eventFilename);
+                        }, 90000)
+                    })
+
+                    console.log(`Found Requested Event! "${eventFilename}"...`)
+                    console.log(`${fileStart} | ${fileEnd}`)
+                    const generateFile = await new Promise(function (resolve) {
+                        const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+                        exec(ffmpeg.join(' '), {
+                            cwd: config.record_dir,
+                            encoding: 'utf8'
+                        }, (err, stdout, stderr) => {
+                            if (err) {
+                                console.error(`Extraction failed: FFMPEG reported a error!`)
+                                console.error(err)
+                                resolve(false)
+                            } else {
+                                if (stderr.length > 1)
+                                    console.error(stderr);
+                                console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                resolve(true)
+                            }
+                        });
+                    })
+
+                    if (generateFile && fs.existsSync(fileDestination)) {
+                        try {
+                            if (config.backup_dir) {
+                                fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
+                            }
+                            if (config.upload_dir) {
+                                fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
+                                fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
+                            }
+                            if (eventItem.file) {
+                                fs.renameSync(path.join(config.record_dir, `${eventItem.file}.lsch`).toString(), path.join(config.record_dir, `${eventItem.file}.completed-lsch`).toString())
+                            }
+                            console.log(`Extraction complete!`)
+                        } catch (e) {
+                            console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
                         }
                     } else {
-                        console.error(`Extraction failed: cant not be parsed because not all files are ready!`)
+                        console.error(`Extraction failed: cant not be parsed because the file does not exists!`)
                     }
                 }
             })
