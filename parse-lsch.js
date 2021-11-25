@@ -77,7 +77,11 @@ const {spawn, exec} = require("child_process");
                             return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
                         }
                     })()
-                    return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '✅'}] ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                    let exsists = false
+                    try {
+                        exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
+                    } catch (err) { }
+                    return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : ''}] ${(exsists) ? '💾 ' : ''}${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
                 })
                 const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Event to save:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
