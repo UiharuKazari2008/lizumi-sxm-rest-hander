@@ -168,7 +168,7 @@ const {spawn, exec} = require("child_process");
                         try {
                             if (config.backup_dir) {
                                 await new Promise(resolve => {
-                                    exec(`cp ${fileDestination.toString()} ${path.join(config.backup_dir, eventFilename).toString()}`, (err, result) => {
+                                    exec(`cp "${fileDestination.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
                                         if (err)
                                             console.error(err)
                                         resolve((err))
@@ -177,14 +177,14 @@ const {spawn, exec} = require("child_process");
                             }
                             if (config.upload_dir) {
                                 await new Promise(resolve => {
-                                    exec(`cp ${fileDestination.toString()} ${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}`, (err, result) => {
+                                    exec(`cp "${fileDestination.toString()}" "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
                                         if (err)
                                             console.error(err)
                                         resolve((err))
                                     })
                                 })
                                 await new Promise(resolve => {
-                                    exec(`mv ${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()} ${path.join(config.upload_dir, eventFilename).toString()}`, (err, result) => {
+                                    exec(`mv "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}" "${path.join(config.upload_dir, eventFilename).toString()}"`, (err, result) => {
                                         if (err)
                                             console.error(err)
                                         resolve((err))
