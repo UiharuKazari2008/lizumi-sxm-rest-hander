@@ -83,7 +83,7 @@ const {spawn, exec} = require("child_process");
                     try {
                         exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                     } catch (err) { }
-                    return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                    return `"[${moment.utc(e.syncStart).local().format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
                 })
                 const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Event to save:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -106,13 +106,14 @@ const {spawn, exec} = require("child_process");
             const eventsToParse = eventSearch.map(e => eventsMeta[e]);
             eventsToParse.map(async eventItem => {
                 if (eventItem.duration > 0) {
-                    let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncStart) - 1
+                    const trueTime = moment.utc(eventItem.syncStart).local();
+                    let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
                     if (startFile < 0)
                         startFile = 0
                     const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
                     const fileItems = fileTimes.slice(startFile, endFile + 1)
                     const fileList = fileItems.map(e => e.file).join('|')
-                    const fileStart = msToTime(Math.abs(moment(eventItem.syncStart) - fileItems[0].date.valueOf()))
+                    const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
                     const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
                     const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
                     const _eventFilename = (() => {
