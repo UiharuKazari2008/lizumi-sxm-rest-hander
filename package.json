@@ -4,6 +4,6 @@
   "dependencies": {
     "moment": "^2.29.1",
     "request": "^2.88.2",
-    "rimraf": "^3.0.2"
+    "node-osascript": "^2.1.0"
   }
 }
