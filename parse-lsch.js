@@ -167,11 +167,29 @@ const {spawn, exec} = require("child_process");
                     if (generateFile && fs.existsSync(fileDestination)) {
                         try {
                             if (config.backup_dir) {
-                                fs.copyFileSync(fileDestination.toString(), path.join(config.backup_dir, eventFilename).toString())
+                                await new Promise(resolve => {
+                                    exec(`cp ${fileDestination.toString()} ${path.join(config.backup_dir, eventFilename).toString()}`, (err, result) => {
+                                        if (err)
+                                            console.error(err)
+                                        resolve((err))
+                                    })
+                                })
                             }
                             if (config.upload_dir) {
-                                fs.copyFileSync(fileDestination.toString(), path.join(config.upload_dir, 'HOLD-' + eventFilename).toString())
-                                fs.renameSync(path.join(config.upload_dir, 'HOLD-' + eventFilename).toString(), path.join(config.upload_dir, eventFilename).toString())
+                                await new Promise(resolve => {
+                                    exec(`cp ${fileDestination.toString()} ${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}`, (err, result) => {
+                                        if (err)
+                                            console.error(err)
+                                        resolve((err))
+                                    })
+                                })
+                                await new Promise(resolve => {
+                                    exec(`mv ${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()} ${path.join(config.upload_dir, eventFilename).toString()}`, (err, result) => {
+                                        if (err)
+                                            console.error(err)
+                                        resolve((err))
+                                    })
+                                })
                             }
                             if (eventItem.file) {
                                 fs.renameSync(path.join(config.record_dir, `${eventItem.file}.lsch`).toString(), path.join(config.record_dir, `${eventItem.file}.completed-lsch`).toString())
