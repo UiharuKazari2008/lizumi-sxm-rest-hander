@@ -120,7 +120,7 @@ const {spawn, exec} = require("child_process");
                     })()
                     const eventFilename = await new Promise(resolve => {
                         const dialog = [
-                            `set dialogResult to (display dialog "Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 300)`,
+                            `set dialogResult to (display dialog "Set Filename (60 seconds to set)" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 60)`,
                             `if the button returned of the dialogResult is "Update" then`,
                             'return text returned of dialogResult',
                             'else',
@@ -146,7 +146,7 @@ const {spawn, exec} = require("child_process");
                     console.log(`Found Requested Event! "${eventFilename}"...`)
                     console.log(`${fileStart} | ${fileEnd}`)
                     const generateFile = await new Promise(function (resolve) {
-                        const ffmpeg = ['ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+                        const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
                         exec(ffmpeg.join(' '), {
                             cwd: config.record_dir,
                             encoding: 'utf8'
@@ -199,7 +199,7 @@ const {spawn, exec} = require("child_process");
                             console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
                         }
                     } else {
-                        console.error(`Extraction failed: cant not be parsed because the file does not exists!`)
+                        console.error(`Extraction failed: File was not generated correctly`)
                     }
                 }
             })
