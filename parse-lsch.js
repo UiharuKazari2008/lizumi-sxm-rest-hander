@@ -43,6 +43,7 @@ const {spawn, exec} = require("child_process");
         }
 
 
+        console.log('Lizumi Recording Extractor')
         const channelNumber = await new Promise(resolve => {
             const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
             const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Channel for CUE list:" default items ${listmeta.pop()} empty selection allowed false`
@@ -58,6 +59,7 @@ const {spawn, exec} = require("child_process");
             }, 90000)
         })
         if (channelNumber) {
+            console.log(`Selected Channel ${channelNumber}`)
             const eventsMeta = metadata[channelNumber].filter(e => e.duration >= 600 && !e.isSong).reverse()
             const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
                 return {
@@ -81,7 +83,7 @@ const {spawn, exec} = require("child_process");
                     try {
                         exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                     } catch (err) { }
-                    return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : ''}] ${(exsists) ? '💾 ' : ''}${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                    return `"[${moment(e.syncStart).format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
                 })
                 const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Event to save:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
