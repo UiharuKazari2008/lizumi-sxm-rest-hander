@@ -23,7 +23,6 @@ const {spawn, exec} = require("child_process");
             });
             return creds.index;
         };
-
         function msToTime(s) {
 
             // Pad to 2 or 3 digits, default is 2
@@ -41,12 +40,11 @@ const {spawn, exec} = require("child_process");
 
             return pad(hrs) + ':' + pad(mins) + ':' + pad(secs) + '.' + pad(ms, 3);
         }
+        console.log('Lizumi Metadata Manager')
 
-
-        console.log('Lizumi Recording Extractor')
         const channelNumber = await new Promise(resolve => {
             const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
-            const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Channel for CUE list:" default items ${listmeta.pop()} empty selection allowed false`
+            const list = `choose from list {${listmeta.join(',')}} with title "Update Metadata" with prompt "Select Channel for CUE list:" default items ${listmeta.pop()} empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 resolve(result[0])
@@ -61,12 +59,6 @@ const {spawn, exec} = require("child_process");
         if (channelNumber) {
             console.log(`Selected Channel ${channelNumber}`)
             const eventsMeta = metadata[channelNumber].filter(e => e.duration >= 600 && !e.isSong).reverse()
-            const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
-                return {
-                    date: moment(e.replace(config.record_prefix, '').split('.')[0] + '', "YYYYMMDD-HHmmss"),
-                    file: e
-                }
-            });
 
             const eventSearch = await new Promise(resolve => {
                 const listmeta = eventsMeta.map(e => {
@@ -85,7 +77,7 @@ const {spawn, exec} = require("child_process");
                     } catch (err) { }
                     return `"[${moment.utc(e.syncStart).local().format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
                 })
-                const list = `choose from list {${listmeta.join(',')}} with title "Search for Recording" with prompt "Select Event to save:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
+                const list = `choose from list {${listmeta.join(',')}} with title "Update Metadata" with prompt "Select Event to update:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
                     if (err) return console.error(err)
                     console.log(result)
@@ -104,48 +96,7 @@ const {spawn, exec} = require("child_process");
             })
 
             const eventsToParse = eventSearch.map(e => eventsMeta[e]);
-
-            for (let eventItem of eventsToParse) {
-                const _eventFilename = (() => {
-                    if (eventItem.isEpisode) {
-                        return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
-                    } else if (eventItem.isSong) {
-                        return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
-                    } else {
-                        return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
-                    }
-                })()
-                const eventFilename = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "${_eventFilename}"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve(_eventFilename);
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(_eventFilename);
-                    }, 120000)
-                })
-                eventItem.filename = eventFilename;
-            }
-
-            for (let index in eventsToParse) {
-                if (parseInt(index) === 0)
-                    console.log(`PROGRESS:0`)
-                const eventItem = eventsToParse[index]
+            eventsToParse.map(async eventItem => {
                 if (eventItem.duration > 0) {
                     const trueTime = moment.utc(eventItem.syncStart).local();
                     let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
@@ -157,12 +108,44 @@ const {spawn, exec} = require("child_process");
                     const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
                     const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
                     const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-                    const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                    const _eventFilename = (() => {
+                        if (eventItem.isEpisode) {
+                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        } else if (eventItem.isSong) {
+                            return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        } else {
+                            return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+                        }
+                    })()
+                    const eventFilename = await new Promise(resolve => {
+                        const dialog = [
+                            `set dialogResult to (display dialog "Set Filename (60 seconds to set)" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 60)`,
+                            `if the button returned of the dialogResult is "Update" then`,
+                            'return text returned of dialogResult',
+                            'else',
+                            `return "${_eventFilename}"`,
+                            'end if'
+                        ].join('\n');
+                        const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                            if (err) {
+                                console.error(err)
+                                resolve(_eventFilename);
+                            } else {
+                                resolve(result)
+                                clearTimeout(childKiller);
+                            }
+                        });
+                        const childKiller = setTimeout(function () {
+                            childProcess.stdin.pause();
+                            childProcess.kill();
+                            resolve(_eventFilename);
+                        }, 90000)
+                    })
 
-                    //console.log(`Found Requested Event! "${eventFilename}"...`)
+                    console.log(`Found Requested Event! "${eventFilename}"...`)
                     console.log(`${fileStart} | ${fileEnd}`)
                     const generateFile = await new Promise(function (resolve) {
-                        console.log(`Ripping "${eventItem.filename.trim()}"...`)
+                        console.log(`Burning "${eventFilename}"...`)
                         const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
                         exec(ffmpeg.join(' '), {
                             cwd: config.record_dir,
@@ -211,16 +194,15 @@ const {spawn, exec} = require("child_process");
                             if (eventItem.file) {
                                 fs.renameSync(path.join(config.record_dir, `${eventItem.file}.lsch`).toString(), path.join(config.record_dir, `${eventItem.file}.completed-lsch`).toString())
                             }
-                            console.log(`Ripping complete for ${eventItem.filename.trim()}!`)
+                            console.log(`Extraction complete!`)
                         } catch (e) {
                             console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
                         }
                     } else {
                         console.error(`Extraction failed: File was not generated correctly`)
                     }
-                    console.log(`PROGRESS:${(((parseInt(index) + 1) / eventsToParse.length) * 100).toFixed()}`)
                 }
-            }
+            })
         }
 
     } catch (e) {
