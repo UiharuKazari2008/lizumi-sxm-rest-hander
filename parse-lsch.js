@@ -219,6 +219,8 @@ const {spawn, exec} = require("child_process");
                         console.error(`Extraction failed: File was not generated correctly`)
                     }
                     console.log(`PROGRESS:${(((parseInt(index) + 1) / eventsToParse.length) * 100).toFixed()}`)
+                    if (parseInt(index) + 1 === eventsToParse.length)
+                        console.log('PROGRESS:100')
                 }
             }
         }
