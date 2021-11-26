@@ -112,11 +112,11 @@ const findClosest = (arr, num) => {
                 if (chmeta) {
                     if (metadata[channelNumber]) {
                         for (let i in chmeta) {
-                            const index = metadata[channelNumber].map(e => e.guid).indexOf(chmeta[i].guid)
+                            const index = metadata[channelNumber].map(e => e.syncStart).indexOf(chmeta[i].syncStart)
                             if (index !== -1) {
                                 const data = metadata[channelNumber][index]
                                 data.duration = chmeta[i].duration
-                                data.syncStart = chmeta[i].syncStart
+                                data.guid = chmeta[i].guid
                                 data.syncEnd = chmeta[i].syncEnd
                             } else {
                                 metadata[channelNumber].push(chmeta[i])

@@ -2,8 +2,10 @@
   "name": "lizumi-sxm-rest-hander",
   "version": "1.0.0",
   "dependencies": {
+    "better-sqlite3": "^7.4.5",
     "moment": "^2.29.1",
-    "request": "^2.88.2",
-    "node-osascript": "^2.1.0"
+    "node-cron": "^3.0.0",
+    "node-osascript": "^2.1.0",
+    "request": "^2.88.2"
   }
 }
