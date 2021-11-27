@@ -664,7 +664,7 @@ async function modifyMetadataGUI(type) {
                 });
                 if (duration !== "NaN") {
                     realItem.duration = parseInt(duration.toString()) * 60000
-                    realItem.syncEnd = moment(realItem.syncStart).add(realItem.duration, "seconds").valueOf()
+                    realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
                 }
             }
         }
