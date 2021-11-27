@@ -255,41 +255,19 @@ async function publishMetadataFile() {
 }
 
 async function bounceEventGUI() {
-    const eventsMeta = (() => {
-        const lastIndex = channelTimes.timetable.length - 1
-        let eventList = []
-        for (let c in channelTimes.timetable) {
-            let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
-            events.map(e => {
-                return {
-                    ...e,
-                    ch: channelTimes.timetable[c].ch
-                }
-            })
-            // eventList.push(...)
-        }
-        return eventList
-    })()
-    console.log(eventsMeta)
-    try {
-        /*const channelNumber = await new Promise(resolve => {
-            const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
-            const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Channel for CUE list:" default items ${listmeta.slice(-1).pop()} empty selection allowed false`
-            const childProcess = osascript.execute(list, function (err, result, raw) {
-                if (err) return console.error(err)
-                resolve(result[0])
-                clearTimeout(childKiller);
-            });
-            const childKiller = setTimeout(function () {
-                childProcess.stdin.pause();
-                childProcess.kill();
-                resolve(null);
-            }, 90000)
+    let eventsMeta = [];
+    const lastIndex = channelTimes.timetable.length - 1
+    for (let c in channelTimes.timetable) {
+        let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
+        events.map(e => {
+            return {
+                ...e,
+                ch: channelTimes.timetable[c].ch
+            }
         })
-        if (channelNumber) {
-            console.log(`Selected Channel ${channelNumber}`)
-
-        }*/
+        eventsMeta.push(...events)
+    }
+    try {
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
                 const name = (() => {
