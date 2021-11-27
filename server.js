@@ -270,6 +270,7 @@ async function bounceEventGUI() {
         }
         return eventList
     })()
+    console.log(eventsMeta)
     try {
         /*const channelNumber = await new Promise(resolve => {
             const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
