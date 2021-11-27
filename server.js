@@ -269,7 +269,9 @@ async function bounceEventGUI(type) {
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
                 const name = (() => {
-                    if (e.isEpisode) {
+                    if (e.filename) {
+                        return e.filename
+                    } else if (e.isEpisode) {
                         return `${e.title.replace(/[^\w\s]/gi, '')}`
                     } else if (e.isSong) {
                         return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
@@ -305,7 +307,9 @@ async function bounceEventGUI(type) {
 
         for (let eventItem of eventsToParse) {
             const _eventFilename = (() => {
-                if (eventItem.isEpisode) {
+                if (eventItem.filename) {
+                    return eventItem.filename
+                } else if (eventItem.isEpisode) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
                 } else if (eventItem.isSong) {
                     return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
@@ -376,7 +380,9 @@ async function processPendingBounces() {
         console.log(moment.utc(thisEvent.syncStart).local() - pendingEvent.time)
         if (thisEvent.duration > 0) {
             thisEvent.filename = (() => {
-                if (thisEvent.isEpisode) {
+                if (eventItem.filename) {
+                    return eventItem.filename
+                } else if (thisEvent.isEpisode) {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
                 } else if (thisEvent.isSong) {
                     return `${thisEvent.artist.replace(/[^\w\s]/gi, '')} - ${thisEvent.title.replace(/[^\w\s]/gi, '')}`
@@ -514,7 +520,9 @@ async function nowPlayingNotification(forceUpdate) {
         nowPlayingGUID = nowPlaying.guid
         nowPlaying.isUpdated = false
         const eventText = (() => {
-            if (nowPlaying.isEpisode) {
+            if (nowPlaying.filename) {
+                return nowPlaying.filename
+            } else if (nowPlaying.isEpisode) {
                 return `${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
             } else if (nowPlaying.isSong) {
                 return `${nowPlaying.artist.replace(/[^\w\s]/gi, '')} - ${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
@@ -540,8 +548,101 @@ async function nowPlayingNotification(forceUpdate) {
         searchForEvents(nowPlaying, currentChannel);
     }
 }
-async function nowPlayingGUI() {
+async function modifyMetadataGUI(type) {
+    try {
+        let eventsMeta = [];
+        const lastIndex = channelTimes.timetable.length - 1
+        for (let c in channelTimes.timetable) {
+            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
+                return {
+                    ...e,
+                    ch: channelTimes.timetable[parseInt(c)].ch
+                }
+            })
+            eventsMeta.push(...events)
+        }
+        if (eventsMeta.length === 0)
+            return false
+        const eventSearch = await new Promise(resolve => {
+            const listmeta = eventsMeta.reverse().map(e => {
+                const name = (() => {
+                    if (e.filename) {
+                        return e.filename
+                    } else if (e.isEpisode) {
+                        return `${e.title.replace(/[^\w\s]/gi, '')}`
+                    } else if (e.isSong) {
+                        return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
+                    } else {
+                        return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
+                    }
+                })()
+                let exsists = false
+                try {
+                    exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
+                } catch (err) { }
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💾' : '📼'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+            })
+            const list = `choose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
+            const childProcess = osascript.execute(list, function (err, result, raw) {
+                if (err) return console.error(err)
+                if (result) {
+                    resolve(result.map(e => listmeta.indexOf(`"${e}"`)))
+                } else {
+                    resolve([])
+                }
+                clearTimeout(childKiller);
+            });
+            const childKiller = setTimeout(function () {
+                childProcess.stdin.pause();
+                childProcess.kill();
+                resolve([]);
+            }, 90000)
+        })
+        if (!eventSearch || eventSearch.length === 0)
+            return false;
+        const eventsToParse = eventSearch.map(e => eventsMeta[e]);
 
+        for (let eventItem of eventsToParse) {
+            const _eventFilename = (() => {
+                if (eventItem.filename) {
+                    return eventItem.filename
+                } else if (eventItem.isEpisode) {
+                    return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                } else if (eventItem.isSong) {
+                    return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                } else {
+                    return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
+                }
+            })()
+            metadata[eventItem.ch][metadata.map(f => f.guid).indexOf(eventItem.guid)].filename = await new Promise(resolve => {
+                const dialog = [
+                    `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
+                    `if the button returned of the dialogResult is "Update" then`,
+                    'return text returned of dialogResult',
+                    'else',
+                    `return "${_eventFilename}"`,
+                    'end if'
+                ].join('\n');
+                const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                    if (err) {
+                        console.error(err)
+                        resolve(_eventFilename);
+                    } else {
+                        resolve(result)
+                        clearTimeout(childKiller);
+                    }
+                });
+                const childKiller = setTimeout(function () {
+                    childProcess.stdin.pause();
+                    childProcess.kill();
+                    resolve(_eventFilename);
+                }, 120000)
+            });
+        }
+    } catch (e) {
+        console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
+        console.error(e);
+    }
 }
 
 app.get("/tune/:channelNum", (req, res, next) => {
@@ -570,8 +671,8 @@ app.get("/trigger/:display", (req, res, next) => {
                 registerBounce();
                 res.status(200).send('OK')
                 break;
-            case 'now_playing':
-                nowPlayingGUI();
+            case 'modify_meta':
+                modifyMetadataGUI();
                 res.status(200).send('OK')
                 break;
             default:
