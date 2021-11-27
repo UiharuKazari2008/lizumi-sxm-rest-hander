@@ -118,6 +118,13 @@ const findClosest = (arr, num) => {
                                 data.duration = chmeta[i].duration
                                 data.guid = chmeta[i].guid
                                 data.syncEnd = chmeta[i].syncEnd
+                                if (config.ignoredWords.map(word => {
+                                    return (data.title.toLowerCase().includes(word.toLowerCase) || data.artist.toLowerCase().includes(word.toLowerCase) || data.album.toLowerCase().includes(word.toLowerCase))
+                                }).filter(e => !(!e)).length > 0) {
+                                    data.title = chmeta[i].title
+                                    data.artist = chmeta[i].artist
+                                    data.album = chmeta[i].album
+                                }
                             } else {
                                 metadata[channelNumber].push(chmeta[i])
                             }
