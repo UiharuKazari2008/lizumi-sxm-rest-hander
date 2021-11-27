@@ -19,6 +19,7 @@ let channelTimes = {
         }
     ]
 };
+let nowPlayingGUID = null;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -166,6 +167,7 @@ async function updateMetadata() {
                                     data.title = chmeta[i].title
                                     data.artist = chmeta[i].artist
                                     data.album = chmeta[i].album
+                                    data.isUpdated = true
                                     if (data.updateCount) {
                                         data.updateCount = data.updateCount + 1
                                     } else {
@@ -188,6 +190,7 @@ async function updateMetadata() {
         }))
         publishMetaIcecast();
         publishMetadataFile();
+        nowPlayingNotification();
     } catch (e) {
         console.error(e);
         console.error("FAULT");
@@ -437,6 +440,37 @@ async function bounceEventFile(eventsToParse, options) {
     }
 }
 
+async function nowPlayingNotification(forceUpdate) {
+    const currentChannel = channelTimes.timetable.slice(-1).pop()
+    const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
+    if (nowPlayingGUID !== nowPlaying.guid || nowPlaying.isUpdated || forceUpdate) {
+        nowPlayingGUID = nowPlaying.guid
+        nowPlaying.isUpdated = false
+        const eventText = (() => {
+            if (nowPlaying.isEpisode) {
+                return `${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+            } else if (nowPlaying.isSong) {
+                return `${nowPlaying.artist.replace(/[^\w\s]/gi, '')} - ${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+            } else {
+                return `${nowPlaying.title.replace(/[^\w\s]/gi, '')} - ${nowPlaying.artist.replace(/[^\w\s]/gi, '')}`
+            }
+        })()
+        await new Promise(resolve => {
+            const list = `display notification "${eventText}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
+            const childProcess = osascript.execute(list, function (err, result, raw) {
+                resolve(null);
+                if (err) return console.error(err)
+                clearTimeout(childKiller);
+            });
+            const childKiller = setTimeout(function () {
+                childProcess.stdin.pause();
+                childProcess.kill();
+                resolve(null);
+            }, 90000)
+        })
+    }
+
+}
 async function nowPlayingGUI() {
 
 }
