@@ -17,7 +17,9 @@ let channelTimes = {
             "time": moment().valueOf(),
             "ch": '52'
         }
-    ]
+    ],
+    pending: [],
+
 };
 let nowPlayingGUID = null;
 
@@ -188,8 +190,6 @@ async function updateMetadata() {
                 console.error("FAULT");
             }
         }))
-        publishMetaIcecast();
-        publishMetadataFile();
         nowPlayingNotification();
     } catch (e) {
         console.error(e);
@@ -353,6 +353,9 @@ async function bounceEventGUI() {
         console.error(e);
     }
 }
+async function registerBounce() {
+
+}
 async function bounceEventFile(eventsToParse, options) {
     const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
         return {
@@ -468,8 +471,9 @@ async function nowPlayingNotification(forceUpdate) {
                 resolve(null);
             }, 90000)
         })
+        publishMetaIcecast();
+        publishMetadataFile();
     }
-
 }
 async function nowPlayingGUI() {
 
@@ -491,6 +495,10 @@ app.get("/trigger/:display", (req, res, next) => {
         switch (req.params.display) {
             case 'bounce':
                 bounceEventGUI();
+                res.status(200).send('OK')
+                break;
+            case 'bounceLater':
+                registerBounce();
                 res.status(200).send('OK')
                 break;
             case 'now_playing':
