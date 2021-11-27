@@ -642,7 +642,7 @@ async function modifyMetadataGUI(type) {
             if (parseInt(eventItem.duration.toString()) === 0) {
                 const duration = await new Promise(resolve => {
                     const dialog = [
-                        `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Cancel", "Update"} default button 2 giving up after 120)`,
+                        `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                         `if the button returned of the dialogResult is "Update" then`,
                         'return text returned of dialogResult',
                         'else',
