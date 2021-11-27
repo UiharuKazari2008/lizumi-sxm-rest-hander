@@ -119,7 +119,7 @@ const findClosest = (arr, num) => {
                                 data.guid = chmeta[i].guid
                                 data.syncEnd = chmeta[i].syncEnd
                                 if (config.ignoredWords.map(word => {
-                                    return (data.title.toLowerCase().includes(word.toLowerCase) || (!data.artist || data.artist && data.artist.toLowerCase().includes(word.toLowerCase)) || (!data.album || data.album && data.album.toLowerCase().includes(word.toLowerCase)))
+                                    return (data.title.toLowerCase().includes(word.toLowerCase) || (data.artist && data.artist.toLowerCase().includes(word.toLowerCase)) || (data.album && data.album.toLowerCase().includes(word.toLowerCase)))
                                 }).filter(e => !(!e)).length > 0 && (!data.isModified && (!data.updateCount || data.updateCount && data.updateCount <= 10))) {
                                     data.title = chmeta[i].title
                                     data.artist = chmeta[i].artist
