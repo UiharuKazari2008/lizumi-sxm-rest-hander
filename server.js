@@ -389,16 +389,18 @@ async function processPendingBounces() {
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
 async function searchForEvents(nowPlaying, currentChannel) {
-    config.autoBounce.forEach(lookup => {
-        if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
-            channelTimes.pending.push({
-                lookup: lookup.search,
-                ch: currentChannel,
-                time: moment().valueOf(),
-                done: false
-            })
-        }
-    })
+    if (config.autoBounce) {
+        config.autoBounce.forEach(lookup => {
+            if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
+                channelTimes.pending.push({
+                    lookup: lookup.search,
+                    ch: currentChannel,
+                    time: moment().valueOf(),
+                    done: false
+                })
+            }
+        })
+    }
 }
 async function bounceEventFile(eventsToParse, options) {
     const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
