@@ -157,7 +157,7 @@ const findClosest = (arr, num) => {
         })
         //console.log(metadata['52'].slice(-4))
 
-        const nowPlaying = metadata['52'].pop()
+        const nowPlaying = metadata['52'].slice(-1).pop()
         if (config.icecase_meta) {
             const nowPlayingText = (() => {
                 if (nowPlaying.isEpisode) {
