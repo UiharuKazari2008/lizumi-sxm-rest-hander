@@ -372,6 +372,7 @@ async function processPendingBounces() {
         const pendingEvent = channelTimes.pending[i]
         const events = metadata[pendingEvent.ch].filter(e => (e.duration >= 600 || e.duration === 0) && !e.isSong)
         const thisEvent = metadata[pendingEvent.ch][findClosest(events.map(f => f.syncStart), pendingEvent.time + 60000)]
+        console.log(thisEvent)
         if (thisEvent.duration > 0 && thisEvent.syncStart <= pendingEvent.time) {
             thisEvent.filename = (() => {
                 if (thisEvent.isEpisode) {
@@ -389,17 +390,19 @@ async function processPendingBounces() {
     channelTimes.pending = channelTimes.pending.filter(e => !e.done)
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
-async function searchForEvents(nowPlaying, currentChannel) {
+async function searchForEvents(_nowPlaying, currentChannel) {
     if (config.autoBounce) {
         config.autoBounce.forEach(lookup => {
-            if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
-                channelTimes.pending.push({
-                    lookup: lookup.search,
-                    ch: currentChannel.ch,
-                    time: moment().valueOf(),
-                    done: false
-                })
-            }
+            metadata[currentChannel.ch].slice(-8).forEach(nowPlaying => {
+                if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
+                    channelTimes.pending.push({
+                        lookup: lookup.search,
+                        ch: currentChannel.ch,
+                        time: moment().valueOf(),
+                        done: false
+                    })
+                }
+            })
         })
     }
 }
@@ -477,6 +480,19 @@ async function bounceEventFile(eventsToParse, options) {
                         })
                     }
                     console.log(`Ripping complete for ${eventItem.filename.trim()}!`)
+                    await new Promise(resolve => {
+                        const list = `display notification "✅ ${eventItem.filename.trim().split('.')[0]} was successful" with title "💿 Bouncer"`
+                        const childProcess = osascript.execute(list, function (err, result, raw) {
+                            resolve(null);
+                            if (err) return console.error(err)
+                            clearTimeout(childKiller);
+                        });
+                        const childKiller = setTimeout(function () {
+                            childProcess.stdin.pause();
+                            childProcess.kill();
+                            resolve(null);
+                        }, 90000)
+                    })
                 } catch (e) {
                     console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
                 }
