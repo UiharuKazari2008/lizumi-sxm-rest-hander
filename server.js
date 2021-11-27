@@ -662,13 +662,12 @@ async function modifyMetadataGUI(type) {
                         resolve("NaN");
                     }, 120000)
                 });
-                console.log(duration)
                 if (duration !== "NaN") {
-                    realItem.duration = parseInt(duration.toString()) * 60000
+                    realItem.duration = parseInt(duration.toString()) * 60
                     realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
                 }
             }
-            console.log(realItem)
+            metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)] = realItem
         }
     } catch (e) {
         console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
