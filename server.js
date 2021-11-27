@@ -387,7 +387,7 @@ async function processPendingBounces() {
             pendingEvent.done = true
         }
     }
-    channelTimes.pending = channelTimes.pending.filter(e => !e.done)
+    channelTimes.pending = channelTimes.pending.filter(e => e.done === false)
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
 async function searchForEvents(_nowPlaying, currentChannel) {
