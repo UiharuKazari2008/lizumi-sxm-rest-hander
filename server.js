@@ -370,11 +370,11 @@ let pendingBounceTimer = null;
 async function processPendingBounces() {
     for (let i in channelTimes.pending) {
         let pendingEvent = channelTimes.pending[i]
-        const events = metadata[pendingEvent.ch].filter(e => !e.isSong)
+        const events = metadata[pendingEvent.ch].filter(e => !e.isSong && e.syncStart < pendingEvent.time)
         let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
         console.log(thisEvent)
         console.log(moment.utc(thisEvent.syncStart).local() - pendingEvent.time)
-        if (thisEvent.duration > 0 && moment.utc(thisEvent.syncStart).local() <= pendingEvent.time) {
+        if (thisEvent.duration > 0) {
             thisEvent.filename = (() => {
                 if (thisEvent.isEpisode) {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
@@ -429,7 +429,7 @@ async function bounceEventFile(eventsToParse, options) {
             const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
             const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-            const eventFilename = `${eventItem.filename.trim()}` + (!eventItem.isSong) ? ` (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}` : ''
+            const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}` : ''
 
             //console.log(`Found Requested Event! "${eventFilename}"...`)
             console.log(`${fileStart} | ${fileEnd}`)
