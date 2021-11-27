@@ -19,7 +19,6 @@ let channelTimes = {
         }
     ],
     pending: [],
-
 };
 let nowPlayingGUID = null;
 
@@ -256,8 +255,23 @@ async function publishMetadataFile() {
 }
 
 async function bounceEventGUI() {
+    const eventsMeta = (() => {
+        const lastIndex = channelTimes.timetable.length - 1
+        let eventList = []
+        for (let c in channelTimes.timetable) {
+            let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
+            events.map(e => {
+                return {
+                    ...e,
+                    ch: channelTimes.timetable[c].ch
+                }
+            })
+            // eventList.push(...)
+        }
+        return eventList
+    })()
     try {
-        const channelNumber = await new Promise(resolve => {
+        /*const channelNumber = await new Promise(resolve => {
             const listmeta = Object.keys(metadata).map(e => '"' + e + '"')
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Channel for CUE list:" default items ${listmeta.slice(-1).pop()} empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -273,87 +287,129 @@ async function bounceEventGUI() {
         })
         if (channelNumber) {
             console.log(`Selected Channel ${channelNumber}`)
-            const eventsMeta = metadata[channelNumber].filter(e => e.duration >= 600 && !e.isSong).reverse()
 
-
-            const eventSearch = await new Promise(resolve => {
-                const listmeta = eventsMeta.map(e => {
-                    const name = (() => {
-                        if (e.isEpisode) {
-                            return `${e.title.replace(/[^\w\s]/gi, '')}`
-                        } else if (e.isSong) {
-                            return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
-                        } else {
-                            return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
-                        }
-                    })()
-                    let exsists = false
-                    try {
-                        exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
-                    } catch (err) { }
-                    return `"[${moment.utc(e.syncStart).local().format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
-                })
-                const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
-                const childProcess = osascript.execute(list, function (err, result, raw) {
-                    if (err) return console.error(err)
-                    if (result) {
-                        resolve(result.map(e => listmeta.indexOf(`"${e}"`)))
+        }*/
+        const eventSearch = await new Promise(resolve => {
+            const listmeta = eventsMeta.reverse().map(e => {
+                const name = (() => {
+                    if (e.isEpisode) {
+                        return `${e.title.replace(/[^\w\s]/gi, '')}`
+                    } else if (e.isSong) {
+                        return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
                     } else {
-                        resolve([])
+                        return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
                     }
-                    clearTimeout(childKiller);
+                })()
+                let exsists = false
+                try {
+                    exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
+                } catch (err) { }
+                return `"[${e.ch} @ ${moment.utc(e.syncStart).local().format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+            })
+            const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
+            const childProcess = osascript.execute(list, function (err, result, raw) {
+                if (err) return console.error(err)
+                if (result) {
+                    resolve(result.map(e => listmeta.indexOf(`"${e}"`)))
+                } else {
+                    resolve([])
+                }
+                clearTimeout(childKiller);
+            });
+            const childKiller = setTimeout(function () {
+                childProcess.stdin.pause();
+                childProcess.kill();
+                resolve(null);
+            }, 90000)
+        })
+        const eventsToParse = eventSearch.map(e => eventsMeta.reverse()[e]);
+
+        for (let eventItem of eventsToParse) {
+            const _eventFilename = (() => {
+                if (eventItem.isEpisode) {
+                    return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                } else if (eventItem.isSong) {
+                    return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                } else {
+                    return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
+                }
+            })()
+            eventItem.filename = await new Promise(resolve => {
+                const dialog = [
+                    `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
+                    `if the button returned of the dialogResult is "Update" then`,
+                    'return text returned of dialogResult',
+                    'else',
+                    `return "${_eventFilename}"`,
+                    'end if'
+                ].join('\n');
+                const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                    if (err) {
+                        console.error(err)
+                        resolve(_eventFilename);
+                    } else {
+                        resolve(result)
+                        clearTimeout(childKiller);
+                    }
                 });
                 const childKiller = setTimeout(function () {
                     childProcess.stdin.pause();
                     childProcess.kill();
-                    resolve(null);
-                }, 90000)
-            })
-            const eventsToParse = eventSearch.map(e => eventsMeta[e]);
-
-            for (let eventItem of eventsToParse) {
-                const _eventFilename = (() => {
-                    if (eventItem.isEpisode) {
-                        return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
-                    } else if (eventItem.isSong) {
-                        return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
-                    } else {
-                        return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
-                    }
-                })()
-                eventItem.filename = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "${_eventFilename}"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve(_eventFilename);
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(_eventFilename);
-                    }, 120000)
-                });
-            }
-            await bounceEventFile(eventsToParse);
+                    resolve(_eventFilename);
+                }, 120000)
+            });
         }
+        await bounceEventFile(eventsToParse);
     } catch (e) {
         console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
         console.error(e);
     }
 }
 async function registerBounce() {
+    const currentChannel = channelTimes.timetable.slice(-1).pop()
+    channelTimes.pending.push({
+        ch: currentChannel,
+        time: moment().valueOf(),
+        done: false
+    })
+    await new Promise(resolve => {
+        const list = `display notification "💿 This event will be bounced on completion" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
+        const childProcess = osascript.execute(list, function (err, result, raw) {
+            resolve(null);
+            if (err) return console.error(err)
+            clearTimeout(childKiller);
+        });
+        const childKiller = setTimeout(function () {
+            childProcess.stdin.pause();
+            childProcess.kill();
+            resolve(null);
+        }, 90000)
+    })
+}
+let pendingBounceTimer = null;
+async function processPendingBounces() {
+    for (let i in channelTimes.pending) {
+        const pendingEvent = channelTimes.pending[i]
+        const events = metadata[pendingEvent.ch].filter(e => (e.duration >= 600 || e.duration === 0) && !e.isSong)
+        const thisEvent = metadata[pendingEvent.ch][findClosest(events.map(f => f.syncStart), pendingEvent.time + 60000)]
+        if (thisEvent.duration > 0 && thisEvent.syncStart <= pendingEvent.time) {
+            thisEvent.filename = (() => {
+                if (thisEvent.isEpisode) {
+                    return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                } else if (thisEvent.isSong) {
+                    return `${thisEvent.artist.replace(/[^\w\s]/gi, '')} - ${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                } else {
+                    return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
+                }
+            })()
+            await bounceEventFile(thisEvent)
+            pendingEvent.done = true
+        }
+    }
+    channelTimes.pending = channelTimes.pending.filter(e => !e.done)
+    pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
+}
+async function searchForEvents() {
 
 }
 async function bounceEventFile(eventsToParse, options) {
@@ -459,7 +515,7 @@ async function nowPlayingNotification(forceUpdate) {
             }
         })()
         await new Promise(resolve => {
-            const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
+            const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 resolve(null);
                 if (err) return console.error(err)
@@ -493,11 +549,11 @@ app.get("/tune/:channelNum", (req, res, next) => {
 app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
-            case 'bounce':
+            case 'select_bounce':
                 bounceEventGUI();
                 res.status(200).send('OK')
                 break;
-            case 'bounceLater':
+            case 'pend_bounce':
                 registerBounce();
                 res.status(200).send('OK')
                 break;
@@ -520,6 +576,9 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     } else {
         await updateMetadata();
         await saveMetadata();
-        cron.schedule("*/5 * * * *", () => { saveMetadata() });
+        await processPendingBounces();
+        cron.schedule("*/5 * * * *", async () => {
+            saveMetadata()
+        });
     }
 });
