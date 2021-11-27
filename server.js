@@ -259,8 +259,7 @@ async function bounceEventGUI() {
         let eventsMeta = [];
         const lastIndex = channelTimes.timetable.length - 1
         for (let c in channelTimes.timetable) {
-            let events = metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)))
-            await events.map(e => {
+            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time))).map(e => {
                 return {
                     ...e,
                     ch: channelTimes.timetable[parseInt(c)].ch
@@ -300,9 +299,11 @@ async function bounceEventGUI() {
             const childKiller = setTimeout(function () {
                 childProcess.stdin.pause();
                 childProcess.kill();
-                resolve(null);
+                resolve([]);
             }, 90000)
         })
+        if (!eventSearch || eventSearch.length === 0)
+            return false;
         const eventsToParse = eventSearch.map(e => eventsMeta.reverse()[e]);
 
         for (let eventItem of eventsToParse) {
