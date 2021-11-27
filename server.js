@@ -384,7 +384,7 @@ async function processPendingBounces() {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
-            await bounceEventFile(thisEvent)
+            await bounceEventFile([ thisEvent ])
             pendingEvent.done = true
         }
     }
