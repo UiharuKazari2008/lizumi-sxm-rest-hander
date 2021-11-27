@@ -373,8 +373,8 @@ async function processPendingBounces() {
         const events = metadata[pendingEvent.ch].filter(e => (e.duration >= 600 || e.duration === 0) && !e.isSong)
         const thisEvent = events[findClosest(events.map(f => f.syncStart), pendingEvent.time + 60000)]
         console.log(thisEvent)
-        console.log(`${moment(thisEvent.syncStart).local().valueOf() - pendingEvent.time}`)
-        if (thisEvent.duration > 0 && moment(thisEvent.syncStart).local().valueOf() <= pendingEvent.time) {
+        console.log(moment().utc(thisEvent.syncStart).local().valueOf() - pendingEvent.time)
+        if (thisEvent.duration > 0 && moment().utc(thisEvent.syncStart).local().valueOf() <= pendingEvent.time) {
             thisEvent.filename = (() => {
                 if (thisEvent.isEpisode) {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
@@ -482,7 +482,7 @@ async function bounceEventFile(eventsToParse, options) {
                     }
                     console.log(`Ripping complete for ${eventItem.filename.trim()}!`)
                     await new Promise(resolve => {
-                        const list = `display notification "✅ ${eventItem.filename.trim().split('.')[0]} was successful" with title "💿 Bouncer"`
+                        const list = `display notification "✅ ${eventItem.filename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"`
                         const childProcess = osascript.execute(list, function (err, result, raw) {
                             resolve(null);
                             if (err) return console.error(err)
