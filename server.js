@@ -371,7 +371,7 @@ async function processPendingBounces() {
     for (let i in channelTimes.pending) {
         const pendingEvent = channelTimes.pending[i]
         const events = metadata[pendingEvent.ch].filter(e => (e.duration >= 600 || e.duration === 0) && !e.isSong)
-        const thisEvent = events[findClosest(events.map(f => f.syncStart), pendingEvent.time + 60000)]
+        const thisEvent = events[findClosest(events.map(f => moment().utc(f.syncStart).local().valueOf()), pendingEvent.time + 60000)]
         console.log(thisEvent)
         console.log(moment().utc(thisEvent.syncStart).local().valueOf() - pendingEvent.time)
         if (thisEvent.duration > 0 && moment().utc(thisEvent.syncStart).local().valueOf() <= pendingEvent.time) {
