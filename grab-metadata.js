@@ -186,7 +186,7 @@ const findClosest = (arr, num) => {
                 }
             }
             await new Promise(resolve => {
-                fs.writeFile(path.join(config.record_dir, config.nowPlaying), nowPlayingData, () => {
+                fs.writeFile(path.join(config.record_dir, config.nowPlaying), nowPlayingData.join('\n').toString(), () => {
                     resolve(null)
                 })
             })
