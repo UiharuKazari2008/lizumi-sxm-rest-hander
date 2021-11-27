@@ -283,7 +283,7 @@ async function bounceEventGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(e.duration === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(!e.duration) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -580,7 +580,7 @@ async function modifyMetadataGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(e.duration === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(!e.duration) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
