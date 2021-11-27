@@ -304,7 +304,7 @@ async function bounceEventGUI(type) {
         })
         if (!eventSearch || eventSearch.length === 0)
             return false;
-        const eventsToParse = eventSearch.map(e => eventsMeta.reverse()[e]);
+        const eventsToParse = eventSearch.map(e => eventsMeta[e]);
 
         for (let eventItem of eventsToParse) {
             const _eventFilename = (() => {
