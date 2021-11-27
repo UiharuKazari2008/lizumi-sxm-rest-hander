@@ -456,7 +456,7 @@ async function nowPlayingNotification(forceUpdate) {
             }
         })()
         await new Promise(resolve => {
-            const list = `display notification "${eventText}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
+            const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 resolve(null);
                 if (err) return console.error(err)
