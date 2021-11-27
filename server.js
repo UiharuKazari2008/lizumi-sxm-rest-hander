@@ -347,7 +347,7 @@ async function bounceEventGUI(type) {
 async function registerBounce() {
     const currentChannel = channelTimes.timetable.slice(-1).pop()
     channelTimes.pending.push({
-        ch: currentChannel,
+        ch: currentChannel.ch,
         time: moment().valueOf(),
         done: false
     })
@@ -364,6 +364,7 @@ async function registerBounce() {
             resolve(null);
         }, 90000)
     })
+    await saveMetadata();
 }
 let pendingBounceTimer = null;
 async function processPendingBounces() {
@@ -394,7 +395,7 @@ async function searchForEvents(nowPlaying, currentChannel) {
             if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
                 channelTimes.pending.push({
                     lookup: lookup.search,
-                    ch: currentChannel,
+                    ch: currentChannel.ch,
                     time: moment().valueOf(),
                     done: false
                 })
