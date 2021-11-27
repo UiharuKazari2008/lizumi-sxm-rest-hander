@@ -349,11 +349,11 @@ async function bounceEventGUI(type) {
         console.error(e);
     }
 }
-async function registerBounce() {
+async function registerBounce(addTime) {
     const currentChannel = channelTimes.timetable.slice(-1).pop()
     channelTimes.pending.push({
         ch: currentChannel.ch,
-        time: moment().valueOf(),
+        time: moment().valueOf() + (addTime * 60000),
         done: false
     })
     await new Promise(resolve => {
@@ -377,9 +377,10 @@ async function processPendingBounces() {
         let pendingEvent = channelTimes.pending[i]
         const events = metadata[pendingEvent.ch].filter(e => !e.isSong && e.syncStart < pendingEvent.time)
         let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
+        console.log(thisEvent)
         if (parseInt(thisEvent.duration.toString()) > 0) {
             thisEvent.filename = (() => {
-                if (eventItem.filename) {
+                if (thisEvent.filename) {
                     return eventItem.filename
                 } else if (thisEvent.isEpisode) {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
@@ -701,7 +702,7 @@ app.get("/trigger/:display", (req, res, next) => {
                 res.status(200).send('OK')
                 break;
             case 'pend_bounce':
-                registerBounce();
+                registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0);
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
