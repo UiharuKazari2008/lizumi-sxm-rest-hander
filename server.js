@@ -254,12 +254,12 @@ async function publishMetadataFile() {
     }
 }
 
-async function bounceEventGUI() {
+async function bounceEventGUI(type) {
     try {
         let eventsMeta = [];
         const lastIndex = channelTimes.timetable.length - 1
         for (let c in channelTimes.timetable) {
-            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time))).map(e => {
+            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
                 return {
                     ...e,
                     ch: channelTimes.timetable[parseInt(c)].ch
@@ -284,7 +284,7 @@ async function bounceEventGUI() {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[${e.ch} @ ${moment.utc(e.syncStart).local().format("MMM D HH:mm")}${(e.isEpisode) ? '🔶' : '🟢'}] ${(exsists) ? '✅' : '⏸'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💾' : '📼'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -531,8 +531,12 @@ app.get("/tune/:channelNum", (req, res, next) => {
 app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
-            case 'select_bounce':
-                bounceEventGUI();
+            case 'select_bounce_event':
+                bounceEventGUI(false);
+                res.status(200).send('OK')
+                break;
+            case 'select_bounce_song':
+                bounceEventGUI(true);
                 res.status(200).send('OK')
                 break;
             case 'pend_bounce':
