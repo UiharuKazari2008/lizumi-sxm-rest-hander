@@ -259,11 +259,11 @@ async function bounceEventGUI() {
         let eventsMeta = [];
         const lastIndex = channelTimes.timetable.length - 1
         for (let c in channelTimes.timetable) {
-            let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
+            let events = metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)))
             await events.map(e => {
                 return {
                     ...e,
-                    ch: channelTimes.timetable[c].ch
+                    ch: channelTimes.timetable[parseInt(c)].ch
                 }
             })
             eventsMeta.push(...events)
