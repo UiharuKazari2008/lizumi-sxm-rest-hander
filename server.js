@@ -612,7 +612,8 @@ async function modifyMetadataGUI(type) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
-            metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)].filename = await new Promise(resolve => {
+            let realItem = metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)]
+            realItem.filename = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
@@ -636,6 +637,36 @@ async function modifyMetadataGUI(type) {
                     resolve(_eventFilename);
                 }, 120000)
             });
+            if (parseInt(eventItem.duration.toString()) === 0) {
+                let duration = await new Promise(resolve => {
+                    const dialog = [
+                        `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Cancel", "Update"} default button 2 giving up after 120)`,
+                        `if the button returned of the dialogResult is "Update" then`,
+                        'return text returned of dialogResult',
+                        'else',
+                        `return "NaN"`,
+                        'end if'
+                    ].join('\n');
+                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                        if (err) {
+                            console.error(err)
+                            resolve("NaN");
+                        } else {
+                            resolve(result)
+                            clearTimeout(childKiller);
+                        }
+                    });
+                    const childKiller = setTimeout(function () {
+                        childProcess.stdin.pause();
+                        childProcess.kill();
+                        resolve("NaN");
+                    }, 120000)
+                });
+                if (duration !== "NaN") {
+                    realItem.duration = parseInt(duration.toString()) * 60000
+                    realItem.syncEnd = moment(realItem.syncStart).add(realItem.duration, "seconds").valueOf()
+                }
+            }
         }
     } catch (e) {
         console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
