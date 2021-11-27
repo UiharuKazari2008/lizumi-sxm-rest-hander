@@ -268,6 +268,7 @@ async function bounceEventGUI(type) {
             return false
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
+                const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
                 const name = (() => {
                     if (e.filename) {
                         return e.filename
@@ -283,7 +284,7 @@ async function bounceEventGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💿' : '〰'} ${name} (${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💿' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -563,6 +564,7 @@ async function modifyMetadataGUI(type) {
             return false
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
+                const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
                 const name = (() => {
                     if (e.filename) {
                         return e.filename
@@ -578,7 +580,7 @@ async function modifyMetadataGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(parseInt(e.duration.toString()) === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(parseInt(e.duration.toString()) === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
