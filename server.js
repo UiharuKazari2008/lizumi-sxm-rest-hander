@@ -373,7 +373,8 @@ async function processPendingBounces() {
         const events = metadata[pendingEvent.ch].filter(e => (e.duration >= 600 || e.duration === 0) && !e.isSong)
         const thisEvent = events[findClosest(events.map(f => f.syncStart), pendingEvent.time + 60000)]
         console.log(thisEvent)
-        if (thisEvent.duration > 0 && thisEvent.syncStart <= pendingEvent.time) {
+        console.log(`${moment(thisEvent.syncStart).local().valueOf() - pendingEvent.time}`)
+        if (thisEvent.duration > 0 && moment(thisEvent.syncStart).local().valueOf() <= pendingEvent.time) {
             thisEvent.filename = (() => {
                 if (thisEvent.isEpisode) {
                     return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
