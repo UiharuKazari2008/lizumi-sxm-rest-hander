@@ -639,6 +639,7 @@ async function modifyMetadataGUI(type) {
                     resolve(_eventFilename);
                 }, 120000)
             });
+            realItem.isUpdated = true
             if (parseInt(eventItem.duration.toString()) === 0) {
                 const duration = await new Promise(resolve => {
                     const dialog = [
