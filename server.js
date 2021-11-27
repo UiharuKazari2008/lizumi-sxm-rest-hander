@@ -1,4 +1,5 @@
-const config = require('./config.json')
+let config = require('./config.json')
+let cookies = require("./cookie.json");
 const moment = require('moment');
 const fs = require('fs');
 const path = require("path");
@@ -9,7 +10,7 @@ const request = require('request').defaults({ encoding: null });
 const express = require("express");
 const app = express();
 
-let cookies = require("./cookie.json");
+
 let metadata = {};
 let channelTimes = {
     timetable: [
@@ -209,10 +210,8 @@ async function saveMetadata() {
     })
     return true;
 }
-async function publishMetaIcecast() {
+async function publishMetaIcecast(nowPlaying, currentChannel) {
     if (config.icecase_meta) {
-        const currentChannel = channelTimes.timetable.slice(-1).pop()
-        const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
         const nowPlayingText = (() => {
             if (nowPlaying.isEpisode) {
                 return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
@@ -225,16 +224,14 @@ async function publishMetaIcecast() {
 
         return new Promise(resolve => {
             request.get({
-                url: config.icecase_meta + encodeURIComponent('CH52: ' + nowPlayingText),
+                url: config.icecase_meta + encodeURIComponent(nowPlayingText + ' // ' + config.channels[currentChannel.ch].name),
                 timeout: 5000
             }, async function (err, res, body) { resolve(!err) })
         })
     }
 }
-async function publishMetadataFile() {
+async function publishMetadataFile(nowPlaying, currentChannel) {
     if (config.nowPlaying) {
-        const currentChannel = channelTimes.timetable.slice(-1).pop()
-        const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
         let nowPlayingData = [`Title: ${nowPlaying.title}`];
         if (!nowPlaying.isEpisode) {
             nowPlayingData.push(`Artist: ${nowPlaying.artist}`)
@@ -391,8 +388,17 @@ async function processPendingBounces() {
     channelTimes.pending = channelTimes.pending.filter(e => !e.done)
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
-async function searchForEvents() {
-
+async function searchForEvents(nowPlaying, currentChannel) {
+    config.autoBounce.forEach(lookup => {
+        if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
+            channelTimes.pending.push({
+                lookup: lookup.search,
+                ch: currentChannel,
+                time: moment().valueOf(),
+                done: false
+            })
+        }
+    })
 }
 async function bounceEventFile(eventsToParse, options) {
     const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
@@ -416,7 +422,7 @@ async function bounceEventFile(eventsToParse, options) {
             const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
             const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-            const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
+            const eventFilename = `${eventItem.filename.trim()}` + (!eventItem.isSong) ? ` (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}` : ''
 
             //console.log(`Found Requested Event! "${eventFilename}"...`)
             console.log(`${fileStart} | ${fileEnd}`)
@@ -509,8 +515,9 @@ async function nowPlayingNotification(forceUpdate) {
                 resolve(null);
             }, 90000)
         })
-        publishMetaIcecast();
-        publishMetadataFile();
+        publishMetaIcecast(nowPlaying, currentChannel);
+        publishMetadataFile(nowPlaying, currentChannel);
+        searchForEvents(nowPlaying, currentChannel);
     }
 }
 async function nowPlayingGUI() {
@@ -565,6 +572,10 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         await processPendingBounces();
         cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
+        });
+        cron.schedule("*/5 * * * *", async () => {
+            config = require('./config.json');
+            cookies = require("./cookie.json");
         });
     }
 });
