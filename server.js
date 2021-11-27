@@ -638,7 +638,7 @@ async function modifyMetadataGUI(type) {
                 }, 120000)
             });
             if (parseInt(eventItem.duration.toString()) === 0) {
-                let duration = await new Promise(resolve => {
+                const duration = await new Promise(resolve => {
                     const dialog = [
                         `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Cancel", "Update"} default button 2 giving up after 120)`,
                         `if the button returned of the dialogResult is "Update" then`,
@@ -653,7 +653,6 @@ async function modifyMetadataGUI(type) {
                             resolve("NaN");
                         } else {
                             resolve(result)
-                            console.log(result)
                             clearTimeout(childKiller);
                         }
                     });
@@ -663,11 +662,13 @@ async function modifyMetadataGUI(type) {
                         resolve("NaN");
                     }, 120000)
                 });
+                console.log(duration)
                 if (duration !== "NaN") {
                     realItem.duration = parseInt(duration.toString()) * 60000
                     realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
                 }
             }
+            console.log(realItem)
         }
     } catch (e) {
         console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
