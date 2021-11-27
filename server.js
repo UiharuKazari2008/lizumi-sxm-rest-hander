@@ -255,19 +255,21 @@ async function publishMetadataFile() {
 }
 
 async function bounceEventGUI() {
-    let eventsMeta = [];
-    const lastIndex = channelTimes.timetable.length - 1
-    for (let c in channelTimes.timetable) {
-        let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
-        events.map(e => {
-            return {
-                ...e,
-                ch: channelTimes.timetable[c].ch
-            }
-        })
-        eventsMeta.push(...events)
-    }
     try {
+        let eventsMeta = [];
+        const lastIndex = channelTimes.timetable.length - 1
+        for (let c in channelTimes.timetable) {
+            let events = metadata[channelTimes.timetable[c].ch].filter(f => (c === 0 || (f.syncStart >= (channelTimes.timetable[c].time) - 30000 )) && (c === lastIndex || (c !== lastIndex && f.syncStart <= channelTimes.timetable[c + 1].time)))
+            await events.map(e => {
+                return {
+                    ...e,
+                    ch: channelTimes.timetable[c].ch
+                }
+            })
+            eventsMeta.push(...events)
+        }
+        if (eventsMeta.length === 0)
+            return false
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
                 const name = (() => {
