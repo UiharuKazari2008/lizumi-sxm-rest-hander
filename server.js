@@ -71,15 +71,15 @@ async function updateMetadata() {
                 if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
                     const json = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['markerLists'].filter(e => e['layer'] === 'cut')[0]['markers']
                     // For each track that is longer then 65 Seconds
-                    let items = json.filter(e => (e.duration >= 65 || !e.duration)).map(e => {
+                    let items = json.filter(e => (parseInt(e.duration.toString()) >= 65 || !e.duration)).map(e => {
                         // Get localized timecode
                         const time = moment(e['time'])
                         // Format to Lizumi Meta Format v2
                         return {
                             guid: e.assetGUID,
                             syncStart: time.valueOf(),
-                            syncEnd: time.add(e.duration, "seconds").valueOf(),
-                            duration: e.duration.toFixed(0),
+                            syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
+                            duration: parseInt(e.duration.toString()),
 
                             title: e.cut.title,
                             artist: e.cut.artists.map(f => f.name).join('/'),
@@ -96,8 +96,8 @@ async function updateMetadata() {
                             return {
                                 guid: e.assetGUID,
                                 syncStart: time.valueOf(),
-                                syncEnd: time.add(e.duration, "seconds").valueOf(),
-                                duration: e.duration.toFixed(0),
+                                syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
+                                duration: parseInt(e.duration.toString()),
 
                                 title: e['episode']['longTitle'],
                                 isSong: false,
@@ -256,7 +256,7 @@ async function bounceEventGUI(type) {
         let eventsMeta = [];
         const lastIndex = channelTimes.timetable.length - 1
         for (let c in channelTimes.timetable) {
-            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => f.duration > 0 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
+            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 0 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time) - 30000 )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
                 return {
                     ...e,
                     ch: channelTimes.timetable[parseInt(c)].ch
@@ -283,7 +283,7 @@ async function bounceEventGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💿' : '〰'} ${name} (${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -376,9 +376,7 @@ async function processPendingBounces() {
         let pendingEvent = channelTimes.pending[i]
         const events = metadata[pendingEvent.ch].filter(e => !e.isSong && e.syncStart < pendingEvent.time)
         let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
-        console.log(thisEvent)
-        console.log(moment.utc(thisEvent.syncStart).local() - pendingEvent.time)
-        if (thisEvent.duration > 0) {
+        if (parseInt(thisEvent.duration.toString()) > 0) {
             thisEvent.filename = (() => {
                 if (eventItem.filename) {
                     return eventItem.filename
@@ -424,7 +422,7 @@ async function bounceEventFile(eventsToParse, options) {
         if (parseInt(index) === 0)
             console.log(`PROGRESS:0`)
         const eventItem = eventsToParse[index]
-        if (eventItem.duration > 0) {
+        if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
             let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
             if (startFile < 0)
@@ -433,7 +431,7 @@ async function bounceEventFile(eventsToParse, options) {
             const fileItems = fileTimes.slice(startFile, endFile + 1)
             const fileList = fileItems.map(e => e.file).join('|')
             const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
-            const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
+            const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
@@ -580,7 +578,7 @@ async function modifyMetadataGUI(type) {
                 try {
                     exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
                 } catch (err) { }
-                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(e.duration === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(e.duration * 1000).split('.')[0]})"`
+                return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(parseInt(e.duration.toString()) === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} (${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
             const list = `choose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
