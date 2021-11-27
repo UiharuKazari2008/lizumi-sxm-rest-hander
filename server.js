@@ -429,7 +429,7 @@ async function bounceEventFile(eventsToParse, options) {
             const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
             const fileEnd = msToTime((eventItem.duration * 1000) + 10000)
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
-            const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}` : ''
+            const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
             //console.log(`Found Requested Event! "${eventFilename}"...`)
             console.log(`${fileStart} | ${fileEnd}`)
