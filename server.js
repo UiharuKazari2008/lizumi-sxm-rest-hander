@@ -614,7 +614,7 @@ async function modifyMetadataGUI(type) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
-            metadata[eventItem.ch][metadata.map(f => f.guid).indexOf(eventItem.guid)].filename = await new Promise(resolve => {
+            metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)].filename = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
