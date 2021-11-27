@@ -118,20 +118,22 @@ const findClosest = (arr, num) => {
                                 data.duration = chmeta[i].duration
                                 data.guid = chmeta[i].guid
                                 data.syncEnd = chmeta[i].syncEnd
-                                if (config.ignoredWords.map(word => {
-                                    return (
-                                        data.title.toLowerCase().includes(word.toLowerCase()) ||
-                                        (data.artist && data.artist.toLowerCase().includes(word.toLowerCase())) ||
-                                        (data.album && data.album.toLowerCase().includes(word.toLowerCase()))
-                                    )
-                                }).filter(e => e === true).length > 0 && (!data.isModified && (!data.updateCount || (data.updateCount && data.updateCount <= 10)))) {
-                                    data.title = chmeta[i].title
-                                    data.artist = chmeta[i].artist
-                                    data.album = chmeta[i].album
-                                    if (data.updateCount) {
-                                        data.updateCount = data.updateCount + 1
-                                    } else {
-                                        data.updateCount = 1;
+                                if (config.ignoredWords) {
+                                    if (config.ignoredWords.map(word => {
+                                        return (
+                                            data.title.toLowerCase().includes(word.toLowerCase()) ||
+                                            (data.artist && data.artist.toLowerCase().includes(word.toLowerCase())) ||
+                                            (data.album && data.album.toLowerCase().includes(word.toLowerCase()))
+                                        )
+                                    }).filter(e => e === true).length > 0 && (!data.isModified && (!data.updateCount || (data.updateCount && data.updateCount <= 10)))) {
+                                        data.title = chmeta[i].title
+                                        data.artist = chmeta[i].artist
+                                        data.album = chmeta[i].album
+                                        if (data.updateCount) {
+                                            data.updateCount = data.updateCount + 1
+                                        } else {
+                                            data.updateCount = 1;
+                                        }
                                     }
                                 }
                             } else {
@@ -155,8 +157,8 @@ const findClosest = (arr, num) => {
         })
         //console.log(metadata['52'].slice(-4))
 
+        const nowPlaying = metadata['52'].pop()
         if (config.icecase_meta) {
-            const nowPlaying = metadata['52'].pop()
             const nowPlayingText = (() => {
                 if (nowPlaying.isEpisode) {
                     return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
@@ -172,6 +174,21 @@ const findClosest = (arr, num) => {
                 timeout: 5000
             }, async function (err, res, body) {
 
+            })
+        }
+        // Rogue Amoeba Now Playing Metadata File
+        if (config.nowPlaying) {
+            let nowPlayingData = [ `Title: ${nowPlaying.title}` ];
+            if (!nowPlaying.isEpisode) {
+                nowPlayingData.push(`Artist: ${nowPlaying.artist}`)
+                if (nowPlaying.isSong) {
+                    nowPlayingData.push(`Album: ${nowPlaying.album}`)
+                }
+            }
+            await new Promise(resolve => {
+                fs.writeFile(path.join(config.record_dir, config.nowPlaying), nowPlayingData, () => {
+                    resolve(null)
+                })
             })
         }
     } catch (e) {
