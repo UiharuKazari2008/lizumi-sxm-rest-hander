@@ -373,28 +373,33 @@ async function registerBounce(addTime) {
 }
 let pendingBounceTimer = null;
 async function processPendingBounces() {
-    for (let i in channelTimes.pending) {
-        let pendingEvent = channelTimes.pending[i]
-        const events = metadata[pendingEvent.ch].filter(e => !e.isSong && e.syncStart < pendingEvent.time)
-        let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
-        console.log(thisEvent)
-        if (parseInt(thisEvent.duration.toString()) > 0) {
-            thisEvent.filename = (() => {
-                if (thisEvent.filename) {
-                    return eventItem.filename
-                } else if (thisEvent.isEpisode) {
-                    return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
-                } else if (thisEvent.isSong) {
-                    return `${thisEvent.artist.replace(/[^\w\s]/gi, '')} - ${thisEvent.title.replace(/[^\w\s]/gi, '')}`
-                } else {
-                    return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
-                }
-            })()
-            await bounceEventFile([ thisEvent ])
-            pendingEvent.done = true
+    try {
+        for (let i in channelTimes.pending) {
+            let pendingEvent = channelTimes.pending[i]
+            const events = metadata[pendingEvent.ch].filter(e => !e.isSong && e.syncStart < pendingEvent.time)
+            let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
+            console.log(pendingEvent.time)
+            console.log(thisEvent)
+            if (parseInt(thisEvent.duration.toString()) > 0) {
+                thisEvent.filename = (() => {
+                    if (thisEvent.filename) {
+                        return thisEvent.filename
+                    } else if (thisEvent.isEpisode) {
+                        return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                    } else if (thisEvent.isSong) {
+                        return `${thisEvent.artist.replace(/[^\w\s]/gi, '')} - ${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                    } else {
+                        return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
+                    }
+                })()
+                await bounceEventFile([thisEvent])
+                pendingEvent.done = true
+            }
         }
+        channelTimes.pending = channelTimes.pending.filter(e => e.done === false)
+    } catch (err) {
+        console.error(err)
     }
-    channelTimes.pending = channelTimes.pending.filter(e => e.done === false)
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
 async function searchForEvents(_nowPlaying, currentChannel) {
