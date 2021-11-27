@@ -653,6 +653,7 @@ async function modifyMetadataGUI(type) {
                             resolve("NaN");
                         } else {
                             resolve(result)
+                            console.log(result)
                             clearTimeout(childKiller);
                         }
                     });
