@@ -349,10 +349,10 @@ async function bounceEventGUI(type) {
         console.error(e);
     }
 }
-async function registerBounce(addTime) {
+async function registerBounce(addTime, channelNumber) {
     const currentChannel = channelTimes.timetable.slice(-1).pop()
     channelTimes.pending.push({
-        ch: currentChannel.ch,
+        ch: (channelNumber) ? channelNumber : currentChannel.ch,
         time: moment().valueOf() + (addTime * 60000),
         done: false
     })
@@ -707,7 +707,7 @@ app.get("/trigger/:display", (req, res, next) => {
                 res.status(200).send('OK')
                 break;
             case 'pend_bounce':
-                registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0);
+                registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined );
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
