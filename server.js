@@ -118,7 +118,7 @@ async function updateMetadata() {
             }
         }
         const currentChannel = channelTimes.timetable.slice(-1).pop()
-        await Promise.all(Object.keys(config.channels).map(async channelNumber => {
+        for (let channelNumber of Object.keys(config.channels)) {
             const channelInfo = config.channels[channelNumber]
             if (!channelInfo.updateOnTune || (channelInfo.updateOnTune && currentChannel.ch === channelNumber)) {
                 try {
@@ -193,7 +193,7 @@ async function updateMetadata() {
                     console.error("FAULT");
                 }
             }
-        }))
+        }
         nowPlayingNotification();
     } catch (e) {
         console.error(e);
@@ -539,6 +539,7 @@ async function nowPlayingNotification(forceUpdate) {
                 return `${nowPlaying.title.replace(/[^\w\s]/gi, '')} - ${nowPlaying.artist.replace(/[^\w\s]/gi, '')}`
             }
         })()
+        console.log(`Now Playing: Channel ${currentChannel.ch} - ${eventText}`)
         await new Promise(resolve => {
             const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -690,6 +691,7 @@ async function modifyMetadataGUI(type) {
 
 app.get("/tune/:channelNum", (req, res, next) => {
     if (req.params.channelNum) {
+        console.log(`Tune event to channel ${req.params.channelNum}`)
         channelTimes.timetable.push({
             time: moment().valueOf(),
             ch: req.params.channelNum
