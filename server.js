@@ -187,6 +187,7 @@ async function updateMetadata() {
                             metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                         }
                     }
+                    console.log(`Pulled Metadata for ${channelNumber}`)
                 } catch (e) {
                     console.error(e);
                     console.error("FAULT");
