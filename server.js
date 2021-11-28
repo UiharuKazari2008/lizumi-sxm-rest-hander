@@ -55,7 +55,6 @@ function msToTime(s) {
     return pad(hrs) + ':' + pad(mins) + ':' + pad(secs) + '.' + pad(ms, 3);
 }
 
-let metadataTimer = null;
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
     metadata = require(path.join(config.record_dir, `metadata.json`))
 }
@@ -63,6 +62,7 @@ if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
 }
 
+let metadataTimer = null;
 async function updateMetadata() {
     try {
         function parseJson(_json) {
@@ -117,77 +117,80 @@ async function updateMetadata() {
                 return false;
             }
         }
+        const currentChannel = channelTimes.timetable.slice(-1).pop()
         await Promise.all(Object.keys(config.channels).map(async channelNumber => {
             const channelInfo = config.channels[channelNumber]
-            try {
-                const chmeta = await new Promise(resolve => {
-                    const timestamp = new moment().utc().subtract(8, "hours").valueOf()
-                    const channelURL = `https://player.siriusxm.com/rest/v4/experience/modules/tune/now-playing-live?channelId=${(channelInfo.id) ? channelInfo.id : channelNumber}&adsEligible=true&hls_output_mode=none&fbSXMBroadcast=false&marker_mode=all_separate_cue_points&ccRequestType=AUDIO_VIDEO&result-template=radio&time=${timestamp}`
-                    request.get({
-                        url: channelURL,
-                        headers: {
-                            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                            'accept-language': 'en-US,en;q=0.9',
-                            'cache-control': 'max-age=0',
-                            'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
-                            'sec-ch-ua-mobile': '?0',
-                            'sec-fetch-dest': 'document',
-                            'sec-fetch-mode': 'navigate',
-                            'sec-fetch-site': 'none',
-                            'sec-fetch-user': '?1',
-                            'referer': "https://player.siriusxm.com/now-playing",
-                            'upgrade-insecure-requests': '1',
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
-                            'cookie': cookies.authenticate
-                        },
-                    }, async function (err, res, body) {
-                        if (err) {
-                            console.error(err.message);
-                            console.log("FAULT");
-                            resolve(false);
-                        } else {
-                            resolve(parseJson(JSON.parse(body)));
-                        }
-                    })
-                })
-                if (chmeta) {
-                    if (metadata[channelNumber]) {
-                        for (let i in chmeta) {
-                            const index = metadata[channelNumber].map(e => e.syncStart).indexOf(chmeta[i].syncStart)
-                            if (index !== -1) {
-                                const data = metadata[channelNumber][index]
-                                data.duration = chmeta[i].duration
-                                data.guid = chmeta[i].guid
-                                data.syncEnd = chmeta[i].syncEnd
-                                if (config.ignoredWords.map(word => {
-                                    return (
-                                        data.title.toLowerCase().includes(word.toLowerCase()) ||
-                                        (data.artist && data.artist.toLowerCase().includes(word.toLowerCase())) ||
-                                        (data.album && data.album.toLowerCase().includes(word.toLowerCase()))
-                                    )
-                                }).filter(e => e === true).length > 0 && (!data.isModified && (!data.updateCount || (data.updateCount && data.updateCount <= 10)))) {
-                                    data.title = chmeta[i].title
-                                    data.artist = chmeta[i].artist
-                                    data.album = chmeta[i].album
-                                    data.isUpdated = true
-                                    if (data.updateCount) {
-                                        data.updateCount = data.updateCount + 1
-                                    } else {
-                                        data.updateCount = 1;
-                                    }
-                                }
+            if (!channelInfo.updateOnTune || (channelInfo.updateOnTune && currentChannel.ch === channelNumber)) {
+                try {
+                    const chmeta = await new Promise(resolve => {
+                        const timestamp = new moment().utc().subtract(8, "hours").valueOf()
+                        const channelURL = `https://player.siriusxm.com/rest/v4/experience/modules/tune/now-playing-live?channelId=${(channelInfo.id) ? channelInfo.id : channelNumber}&adsEligible=true&hls_output_mode=none&fbSXMBroadcast=false&marker_mode=all_separate_cue_points&ccRequestType=AUDIO_VIDEO&result-template=radio&time=${timestamp}`
+                        request.get({
+                            url: channelURL,
+                            headers: {
+                                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                                'accept-language': 'en-US,en;q=0.9',
+                                'cache-control': 'max-age=0',
+                                'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
+                                'sec-ch-ua-mobile': '?0',
+                                'sec-fetch-dest': 'document',
+                                'sec-fetch-mode': 'navigate',
+                                'sec-fetch-site': 'none',
+                                'sec-fetch-user': '?1',
+                                'referer': "https://player.siriusxm.com/now-playing",
+                                'upgrade-insecure-requests': '1',
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
+                                'cookie': cookies.authenticate
+                            },
+                        }, async function (err, res, body) {
+                            if (err) {
+                                console.error(err.message);
+                                console.log("FAULT");
+                                resolve(false);
                             } else {
-                                metadata[channelNumber].push(chmeta[i])
+                                resolve(parseJson(JSON.parse(body)));
                             }
+                        })
+                    })
+                    if (chmeta) {
+                        if (metadata[channelNumber]) {
+                            for (let i in chmeta) {
+                                const index = metadata[channelNumber].map(e => e.syncStart).indexOf(chmeta[i].syncStart)
+                                if (index !== -1) {
+                                    const data = metadata[channelNumber][index]
+                                    data.duration = chmeta[i].duration
+                                    data.guid = chmeta[i].guid
+                                    data.syncEnd = chmeta[i].syncEnd
+                                    if (config.ignoredWords.map(word => {
+                                        return (
+                                            data.title.toLowerCase().includes(word.toLowerCase()) ||
+                                            (data.artist && data.artist.toLowerCase().includes(word.toLowerCase())) ||
+                                            (data.album && data.album.toLowerCase().includes(word.toLowerCase()))
+                                        )
+                                    }).filter(e => e === true).length > 0 && (!data.isModified && (!data.updateCount || (data.updateCount && data.updateCount <= 10)))) {
+                                        data.title = chmeta[i].title
+                                        data.artist = chmeta[i].artist
+                                        data.album = chmeta[i].album
+                                        data.isUpdated = true
+                                        if (data.updateCount) {
+                                            data.updateCount = data.updateCount + 1
+                                        } else {
+                                            data.updateCount = 1;
+                                        }
+                                    }
+                                } else {
+                                    metadata[channelNumber].push(chmeta[i])
+                                }
+                            }
+                            metadata[channelNumber] = metadata[channelNumber].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
+                        } else {
+                            metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                         }
-                        metadata[channelNumber] = metadata[channelNumber].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
-                    } else {
-                        metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
+                } catch (e) {
+                    console.error(e);
+                    console.error("FAULT");
                 }
-            } catch (e) {
-                console.error(e);
-                console.error("FAULT");
             }
         }))
         nowPlayingNotification();
@@ -690,6 +693,10 @@ app.get("/tune/:channelNum", (req, res, next) => {
             time: moment().valueOf(),
             ch: req.params.channelNum
         })
+        if (Object.keys(config.channels.filter(e => e.updateOnTune)).indexOf(req.params.channelNum) !== -1) {
+            clearTimeout(metadataTimer);
+            updateMetadata();
+        }
         res.status(200).send('OK')
     } else {
         res.status(400).send('MissingChannel')
