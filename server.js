@@ -696,7 +696,7 @@ app.get("/tune/:channelNum", (req, res, next) => {
             time: moment().valueOf(),
             ch: req.params.channelNum
         })
-        if (Object.keys(config.channels.filter(e => e.updateOnTune)).indexOf(req.params.channelNum) !== -1) {
+        if (config.channels[req.params.channelNum].updateOnTune) {
             clearTimeout(metadataTimer);
             updateMetadata();
         }
