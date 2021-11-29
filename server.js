@@ -384,7 +384,7 @@ async function processPendingBounces() {
             let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
             console.log(pendingEvent.time)
             console.log(thisEvent)
-            if (parseInt(thisEvent.duration.toString()) > 0) {
+            if (parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
