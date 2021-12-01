@@ -62,7 +62,6 @@ if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
 }
 
-let metadataTimer = null;
 async function updateMetadata() {
     try {
         function parseJson(_json) {
@@ -199,7 +198,6 @@ async function updateMetadata() {
         console.error(e);
         console.error("FAULT");
     }
-    metadataTimer = setTimeout(() => { updateMetadata() }, (config.refreshMetadataInterval) ? config.refreshMetadataInterval : 60000)
 }
 async function saveMetadata() {
     await new Promise(resolve => {
@@ -697,7 +695,6 @@ app.get("/tune/:channelNum", (req, res, next) => {
             ch: req.params.channelNum
         })
         if (config.channels[req.params.channelNum].updateOnTune) {
-            clearTimeout(metadataTimer);
             updateMetadata();
         }
         res.status(200).send('OK')
@@ -737,10 +734,11 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
-        await updateMetadata();
         await saveMetadata();
         await processPendingBounces();
-        cron.schedule("*/5 * * * *", async () => {
+        cron.schedule("* * * * *", async () => {
+            updateMetadata();
+        });cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
         });
         cron.schedule("*/5 * * * *", async () => {
