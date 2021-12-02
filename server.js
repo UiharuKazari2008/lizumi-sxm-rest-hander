@@ -288,7 +288,7 @@ async function bounceEventGUI(type) {
                 } catch (err) { }
                 return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '💿' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
-            const list = `tell application "System Events"\nchoose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false\nend tell`
+            const list = `tell application "System Events" to tell process "Finder"\nchoose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false\nend tell`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 if (result) {
@@ -322,7 +322,7 @@ async function bounceEventGUI(type) {
             })()
             eventItem.filename = await new Promise(resolve => {
                 const dialog = [
-                    'tell application "System Events"\n',
+                    'tell application "System Events" to tell process "Finder"\n',
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
                     'return text returned of dialogResult',
@@ -361,7 +361,7 @@ async function registerBounce(addTime, channelNumber) {
         done: false
     })
     await new Promise(resolve => {
-        const list = `tell application "System Events"\ndisplay notification "💿 This event will be bounced on completion" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"\nend tell`
+        const list = `tell application "System Events" to tell process "Finder"\ndisplay notification "💿 This event will be bounced on completion" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"\nend tell`
         const childProcess = osascript.execute(list, function (err, result, raw) {
             resolve(null);
             if (err) return console.error(err)
@@ -497,7 +497,7 @@ async function bounceEventFile(eventsToParse, options) {
                     }
                     console.log(`Ripping complete for ${eventItem.filename.trim()}!`)
                     await new Promise(resolve => {
-                        const list = `tell application "System Events"\ndisplay notification "✅ ${eventItem.filename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"\nend tell`
+                        const list = `tell application "System Events" to tell process "Finder"\ndisplay notification "✅ ${eventItem.filename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"\nend tell`
                         const childProcess = osascript.execute(list, function (err, result, raw) {
                             resolve(null);
                             if (err) return console.error(err)
@@ -541,7 +541,7 @@ async function nowPlayingNotification(forceUpdate) {
         })()
         console.log(`Now Playing: Channel ${currentChannel.ch} - ${eventText}`)
         await new Promise(resolve => {
-            const list = `tell application "System Events"\ndisplay notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"\nend tell`
+            const list = `tell application "System Events" to tell process "Finder"\ndisplay notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"\nend tell`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 resolve(null);
                 if (err) return console.error(err)
@@ -593,7 +593,7 @@ async function modifyMetadataGUI(type) {
                 } catch (err) { }
                 return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(parseInt(e.duration.toString()) === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
-            const list = `tell application "System Events"\nchoose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false\nend tell`
+            const list = `tell application "System Events" to tell process "Finder"\nchoose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false\nend tell`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 if (result) {
@@ -628,7 +628,7 @@ async function modifyMetadataGUI(type) {
             let realItem = metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)]
             realItem.filename = await new Promise(resolve => {
                 const dialog = [
-                    'tell application "System Events"',
+                    'tell application "System Events" to tell process "Finder"',
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
                     'return text returned of dialogResult',
@@ -656,7 +656,7 @@ async function modifyMetadataGUI(type) {
             if (parseInt(eventItem.duration.toString()) === 0) {
                 const duration = await new Promise(resolve => {
                     const dialog = [
-                        'tell application "System Events"',
+                        'tell application "System Events" to tell process "Finder"',
                         `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                         `if the button returned of the dialogResult is "Update" then`,
                         'return text returned of dialogResult',
