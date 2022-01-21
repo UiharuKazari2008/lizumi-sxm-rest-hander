@@ -258,7 +258,7 @@ async function bounceEventGUI(type) {
         let eventsMeta = [];
         const lastIndex = channelTimes.timetable.length - 1
         for (let c in channelTimes.timetable) {
-            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 0 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)) )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
+            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 90 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)) )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && parseInt(f.duration.toString()) < 15 * 60) || (!type && parseInt(f.duration.toString()) > 15 * 60))).map(e => {
                 return {
                     ...e,
                     ch: channelTimes.timetable[parseInt(c)].ch
