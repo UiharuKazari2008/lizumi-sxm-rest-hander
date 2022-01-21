@@ -181,9 +181,9 @@ async function updateMetadata() {
                                     metadata[channelNumber].push(chmeta[i])
                                 }
                             }
-                            metadata[channelNumber] = metadata[channelNumber].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
+                            metadata[channelNumber] = metadata[channelNumber].sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0).filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
                         } else {
-                            metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
+                            metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0).filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
                         }
                     }
                     console.log(`Pulled Metadata for ${channelNumber}`)
