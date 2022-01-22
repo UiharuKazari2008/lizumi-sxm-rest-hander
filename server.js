@@ -660,35 +660,33 @@ async function modifyMetadataGUI(type) {
                 }, 120000)
             });
             realItem.isUpdated = true
-            if (parseInt(eventItem.duration.toString()) === 0) {
-                const duration = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "NaN"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve("NaN");
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
+            const duration = await new Promise(resolve => {
+                const dialog = [
+                    `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
+                    `if the button returned of the dialogResult is "Update" then`,
+                    'return text returned of dialogResult',
+                    'else',
+                    `return "NaN"`,
+                    'end if'
+                ].join('\n');
+                const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                    if (err) {
+                        console.error(err)
                         resolve("NaN");
-                    }, 120000)
+                    } else {
+                        resolve(result)
+                        clearTimeout(childKiller);
+                    }
                 });
-                if (duration !== "NaN") {
-                    realItem.duration = parseInt(duration.toString()) * 60
-                    realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
-                }
+                const childKiller = setTimeout(function () {
+                    childProcess.stdin.pause();
+                    childProcess.kill();
+                    resolve("NaN");
+                }, 120000)
+            });
+            if (duration !== "NaN") {
+                realItem.duration = parseInt(duration.toString()) * 60
+                realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
             }
             metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)] = realItem
         }
