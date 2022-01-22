@@ -201,11 +201,15 @@ async function updateMetadata() {
 }
 async function saveMetadata() {
     await new Promise(resolve => {
-        for (let i in metadata) {
-            metadata[i] = metadata[i].filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
-        }
-        for (let i in channelTimes.timetable) {
-            channelTimes.timetable[i] = channelTimes.timetable[i].filter(e => e['time'] >= moment().subtract(1, 'month').valueOf())
+        try {
+            for (let i in metadata) {
+                metadata[i] = metadata[i].filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
+            }
+            for (let i in channelTimes.timetable) {
+                channelTimes.timetable[i] = channelTimes.timetable[i].filter(e => e['time'] >= moment().subtract(1, 'month').valueOf())
+            }
+        } catch (e) {
+            console.error(e);
         }
         resolve(null);
     })
