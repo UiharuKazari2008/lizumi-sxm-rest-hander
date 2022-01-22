@@ -205,9 +205,7 @@ async function saveMetadata() {
             for (let i in metadata) {
                 metadata[i] = metadata[i].filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
             }
-            for (let i in channelTimes.timetable) {
-                channelTimes.timetable[i] = channelTimes.timetable[i].filter(e => e['time'] >= moment().subtract(1, 'month').valueOf())
-            }
+            channelTimes.timetable = channelTimes.timetable.filter(e => e['time'] >= moment().subtract(1, 'month').valueOf())
         } catch (e) {
             console.error(e);
         }
@@ -395,7 +393,7 @@ async function processPendingBounces() {
             let thisEvent = events[findClosest(events.map(f => moment.utc(f.syncStart).local()), pendingEvent.time + 60000)]
             console.log(pendingEvent.time)
             console.log(thisEvent)
-            if (parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
+            if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
