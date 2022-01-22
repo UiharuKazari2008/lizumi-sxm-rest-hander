@@ -534,7 +534,7 @@ async function bounceEventFile(eventsToParse, options) {
 async function nowPlayingNotification(forceUpdate) {
     const currentChannel = channelTimes.timetable.slice(-1).pop()
     const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
-    console.log(nowPlaying.guid)
+    console.log(nowPlaying)
     console.log(nowPlayingGUID)
     if (nowPlayingGUID !== nowPlaying.guid || nowPlaying.isUpdated || forceUpdate) {
         nowPlayingGUID = nowPlaying.guid
