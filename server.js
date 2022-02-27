@@ -524,38 +524,47 @@ async function bounceEventFile(eventsToParse, options) {
         const eventItem = eventsToParse[index]
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
-            let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
-            if (startFile < 0)
-                startFile = 0
-            const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
-            const fileItems = fileTimes.slice(startFile, endFile + 1)
-            const fileList = fileItems.map(e => e.file).join('|')
-            const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
-            const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+            const streamTimes = aacdata[channelNumber]
+            let generateFile = false;
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
-            //console.log(`Found Requested Event! "${eventFilename}"...`)
-            console.log(`${fileStart} | ${fileEnd}`)
-            const generateFile = await new Promise(function (resolve) {
-                console.log(`Ripping "${eventItem.filename.trim()}"...`)
-                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
-                exec(ffmpeg.join(' '), {
-                    cwd: config.record_dir,
-                    encoding: 'utf8'
-                }, (err, stdout, stderr) => {
-                    if (err) {
-                        console.error(`Extraction failed: FFMPEG reported a error!`)
-                        console.error(err)
-                        resolve(false)
-                    } else {
-                        if (stderr.length > 1)
-                            console.error(stderr);
-                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                        resolve(true)
-                    }
-                });
-            })
+
+            if (trueTime.valueOf() < moment().subtract(3, "hours")) {
+                console.log("Digital Recording is Avalible");
+
+            } else {
+                let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
+                if (startFile < 0)
+                    startFile = 0
+                const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
+                const fileItems = fileTimes.slice(startFile, endFile + 1)
+                const fileList = fileItems.map(e => e.file).join('|')
+                const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
+                const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+
+                //console.log(`Found Requested Event! "${eventFilename}"...`)
+                console.log(`${fileStart} | ${fileEnd}`)
+                generateFile = await new Promise(function (resolve) {
+                    console.log(`Ripping "${eventItem.filename.trim()}"...`)
+                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+                    exec(ffmpeg.join(' '), {
+                        cwd: config.record_dir,
+                        encoding: 'utf8'
+                    }, (err, stdout, stderr) => {
+                        if (err) {
+                            console.error(`Extraction failed: FFMPEG reported a error!`)
+                            console.error(err)
+                            resolve(false)
+                        } else {
+                            if (stderr.length > 1)
+                                console.error(stderr);
+                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                            resolve(true)
+                        }
+                    });
+                })
+            }
 
             if (generateFile && fs.existsSync(fileDestination)) {
                 try {
@@ -819,6 +828,7 @@ app.get("/trigger/:display", (req, res, next) => {
         res.status(400).send('MissingAction')
     }
 });
+app.get("/dir/record", express.static(path.resolve(config.record_dir)))
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     console.log("Server running");
