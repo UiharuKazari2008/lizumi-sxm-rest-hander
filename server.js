@@ -1,5 +1,6 @@
 let config = require('./config.json')
 let cookies = require("./cookie.json");
+//const { sqlPromiseSafe } = require('./sql-client');
 const moment = require('moment');
 const fs = require('fs');
 const path = require("path");
@@ -12,6 +13,7 @@ const app = express();
 
 
 let metadata = {};
+let aacdata = {};
 let channelTimes = {
     timetable: [
         {
@@ -58,6 +60,9 @@ function msToTime(s) {
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
     metadata = require(path.join(config.record_dir, `metadata.json`))
 }
+if (fs.existsSync(path.join(config.record_dir, `aacdata.json`))) {
+    aacdata = require(path.join(config.record_dir, `aacdata.json`))
+}
 if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
 }
@@ -69,6 +74,7 @@ async function updateMetadata() {
                 // Check if messages and successful response
                 if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
                     const json = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['markerLists'].filter(e => e['layer'] === 'cut')[0]['markers']
+                    const delay = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['liveDelay']
                     // For each track that is longer then 65 Seconds
                     let items = json.filter(e => (parseInt(e.duration.toString()) >= 65 || !e.duration)).map(e => {
                         // Get localized timecode
@@ -79,6 +85,7 @@ async function updateMetadata() {
                             syncStart: time.valueOf(),
                             syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
                             duration: parseInt(e.duration.toString()),
+                            delay,
 
                             title: e.cut.title,
                             artist: e.cut.artists.map(f => f.name).join('/'),
@@ -97,6 +104,7 @@ async function updateMetadata() {
                                 syncStart: time.valueOf(),
                                 syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
                                 duration: parseInt(e.duration.toString()),
+                                delay,
 
                                 title: e['episode']['longTitle'],
                                 isSong: false,
@@ -221,6 +229,11 @@ async function saveMetadata() {
             resolve(null)
         })
     })
+    await new Promise(resolve => {
+        fs.writeFile(path.join(config.record_dir, `aacdata.json`), JSON.stringify(aacdata), () => {
+            resolve(null)
+        })
+    })
     return true;
 }
 async function publishMetaIcecast(nowPlaying, currentChannel) {
@@ -261,6 +274,72 @@ async function publishMetadataFile(nowPlaying, currentChannel) {
                 resolve(null)
             })
         })
+    }
+}
+async function updateAllStreamURLs() {
+    for (let ch of config.channels) {
+        if (ch.id && ch.allowDigital) {
+            await updateStreamURLs(ch.id)
+        }
+    }
+}
+async function updateStreamURLs(channelNumber) {
+    try {
+        request.get({
+            url: `http://${config.sxmclient_host}/${channelNumber}.m3u8`,
+        }, async function (err, res, body) {
+            if (err) {
+                console.error(err.message);
+                console.log("FAULT");
+                return false
+            } else {
+                await parseM3U(channelNumber, body);
+                const nextUpdate = moment(aacdata[channelNumber].urls.pop().streamTime).subtract(1, 'hour').valueOf() - Date.now()
+                setTimeout(() => {
+                    updateStreamURLs(channelNumber)
+                }, (nextUpdate && nextUpdate > 60000) ? nextUpdate : 60000);
+            }
+        })
+    } catch (e) {
+        console.error(`Failed to get stream URLs!`)
+        console.error(e)
+    }
+}
+async function parseM3U(channelNumber, data) {
+    try {
+        if (!aacdata[channelNumber])
+            aacdata[channelNumber] = {key: null, urls: []}
+
+        const m3udata = data.split('\n')
+        const currentTimes = aacdata[channelNumber].urls.map(e => e.streamTime)
+
+        aacdata[channelNumber].key = m3udata
+            .filter(e => e.startsWith('#EXT-X-KEY'))
+            .map(e => e.split(':').pop().replace('URI="', `URI="http://${config.sxmclient_host}/`)).pop();
+        const urls = m3udata.filter(e => e.startsWith('AAC_Data')).map(e => {
+            let _res = {
+                url: `http://${config.sxmclient_host}/${e}`
+            }
+            try {
+                _res.streamTime = moment(m3udata[m3udata.indexOf(e) - 2].split('PROGRAM-DATE-TIME:').pop()).valueOf()
+            } catch (e) {
+                console.error(e)
+            }
+            try {
+                _res.duration = parseInt(m3udata[m3udata.indexOf(e) - 1].split('EXTINF:').pop())
+            } catch (e) {
+                console.error(e)
+            }
+
+            return _res
+        }).filter(e => currentTimes.indexOf(e.streamTime) === -1)
+        aacdata[channelNumber].urls.push(...urls);
+        aacdata[channelNumber].urls.filter(e => e.streamTime >= moment().subtract(3, 'hours').valueOf())
+
+        console.log(`Updated ${channelNumber} - Added ${urls.length} - Total ${aacdata[channelNumber].urls.length}`)
+    } catch (e) {
+        console.error('AAC Data Refresh Failure');
+        console.error(e);
     }
 }
 
@@ -747,6 +826,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     } else {
         await saveMetadata();
         await processPendingBounces();
+        await updateAllStreamURLs();
         cron.schedule("* * * * *", async () => {
             updateMetadata();
         });cron.schedule("*/5 * * * *", async () => {
