@@ -277,7 +277,8 @@ async function publishMetadataFile(nowPlaying, currentChannel) {
     }
 }
 async function updateAllStreamURLs() {
-    for (let ch of config.channels) {
+    for (let channelNumber of Object.keys(config.channels)) {
+        const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital) {
             await updateStreamURLs(ch.id)
         }
