@@ -828,7 +828,7 @@ app.get("/trigger/:display", (req, res, next) => {
         res.status(400).send('MissingAction')
     }
 });
-app.get("/dir/record", express.static(path.resolve(config.record_dir)))
+app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     console.log("Server running");
