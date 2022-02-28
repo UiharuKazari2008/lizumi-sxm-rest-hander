@@ -359,7 +359,7 @@ async function bounceEventGUI(type) {
         }
         if (eventsMeta.length === 0)
             return false
-        eventsMeta = eventsMeta.slice(0, 250)
+        eventsMeta = eventsMeta.reverse().slice(0, 250).reverse()
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
                 const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
