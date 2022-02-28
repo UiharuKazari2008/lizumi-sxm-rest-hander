@@ -544,7 +544,7 @@ async function bounceEventFile(eventsToParse, options) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if (false && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
+            if ((new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
                 console.log("Digital Recording is Available");
                 const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
                 let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
@@ -552,7 +552,7 @@ async function bounceEventFile(eventsToParse, options) {
                     startFile = 0
                 const endFile = findClosest(syncTimes, eventItem.syncEnd) + 2
                 const streamItems = aacdata[eventItem.channelId].urls.slice(startFile, endFile + 1)
-                console.log(`${startFile} | ${endFile}`)
+                console.log(streamTimes[0].streamTime)
                 console.log(`Segments ${streamTimes.length}`);
 
                 const m3uFile = [
