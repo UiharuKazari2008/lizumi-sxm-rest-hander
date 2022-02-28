@@ -412,7 +412,7 @@ async function bounceEventGUI(type) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
-            eventItem.channelId = config.channels[eventItem.ch]
+            eventItem.channelId = config.channels[eventItem.ch].id
             eventItem.filename = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
@@ -487,7 +487,7 @@ async function processPendingBounces() {
                         return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
                     }
                 })()
-                thisEvent.channelId = config.channels[thisEvent.ch]
+                thisEvent.channelId = config.channels[thisEvent.ch].id
                 await bounceEventFile([thisEvent])
                 pendingEvent.done = true
             }
