@@ -296,7 +296,6 @@ async function updateStreamURLs(channelNumber) {
             } else {
                 await parseM3U(channelNumber, body.toString());
                 const nextUpdate = Date.now() - moment(aacdata[channelNumber].urls.pop().streamTime).subtract(1, 'hour').valueOf()
-                console.log(nextUpdate)
                 setTimeout(() => {
                     updateStreamURLs(channelNumber)
                 }, (nextUpdate && nextUpdate > 60000) ? nextUpdate : 60000);
@@ -567,7 +566,7 @@ async function bounceEventFile(eventsToParse, options) {
                     })
                 })
 
-                generateFile = await new Promise(function (resolve) {
+                const test = await new Promise(function (resolve) {
                     console.log(`Ripping "${eventItem.filename.trim()}"...`)
                     const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto', '-i', `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`, `Extracted_${eventItem.syncStart}.mp3`]
                     exec(ffmpeg.join(' '), {
@@ -586,38 +585,38 @@ async function bounceEventFile(eventsToParse, options) {
                         }
                     });
                 })
-            } else {
-                let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
-                if (startFile < 0)
-                    startFile = 0
-                const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
-                const fileItems = fileTimes.slice(startFile, endFile + 1)
-                const fileList = fileItems.map(e => e.file).join('|')
-                const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
-                const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
-
-                //console.log(`Found Requested Event! "${eventFilename}"...`)
-                console.log(`${fileStart} | ${fileEnd}`)
-                generateFile = await new Promise(function (resolve) {
-                    console.log(`Ripping "${eventItem.filename.trim()}"...`)
-                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
-                    exec(ffmpeg.join(' '), {
-                        cwd: config.record_dir,
-                        encoding: 'utf8'
-                    }, (err, stdout, stderr) => {
-                        if (err) {
-                            console.error(`Extraction failed: FFMPEG reported a error!`)
-                            console.error(err)
-                            resolve(false)
-                        } else {
-                            if (stderr.length > 1)
-                                console.error(stderr);
-                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                            resolve(true)
-                        }
-                    });
-                })
             }
+
+            let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
+            if (startFile < 0)
+                startFile = 0
+            const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
+            const fileItems = fileTimes.slice(startFile, endFile + 1)
+            const fileList = fileItems.map(e => e.file).join('|')
+            const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
+            const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+
+            //console.log(`Found Requested Event! "${eventFilename}"...`)
+            console.log(`${fileStart} | ${fileEnd}`)
+            generateFile = await new Promise(function (resolve) {
+                console.log(`Ripping "${eventItem.filename.trim()}"...`)
+                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+                exec(ffmpeg.join(' '), {
+                    cwd: config.record_dir,
+                    encoding: 'utf8'
+                }, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(`Extraction failed: FFMPEG reported a error!`)
+                        console.error(err)
+                        resolve(false)
+                    } else {
+                        if (stderr.length > 1)
+                            console.error(stderr);
+                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                        resolve(true)
+                    }
+                });
+            })
 
             if (generateFile && fs.existsSync(fileDestination)) {
                 try {
