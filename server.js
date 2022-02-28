@@ -564,7 +564,7 @@ async function bounceEventFile(eventsToParse, options) {
                     `#EXT-X-KEY:${aacdata[eventItem.channelId].key}`,
                     ...streamItems.map(e => {
                         return [
-                            `#EXT-X-PROGRAM-DATE-TIME:${moment(e.streamTime).toISOString()}`,
+                            `#EXT-X-PROGRAM-DATE-TIME:${moment(e.streamTime).toISOString(true)}`,
                             `#EXTINF:${e.duration},`,
                             e.url
                         ].join("\n")
