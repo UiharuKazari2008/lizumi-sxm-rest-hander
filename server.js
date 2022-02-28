@@ -539,13 +539,18 @@ async function bounceEventFile(eventsToParse, options) {
         console.log(eventItem)
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
-            const streamTimes = aacdata[eventItem.channelId].urls
+            let streamTimes
+            if (eventItem.channelId) {
+                streamTimes = aacdata[eventItem.channelId].urls
+            } else {
+                streamTimes = []
+            }
             let generateFile = false;
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if (false && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
+            if (false && streamTimes.length > 0 && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
                 console.log("Digital Recording is Available");
                 const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
                 let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
