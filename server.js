@@ -497,7 +497,8 @@ async function processPendingBounces() {
                         return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
                     }
                 })()
-                thisEvent.channelId = config.channels[thisEvent.ch].id
+                if (thisEvent.ch)
+                    thisEvent.channelId = config.channels[thisEvent.ch].id
                 await bounceEventFile([thisEvent])
                 pendingEvent.done = true
             }
