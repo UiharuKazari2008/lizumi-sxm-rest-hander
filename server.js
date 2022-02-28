@@ -295,7 +295,7 @@ async function updateStreamURLs(channelNumber) {
                 return false
             } else {
                 await parseM3U(channelNumber, body.toString());
-                const nextUpdate = moment(aacdata[channelNumber].urls.pop().streamTime).subtract(1, 'hour').valueOf() - Date.now()
+                const nextUpdate = Date.now() - moment(aacdata[channelNumber].urls.pop().streamTime).subtract(1, 'hour').valueOf()
                 console.log(nextUpdate)
                 setTimeout(() => {
                     updateStreamURLs(channelNumber)
