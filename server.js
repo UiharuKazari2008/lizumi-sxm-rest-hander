@@ -568,7 +568,7 @@ async function bounceEventFile(eventsToParse, options) {
 
                 const test = await new Promise(function (resolve) {
                     console.log(`Ripping "${eventItem.filename.trim()}"...`)
-                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto', '-i', `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`, `Extracted_${eventItem.syncStart}.mp3`]
+                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto', '-i', `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`, `Extracted_Digital_${eventItem.syncStart}.mp3`]
                     exec(ffmpeg.join(' '), {
                         cwd: config.record_dir,
                         encoding: 'utf8'
