@@ -322,7 +322,7 @@ async function parseM3U(channelNumber, data) {
                 url: `http://${config.sxmclient_host}/${e}`
             }
             try {
-                _res.streamTime = moment(m3udata[m3udata.indexOf(e) - 2].split('PROGRAM-DATE-TIME:').pop()).valueOf()
+                _res.streamTime = moment(m3udata[m3udata.indexOf(e) - 2].split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf()
             } catch (e) {
                 console.error(e)
             }
