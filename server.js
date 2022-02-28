@@ -344,21 +344,31 @@ async function parseM3U(channelNumber, data) {
     }
 }
 
-async function bounceEventGUI(type) {
+async function bounceEventGUI(type, digitalchannel) {
     try {
         let eventsMeta = [];
-        const lastIndex = channelTimes.timetable.length - 1
-        for (let c in channelTimes.timetable) {
-            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 90 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)) )) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && parseInt(f.duration.toString()) < 15 * 60) || (!type && parseInt(f.duration.toString()) > 15 * 60))).map(e => {
+        if (digitalchannel) {
+            let events = await metadata[digitalchannel].filter(f => parseInt(f.duration.toString()) > 90 && ((new Date - f.syncStart) < (3 * 60 * 60000)) && ((type && parseInt(f.duration.toString()) < 15 * 60) || (!type && parseInt(f.duration.toString()) > 15 * 60))).map(e => {
                 return {
                     ...e,
-                    ch: channelTimes.timetable[parseInt(c)].ch
+                    ch: digitalchannel
                 }
             })
             eventsMeta.push(...events)
+        } else {
+            const lastIndex = channelTimes.timetable.length - 1
+            for (let c in channelTimes.timetable) {
+                let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 90 && (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)))) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && parseInt(f.duration.toString()) < 15 * 60) || (!type && parseInt(f.duration.toString()) > 15 * 60))).map(e => {
+                    return {
+                        ...e,
+                        ch: channelTimes.timetable[parseInt(c)].ch
+                    }
+                })
+                eventsMeta.push(...events)
+            }
+            if (eventsMeta.length === 0)
+                return false
         }
-        if (eventsMeta.length === 0)
-            return false
         eventsMeta = eventsMeta.reverse().slice(0, 250).reverse()
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e => {
@@ -534,7 +544,7 @@ async function bounceEventFile(eventsToParse, options) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if ((trueTime.valueOf() > moment().subtract(3, "hours").valueOf()) && eventItem.channelId) {
+            if ((new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
                 console.log("Digital Recording is Available");
                 const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
                 let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
@@ -858,11 +868,11 @@ app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
             case 'select_bounce_event':
-                bounceEventGUI(false);
+                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'select_bounce_song':
-                bounceEventGUI(true);
+                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'pend_bounce':
