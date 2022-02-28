@@ -411,6 +411,7 @@ async function bounceEventGUI(type) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
+            eventItem.channelId = config.channels[eventItem.ch]
             eventItem.filename = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
@@ -485,6 +486,7 @@ async function processPendingBounces() {
                         return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
                     }
                 })()
+                thisEvent.channelId = config.channels[thisEvent.ch]
                 await bounceEventFile([thisEvent])
                 pendingEvent.done = true
             }
@@ -524,15 +526,61 @@ async function bounceEventFile(eventsToParse, options) {
         const eventItem = eventsToParse[index]
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
-            const streamTimes = aacdata[channelNumber]
+            const streamTimes = aacdata[eventItem.channelId].urls
             let generateFile = false;
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if (trueTime.valueOf() < moment().subtract(3, "hours")) {
-                console.log("Digital Recording is Avalible");
+            if (trueTime.valueOf() < moment().subtract(3, "hours") && eventItem.channelId) {
+                console.log("Digital Recording is Available");
+                let startFile = findClosest(streamTimes.map(e => e.streamTime - eventItem.delay), trueTime.valueOf()) - 2
+                if (startFile < 0)
+                    startFile = 0
+                const endFile = findClosest(streamTimes.map(e => e.streamTime - eventItem.delay), eventItem.syncEnd) + 2
+                const streamItems = aacdata[eventItem.channelId].urls.slice(startFile, endFile + 1)
+                console.log(`Segments ${streamTimes.length}`);
 
+                const m3uFile = [
+                    "#EXTM3U",
+                    "#EXT-X-VERSION:1",
+                    "#EXT-X-TARGETDURATION:10",
+                    `#EXT-X-MEDIA-SEQUENCE:${parseInt(streamItems[0].url.split("/").pop().split("_")[4])}`,
+                    "#EXT-X-ALLOW-CACHE:NO",
+                    `#EXT-X-KEY:${aacdata[eventItem.channelId].key}`,
+                    ...streamItems.map(e => {
+                        return [
+                            `#EXT-X-PROGRAM-DATE-TIME:${moment(e.streamTime).toISOString()}`,
+                            `#EXTINF:${e.duration},`,
+                            e.url
+                        ].join("\n")
+                    })
+                ].join('\n')
+                await new Promise(resolve => {
+                    fs.writeFile(path.join(config.record_dir, `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`), m3uFile.toString(), () => {
+                        resolve(null)
+                    })
+                })
+
+                generateFile = await new Promise(function (resolve) {
+                    console.log(`Ripping "${eventItem.filename.trim()}"...`)
+                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`, `Extracted_${eventItem.syncStart}.mp3`]
+                    exec(ffmpeg.join(' '), {
+                        cwd: config.record_dir,
+                        encoding: 'utf8'
+                    }, (err, stdout, stderr) => {
+                        if (err) {
+                            console.error(`Extraction failed: FFMPEG reported a error!`)
+                            console.error(err)
+                            resolve(false)
+                        } else {
+                            if (stderr.length > 1)
+                                console.error(stderr);
+                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                            resolve(true)
+                        }
+                    });
+                })
             } else {
                 let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
                 if (startFile < 0)
