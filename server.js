@@ -544,7 +544,7 @@ async function bounceEventFile(eventsToParse, options) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if ((new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
+            if (false && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
                 console.log("Digital Recording is Available");
                 const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
                 let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
