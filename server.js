@@ -24,6 +24,7 @@ let channelTimes = {
     pending: [],
 };
 let nowPlayingGUID = null;
+let pendingBounceTimer = null;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -476,7 +477,6 @@ async function registerBounce(addTime, channelNumber) {
     })
     await saveMetadata();
 }
-let pendingBounceTimer = null;
 async function processPendingBounces() {
     try {
         for (let i in channelTimes.pending) {
@@ -544,7 +544,7 @@ async function bounceEventFile(eventsToParse, options) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
 
-            if ((new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
+            if (false && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
                 console.log("Digital Recording is Available");
                 const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
                 let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
