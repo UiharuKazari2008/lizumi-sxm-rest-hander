@@ -525,6 +525,7 @@ async function bounceEventFile(eventsToParse, options) {
         if (parseInt(index) === 0)
             console.log(`PROGRESS:0`)
         const eventItem = eventsToParse[index]
+        console.log(eventItem)
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
             const streamTimes = aacdata[eventItem.channelId].urls
