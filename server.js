@@ -13,7 +13,6 @@ const app = express();
 
 
 let metadata = {};
-let aacdata = {};
 let channelTimes = {
     timetable: [
         {
@@ -60,9 +59,6 @@ function msToTime(s) {
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
     metadata = require(path.join(config.record_dir, `metadata.json`))
-}
-if (fs.existsSync(path.join(config.record_dir, `aacdata.json`))) {
-    aacdata = require(path.join(config.record_dir, `aacdata.json`))
 }
 if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
@@ -227,11 +223,6 @@ async function saveMetadata() {
     })
     await new Promise(resolve => {
         fs.writeFile(path.join(config.record_dir, `accesstimes.json`), JSON.stringify(channelTimes), () => {
-            resolve(null)
-        })
-    })
-    await new Promise(resolve => {
-        fs.writeFile(path.join(config.record_dir, `aacdata.json`), JSON.stringify(aacdata), () => {
             resolve(null)
         })
     })
@@ -459,48 +450,87 @@ async function searchForEvents(_nowPlaying, currentChannel) {
     }
 }
 async function bounceEventFile(eventsToParse, options) {
-    const fileTimes = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
+    const analogRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
         return {
             date: moment(e.replace(config.record_prefix, '').split('.')[0] + '', "YYYYMMDD-HHmmss"),
             file: e
         }
     });
+    const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
+    let digitalRecFiles = [];
+    let digitalRecTimes = [];
+
     for (let index in eventsToParse) {
         if (parseInt(index) === 0)
             console.log(`PROGRESS:0`)
         const eventItem = eventsToParse[index]
+
         console.log(eventItem)
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
-            let streamTimes
             if (eventItem.channelId) {
-                streamTimes = aacdata[eventItem.channelId].urls
+                digitalRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(`${config.digital_record_prefix}_${eventItem.channelId}_`) && e.endsWith(".mp3")).map(e => {
+                    return {
+                        date: moment(e.split('_').pop().split('.')[0] + ''),
+                        file: e
+                    }
+                });
+                digitalRecTimes = digitalRecFiles.map(e => e.date.valueOf());
             } else {
-                streamTimes = []
+                digitalRecFiles = [];
+                digitalRecTimes = [];
             }
-            let generateFile = false;
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
-            let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
-            if (startFile < 0)
-                startFile = 0
-            const endFile = findClosest(fileTimes.map(e => e.date.valueOf()), eventItem.syncEnd)
-            const fileItems = fileTimes.slice(startFile, endFile + 1)
-            const fileList = fileItems.map(e => e.file).join('|')
-            const fileStart = msToTime(Math.abs(trueTime.valueOf() - fileItems[0].date.valueOf()))
-            const fileEnd = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+
+            let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
+            if (analogStartFile < 0)
+                analogStartFile = 0
+            const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
+            const analogFileItems = analogRecFiles.slice(analogStartFile, analogEndFile + 1)
+            const analogFileList = analogFileItems.map(e => e.file).join('|')
+            const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
+            const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+            console.log(`${analogStartTime} | ${analogEndTime}`)
+
+            let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + parseInt(eventItem.delay.toString())) - 1
+            if (digitalStartFile < 0)
+                digitalStartFile = 0
+            const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + parseInt(eventItem.delay.toString()))
+            const digitalFileItems = digitalRecFiles.slice(digitalStartFile, digitalEndFile)
+            const digitalFileList = digitalFileItems.map(e => e.file).join('|')
+            const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() + parseInt(eventItem.delay.toString())) - digitalFileItems[0].date.valueOf()))
+            const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
 
             //console.log(`Found Requested Event! "${eventFilename}"...`)
-            console.log(`${fileStart} | ${fileEnd}`)
-            generateFile = await new Promise(function (resolve) {
-                console.log(`Ripping "${eventItem.filename.trim()}"...`)
-                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${fileList}"`, '-ss', fileStart, '-t', fileEnd, `Extracted_${eventItem.syncStart}.mp3`]
+            const generateAnalogFile = await new Promise(function (resolve) {
+                console.log(`Ripping Analog File "${eventItem.filename.trim()}"...`)
+                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.syncStart}.mp3`]
                 exec(ffmpeg.join(' '), {
                     cwd: config.record_dir,
                     encoding: 'utf8'
                 }, (err, stdout, stderr) => {
                     if (err) {
-                        console.error(`Extraction failed: FFMPEG reported a error!`)
+                        console.error(`Analog Extraction failed: FFMPEG reported a error!`)
+                        console.error(err)
+                        resolve(false)
+                    } else {
+                        if (stderr.length > 1)
+                            console.error(stderr);
+                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                        resolve(true)
+                    }
+                });
+            })
+            const generateDigitalFile = await new Promise(function (resolve) {
+                console.log(`Ripping Digital File "${eventItem.filename.trim()}"...`)
+                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${digitalFileList}"`, '-ss', digitalStartTime, '-t', digitalEndTime, `Digital_Extracted_${eventItem.syncStart}.mp3`]
+                exec(ffmpeg.join(' '), {
+                    cwd: config.record_dir,
+                    encoding: 'utf8'
+                }, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(`Digital Extraction failed: FFMPEG reported a error!`)
                         console.error(err)
                         resolve(false)
                     } else {
@@ -512,7 +542,7 @@ async function bounceEventFile(eventsToParse, options) {
                 });
             })
 
-            if (generateFile && fs.existsSync(fileDestination)) {
+            if (generateAnalogFile && fs.existsSync(fileDestination)) {
                 try {
                     if (config.backup_dir) {
                         await new Promise(resolve => {
