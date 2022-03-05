@@ -814,7 +814,6 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     } else {
         await saveMetadata();
         await processPendingBounces();
-        await updateAllStreamURLs();
         cron.schedule("* * * * *", async () => {
             updateMetadata();
         });cron.schedule("*/5 * * * *", async () => {
