@@ -14,7 +14,6 @@ async function recorder(channel) {
         '-hide_banner',
         '-y',
         '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
-        '--hls-prefer-native',
         '-reconnect', '5',
         ' -reconnect_streamed', '5',
         '-reconnect_on_network_error', '10',
