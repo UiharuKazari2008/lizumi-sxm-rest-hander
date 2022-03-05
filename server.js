@@ -490,7 +490,7 @@ async function bounceEventFile(eventsToParse, options) {
             const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
             const analogFileItems = analogRecFiles.slice(analogStartFile, analogEndFile + 1)
             const analogFileList = analogFileItems.map(e => e.file).join('|')
-            if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date.valueOf()) {
+            if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > analogFileItems[0].date.valueOf()) {
                 const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
                 const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
                 console.log(`${analogStartTime} | ${analogEndTime}`)
