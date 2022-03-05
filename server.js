@@ -470,6 +470,7 @@ async function bounceEventFile(eventsToParse, options) {
             const trueTime = moment.utc(eventItem.syncStart).local();
             if (eventItem.channelId) {
                 digitalRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(`${config.digital_record_prefix}_${eventItem.channelId}_`) && e.endsWith(".mp3")).map(e => {
+                    console.log(e.split('_').pop().split('.')[0] + '')
                     return {
                         date: moment(e.split('_').pop().split('.')[0] + ''),
                         file: e
