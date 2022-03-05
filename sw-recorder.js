@@ -15,7 +15,6 @@ async function recorder(channel) {
         '-y',
         '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
         '-reconnect', 'true',
-        ' -reconnect_streamed', 'true',
         '-reconnect_on_network_error', 'false',
         '-i', `http://${config.sxmclient_host}/${channel}.m3u8`,
         `SXM_Digital_${channel}_${moment().valueOf()}.mp3`
