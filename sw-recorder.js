@@ -35,13 +35,13 @@ console.log(`Lizumi Digital Recorder v0.1`);
         spawnedRecorder.stderr.on('data', (data) => console.error(data));
         spawnedRecorder.on('close', (code) => {
             console.log(`Recorder closed with code: ${code}, Restarting...`);
-            startRecorder(channel);
+            ffmpegRecoder(channel);
         });
     }
 
     for (let channelNumber of Object.keys(config.channels)) {
         const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital === true)
-            startRecorder(ch.id)
+            ffmpegRecoder(ch.id)
     }
 })()
