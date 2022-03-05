@@ -449,7 +449,7 @@ async function searchForEvents(_nowPlaying, currentChannel) {
         })
     }
 }
-async function bounceEventFile(eventsToParse, options) {
+async function bounceEventFile(eventsToParse, types) {
     const analogRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(config.record_prefix) && e.endsWith(".mp3")).map(e => {
         return {
             date: moment(e.replace(config.record_prefix, '').split('.')[0] + '', "YYYYMMDD-HHmmss"),
@@ -475,7 +475,9 @@ async function bounceEventFile(eventsToParse, options) {
                         file: e
                     }
                 });
+                console.log(digitalRecFiles)
                 digitalRecTimes = digitalRecFiles.map(e => e.date.valueOf());
+                console.log(digitalRecTimes)
             } else {
                 digitalRecFiles = [];
                 digitalRecTimes = [];
