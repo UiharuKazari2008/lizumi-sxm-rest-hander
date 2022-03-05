@@ -277,73 +277,6 @@ async function publishMetadataFile(nowPlaying, currentChannel) {
         })
     }
 }
-async function updateAllStreamURLs() {
-    for (let channelNumber of Object.keys(config.channels)) {
-        const ch = config.channels[channelNumber]
-        if (ch.id && ch.allowDigital) {
-            await updateStreamURLs(ch.id)
-        }
-    }
-}
-async function updateStreamURLs(channelNumber) {
-    try {
-        request.get({
-            url: `http://${config.sxmclient_host}/${channelNumber}.m3u8`,
-        }, async function (err, res, body) {
-            if (err) {
-                console.error(err.message);
-                console.log("FAULT");
-                return false
-            } else {
-                await parseM3U(channelNumber, body.toString());
-                const nextUpdate = Date.now() - moment(aacdata[channelNumber].urls.pop().streamTime).subtract(1, 'hour').valueOf()
-                setTimeout(() => {
-                    updateStreamURLs(channelNumber)
-                }, (nextUpdate && nextUpdate > 60000) ? nextUpdate : 60000);
-            }
-        })
-    } catch (e) {
-        console.error(`Failed to get stream URLs!`)
-        console.error(e)
-    }
-}
-async function parseM3U(channelNumber, data) {
-    try {
-        if (!aacdata[channelNumber])
-            aacdata[channelNumber] = {key: null, urls: []}
-
-        const m3udata = data.split('\n')
-        const currentTimes = aacdata[channelNumber].urls.map(e => e.streamTime)
-
-        aacdata[channelNumber].key = m3udata
-            .filter(e => e.startsWith('#EXT-X-KEY'))
-            .map(e => e.split(':').pop().replace('URI="', `URI="http://${config.sxmclient_host}/`)).pop();
-        const urls = m3udata.filter(e => e.startsWith('AAC_Data')).map(e => {
-            let _res = {
-                url: `http://${config.sxmclient_host}/${e}`
-            }
-            try {
-                _res.streamTime = moment(m3udata[m3udata.indexOf(e) - 2].split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf()
-            } catch (e) {
-                console.error(e)
-            }
-            try {
-                _res.duration = parseInt(m3udata[m3udata.indexOf(e) - 1].split('EXTINF:').pop())
-            } catch (e) {
-                console.error(e)
-            }
-
-            return _res
-        }).filter(e => currentTimes.indexOf(e.streamTime) === -1)
-        aacdata[channelNumber].urls.push(...urls);
-        aacdata[channelNumber].urls.filter(e => e.streamTime >= moment().subtract(3, 'hours').valueOf())
-
-        console.log(`Updated ${channelNumber} - Added ${urls.length} - Total ${aacdata[channelNumber].urls.length}`)
-    } catch (e) {
-        console.error('AAC Data Refresh Failure');
-        console.error(e);
-    }
-}
 
 async function bounceEventGUI(type, digitalchannel) {
     try {
@@ -548,61 +481,6 @@ async function bounceEventFile(eventsToParse, options) {
             let generateFile = false;
             const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
-
-
-            if (false && streamTimes.length > 0 && (new Date - eventItem.syncStart) < (3 * 60 * 60000) && eventItem.channelId) {
-                console.log("Digital Recording is Available");
-                const syncTimes = streamTimes.map(e => e.streamTime - (eventItem.delay * 1000))
-                let startFile = findClosest(syncTimes, eventItem.syncStart.valueOf()) - 2
-                if (startFile < 0)
-                    startFile = 0
-                const endFile = findClosest(syncTimes, eventItem.syncEnd) + 2
-                const streamItems = aacdata[eventItem.channelId].urls.slice(startFile, endFile + 1)
-                console.log(streamTimes[0].streamTime)
-                console.log(`Segments ${streamTimes.length}`);
-
-                const m3uFile = [
-                    "#EXTM3U",
-                    "#EXT-X-VERSION:1",
-                    "#EXT-X-TARGETDURATION:10",
-                    `#EXT-X-MEDIA-SEQUENCE:${parseInt(streamItems[0].url.split("/").pop().split("_")[4])}`,
-                    "#EXT-X-ALLOW-CACHE:NO",
-                    `#EXT-X-KEY:${aacdata[eventItem.channelId].key}`,
-                    ...streamItems.map(e => {
-                        return [
-                            `#EXT-X-PROGRAM-DATE-TIME:${moment(e.streamTime).toISOString(true)}`,
-                            `#EXTINF:${e.duration},`,
-                            e.url
-                        ].join("\n")
-                    })
-                ].join('\n')
-                await new Promise(resolve => {
-                    fs.writeFile(path.join(config.record_dir, `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`), m3uFile.toString(), () => {
-                        resolve(null)
-                    })
-                })
-
-                const test = await new Promise(function (resolve) {
-                    console.log(`Ripping "${eventItem.filename.trim()}"...`)
-                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto', '-i', `AACSTREAM_${eventItem.channelId}_${eventItem.syncStart}.m3u8`, `Extracted_Digital_${eventItem.syncStart}.mp3`]
-                    exec(ffmpeg.join(' '), {
-                        cwd: config.record_dir,
-                        encoding: 'utf8'
-                    }, (err, stdout, stderr) => {
-                        if (err) {
-                            console.error(`Extraction failed: FFMPEG reported a error!`)
-                            console.error(err)
-                            resolve(false)
-                        } else {
-                            if (stderr.length > 1)
-                                console.error(stderr);
-                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                            resolve(true)
-                        }
-                    });
-                })
-            }
-
             let startFile = findClosest(fileTimes.map(e => e.date.valueOf()), trueTime.valueOf()) - 1
             if (startFile < 0)
                 startFile = 0
