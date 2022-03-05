@@ -494,13 +494,13 @@ async function bounceEventFile(eventsToParse, options) {
             const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
             console.log(`${analogStartTime} | ${analogEndTime}`)
 
-            let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + parseInt(eventItem.delay.toString())) - 1
+            let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - 1
             if (digitalStartFile < 0)
                 digitalStartFile = 0
-            const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + parseInt(eventItem.delay.toString()))
+            const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000))
             const digitalFileItems = digitalRecFiles.slice(digitalStartFile, digitalEndFile)
             const digitalFileList = digitalFileItems.map(e => e.file).join('|')
-            const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() + parseInt(eventItem.delay.toString())) - digitalFileItems[0].date.valueOf()))
+            const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - digitalFileItems[0].date.valueOf()))
             const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
 
             //console.log(`Found Requested Event! "${eventFilename}"...`)
