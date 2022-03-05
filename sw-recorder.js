@@ -7,10 +7,12 @@ const limiter1 = new RateLimiter(5, 60000);
 
 console.log(`Lizumi Digital Recorder v0.1`);
 (async () => {
-    function startRecorder(channel) {
-        limiter1.removeTokens(1, () => { ffmpegRecoder(channel); })
+    async function startRecorder(channel) {
+        await limiter1.removeTokens(1, () => {
+            ffmpegRecoder(channel);
+        })
     }
-    async function ffmpegRecoder(channel) {
+    function ffmpegRecoder(channel) {
         console.log(`Streaming Recorder for ${channel}...`)
 
         // ffmpeg -y -i http://127.0.0.1:9999/octane.m3u8 -f mp2 output.mp3
@@ -39,8 +41,7 @@ console.log(`Lizumi Digital Recorder v0.1`);
 
     for (let channelNumber of Object.keys(config.channels)) {
         const ch = config.channels[channelNumber]
-        if (ch.id && ch.allowDigital === true) {
+        if (ch.id && ch.allowDigital === true)
             startRecorder(ch.id)
-        }
     }
 })()
