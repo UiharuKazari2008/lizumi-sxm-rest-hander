@@ -71,7 +71,9 @@ function newRadioStream(channelNumber) {
 function writeStreamSheet(playlist) {
     return new Promise(resolve => {
         let token = crypto.randomBytes(16).toString("hex");
-        fs.writeFile(path.join(config.record_dir, `.AACSTREAM_${token}.m3u8`), playlist.toString(), () => resolve(`.AACSTREAM_${token}.m3u8`))
+        fs.writeFile(path.join(config.record_dir, `AACSTREAM_${token}.m3u8`), playlist.toString(), () => {
+            resolve(`AACSTREAM_${token}.m3u8`)
+        })
     })
 }
 async function startNewRecording(channel, lastSync) {
