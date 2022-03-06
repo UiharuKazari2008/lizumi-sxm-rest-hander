@@ -70,7 +70,7 @@ function newRadioStream(channelNumber) {
 }
 function writeStreamSheet(playlist) {
     return new Promise(resolve => {
-        let token = crypto.randomBytes(64).toString("hex");
+        let token = crypto.randomBytes(16).toString("hex");
         fs.writeFile(path.join(config.record_dir, `.AACSTREAM_${token}.m3u8`), playlist.toString(), () => resolve(`.AACSTREAM_${token}.m3u8`))
     })
 }
@@ -128,7 +128,7 @@ async function startNewRecording(channel, lastSync) {
         writeMetadata();
 
         spawnedRecorder.stdout.on('data', (data) => {
-            if (data.includes('#EXT-X-PROGRAM-DATE-TIME')) {
+            if (data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
 
             } else {
                 console.log(data)
@@ -145,7 +145,9 @@ async function startNewRecording(channel, lastSync) {
                 metadata.closedGracefully = true;
             writeMetadata();
             resolve(true);
-            startNewRecording(channel, metadata.stopSync);
+            setTimeout(() => {
+                startNewRecording(channel, metadata.stopSync);
+            }, 30000);
         });
     })
 }
