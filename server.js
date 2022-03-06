@@ -490,7 +490,7 @@ async function bounceEventFile(eventsToParse, types) {
             if (analogStartFile < 0)
                 analogStartFile = 0
             const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
-            const analogFileItems = analogRecFiles.slice(analogStartFile, analogEndFile + 1)
+            const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [ analogRecFiles[analogStartFile] ]
             const analogFileList = analogFileItems.map(e => e.file).join('|')
             if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > analogFileItems[0].date.valueOf()) {
                 const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
@@ -521,7 +521,7 @@ async function bounceEventFile(eventsToParse, types) {
 
             try {
                 let generateDigitalFile = false;
-                let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000))
+                let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - 1
                 if (digitalStartFile < 0)
                     digitalStartFile = 0
                 const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000))
