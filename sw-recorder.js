@@ -163,10 +163,10 @@ console.log(`Lizumi Digital Recorder v0.1`);
         }
     }
 
-    Object.keys(config.channels).forEach((channelNumber) => {
+    Object.keys(config.channels).forEach(async (channelNumber) => {
         const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital === true) {
-            continuousRecorder(ch.id);
+            await continuousRecorder(ch.id);
         }
     })
 })()
