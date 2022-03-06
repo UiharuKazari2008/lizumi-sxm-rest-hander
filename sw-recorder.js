@@ -138,7 +138,7 @@ async function startNewRecording(channel, lastSync) {
             console.error(data)
         });
         spawnedRecorder.on('close', (code) => {
-            rimraf(steamFile);
+            rimraf(steamFile, () => {});
             activeRecordings.delete(channel);
             console.log(`Recorder closed with code: ${code}`);
             if (code === 0)
