@@ -79,81 +79,78 @@ console.log(`Lizumi Digital Recorder v0.1`);
     }
     function startNewRecording(channel, limiter) {
         const maxFileTime = 2;
-        return new Promise((resolve) => {
-            limiter.removeTokens(1, async () => {
-                const lastSync = (LastSyncChannels.has(channel)) ? LastSyncChannels.get(channel) : undefined;
-                const streamData = await newRadioStream(channel);
-                const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
+        limiter.removeTokens(1, async () => {
+            const lastSync = (LastSyncChannels.has(channel)) ? LastSyncChannels.get(channel) : undefined;
+            const streamData = await newRadioStream(channel);
+            const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
 
-                const startTime = ((x,y) => {
-                    if (lastSync) {
-                        if (x <= y && (x - y) > 0)
-                            return [[ '-ss', msToTime(x - y) ], y]
-                        return [[],0]
-                    }
+            const startTime = ((x,y) => {
+                if (lastSync) {
+                    if (x <= y && (x - y) > 0)
+                        return [[ '-ss', msToTime(x - y) ], y]
                     return [[],0]
-                })(streamData.syncStart, lastSync)
-                let metadata = {
-                    channel: channel,
-                    streamFile: steamFile,
-                    startSync: streamData.startSync - startTime[1],
-                    stopSync: streamData.startSync + (maxFileTime * 3600000),
-                    targetDuration: (maxFileTime * 3600000),
-                    startStream: streamData.startSync,
-                    stopStream: streamData.stopSync,
-                    droppedSegments: [],
-                    closedGracefully: false
                 }
+                return [[],0]
+            })(streamData.syncStart, lastSync)
+            let metadata = {
+                channel: channel,
+                streamFile: steamFile,
+                startSync: streamData.startSync - startTime[1],
+                stopSync: streamData.startSync + (maxFileTime * 3600000),
+                targetDuration: (maxFileTime * 3600000),
+                startStream: streamData.startSync,
+                stopStream: streamData.stopSync,
+                droppedSegments: [],
+                closedGracefully: false
+            }
 
-                const recordingFile = `SXM_Digital_${channel}_${streamData.startSync}`;
+            const recordingFile = `SXM_Digital_${channel}_${streamData.startSync}`;
 
 
-                function writeMetadata() {
-                    return new Promise(f => {
-                        fs.writeFile(path.join(config.record_dir, `${recordingFile}.json`), JSON.stringify(metadata).toString(), () => f(null))
-                    })
-                }
-
-                console.log(metadata);
-                const spawnedRecorder = spawn('/usr/local/bin/ffmpeg', [
-                    '-hide_banner',
-                    '-y',
-                    '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
-                    '-reconnect', 'true',
-                    '-reconnect_on_network_error', 'false',
-                    ...startTime[0],
-                    '-t', `${maxFileTime}:00:00`,
-                    '-i', steamFile,
-                    `${recordingFile}.mp3`
-                ], {
-                    cwd: config.record_dir,
-                    encoding: 'utf8'
+            function writeMetadata() {
+                return new Promise(f => {
+                    fs.writeFile(path.join(config.record_dir, `${recordingFile}.json`), JSON.stringify(metadata).toString(), () => f(null))
                 })
-                activeRecordings.set(channel, spawnedRecorder);
-                writeMetadata();
+            }
 
-                spawnedRecorder.stdout.on('data', (data) => {
-                    if (data.includes('#EXT-X-PROGRAM-DATE-TIME')) {
-
-                    } else {
-                        console.log(data)
-                    }
-                });
-                spawnedRecorder.stderr.on('data', (data) => {
-                    console.error(data)
-                });
-                spawnedRecorder.on('close', (code) => {
-                    rimraf(steamFile);
-                    activeRecordings.delete(channel);
-                    console.log(`Recorder closed with code: ${code}`);
-                    if (code === 0)
-                        metadata.closedGracefully = true;
-                    writeMetadata();
-                    LastSyncChannels.set(channel, metadata.stopSync);
-                    resolve(metadata.stopSync);
-                    startNewRecording(channel, limiter);
-                });
+            console.log(metadata);
+            const spawnedRecorder = spawn('/usr/local/bin/ffmpeg', [
+                '-hide_banner',
+                '-y',
+                '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
+                '-reconnect', 'true',
+                '-reconnect_on_network_error', 'false',
+                ...startTime[0],
+                '-t', `${maxFileTime}:00:00`,
+                '-i', steamFile,
+                `${recordingFile}.mp3`
+            ], {
+                cwd: config.record_dir,
+                encoding: 'utf8'
             })
+            activeRecordings.set(channel, spawnedRecorder);
+            writeMetadata();
+
+            spawnedRecorder.stdout.on('data', (data) => {
+                if (data.includes('#EXT-X-PROGRAM-DATE-TIME')) {
+
+                } else {
+                    console.log(data)
+                }
+            });
+            spawnedRecorder.stderr.on('data', (data) => {
+                console.error(data)
+            });
+            spawnedRecorder.on('close', (code) => {
+                rimraf(steamFile);
+                activeRecordings.delete(channel);
+                console.log(`Recorder closed with code: ${code}`);
+                if (code === 0)
+                    metadata.closedGracefully = true;
+                writeMetadata();
+                LastSyncChannels.set(channel, metadata.stopSync);
+                startNewRecording(channel, limiter);
+            });
         })
     }
 
