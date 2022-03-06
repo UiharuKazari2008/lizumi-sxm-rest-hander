@@ -471,12 +471,12 @@ async function bounceEventFile(eventsToParse, types) {
             if (eventItem.channelId) {
                 digitalRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(`${config.digital_record_prefix}_${eventItem.channelId}_`) && e.endsWith(".mp3")).map(e => {
                     return {
-                        date: moment(parseInt(e.split('_').pop().split('.')[0]), true),
+                        date: parseInt(e.split('_').pop().split('.')[0]),
                         file: e
                     }
                 });
                 console.log(digitalRecFiles)
-                digitalRecTimes = digitalRecFiles.map(e => e.date.valueOf());
+                digitalRecTimes = digitalRecFiles.map(e => e.date);
                 console.log(digitalRecTimes)
             } else {
                 digitalRecFiles = [];
@@ -532,8 +532,8 @@ async function bounceEventFile(eventsToParse, types) {
                 const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000))
                 const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile) : [ digitalRecFiles[digitalStartFile] ]
                 const digitalFileList = digitalFileItems.map(e => e.file).join('|')
-                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date.valueOf()) {
-                    const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date.valueOf())) + (parseInt(eventItem.delay.toString()) * 1000))
+                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date) {
+                    const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date)) + (parseInt(eventItem.delay.toString()) * 1000))
                     const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000 + (parseInt(eventItem.delay.toString()) * 1000))
                     console.log(`${digitalStartTime} | ${digitalEndTime}`)
                     generateDigitalFile = await new Promise(function (resolve) {
