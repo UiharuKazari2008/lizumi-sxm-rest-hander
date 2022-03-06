@@ -128,9 +128,7 @@ async function startNewRecording(channel, lastSync) {
         writeMetadata();
 
         spawnedRecorder.stdout.on('data', (data) => {
-            if (!data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
-                console.log(data.toString())
-            }
+            console.log(data.toString())
         });
         spawnedRecorder.stderr.on('data', (data) => {
             if (!data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
