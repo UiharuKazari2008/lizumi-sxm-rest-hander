@@ -6,6 +6,7 @@ const fs = require("fs");
 const request = require("request");
 const path = require("path");
 const rimraf = require('rimraf');
+const crypto = require('crypto');
 function msToTime(s) {
     // Pad to 2 or 3 digits, default is 2
     function pad(n, z) {
