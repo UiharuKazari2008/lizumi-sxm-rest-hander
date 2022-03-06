@@ -91,7 +91,6 @@ async function startNewRecording(channel, lastSync) {
         })(streamData.syncStart, lastSync)
         let metadata = {
             channel: channel,
-            streamFile: steamFile,
             startSync: streamData.startSync - startTime[1],
             stopSync: streamData.startSync + (maxFileTime * 3600000),
             targetDuration: (maxFileTime * 3600000),
