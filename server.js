@@ -492,7 +492,7 @@ async function bounceEventFile(eventsToParse, types) {
                 const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
                 const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
                 const analogFileList = analogFileItems.map(e => e.file).join('|')
-                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > analogFileItems[0].date.valueOf()) {
+                if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
                     const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
                     const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
                     console.log(`${analogStartTime} | ${analogEndTime}`)
@@ -525,16 +525,16 @@ async function bounceEventFile(eventsToParse, types) {
 
             try {
                 let generateDigitalFile = false;
-                let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - 1
+                let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf()) - 1
                 if (digitalStartFile < 0)
                     digitalStartFile = 0
-                let digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000)) + 1
+                let digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd) + 1
                 if (digitalEndFile + 1 > digitalRecTimes.length)
                     digitalEndFile = digitalRecTimes.length - 1
                 const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile) : [ digitalRecFiles[digitalStartFile] ]
                 const digitalFileList = digitalFileItems.map(e => e.file).join('|')
-                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date) {
-                    const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date)) + (parseInt(eventItem.delay.toString()) * 1000))
+                if (trueTime.valueOf() > digitalFileItems[0].date) {
+                    const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date)))
                     const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000 + (parseInt(eventItem.delay.toString()) * 1000))
                     console.log(`${digitalStartTime} | ${digitalEndTime}`)
                     generateDigitalFile = await new Promise(function (resolve) {
