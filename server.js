@@ -486,38 +486,43 @@ async function bounceEventFile(eventsToParse, types) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
             let generateAnalogFile = false;
-            let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
-            if (analogStartFile < 0)
-                analogStartFile = 0
-            const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
-            const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [ analogRecFiles[analogStartFile] ]
-            const analogFileList = analogFileItems.map(e => e.file).join('|')
-            if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > analogFileItems[0].date.valueOf()) {
-                const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
-                const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
-                console.log(`${analogStartTime} | ${analogEndTime}`)
-                generateAnalogFile = await new Promise(function (resolve) {
-                    console.log(`Ripping Analog File "${eventItem.filename.trim()}"...`)
-                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.syncStart}.mp3`]
-                    exec(ffmpeg.join(' '), {
-                        cwd: config.record_dir,
-                        encoding: 'utf8'
-                    }, (err, stdout, stderr) => {
-                        if (err) {
-                            console.error(`Analog Extraction failed: FFMPEG reported a error!`)
-                            console.error(err)
-                            resolve(false)
-                        } else {
-                            if (stderr.length > 1)
-                                console.error(stderr);
-                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                            resolve(true)
-                        }
-                    });
-                })
-            } else {
-                console.error("Analog Recordings are not available for this time frame! Canceled")
-            }
+            /*try {
+                let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
+                if (analogStartFile < 0)
+                    analogStartFile = 0
+                const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
+                const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
+                const analogFileList = analogFileItems.map(e => e.file).join('|')
+                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > analogFileItems[0].date.valueOf()) {
+                    const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
+                    const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+                    console.log(`${analogStartTime} | ${analogEndTime}`)
+                    generateAnalogFile = await new Promise(function (resolve) {
+                        console.log(`Ripping Analog File "${eventItem.filename.trim()}"...`)
+                        const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.syncStart}.mp3`]
+                        exec(ffmpeg.join(' '), {
+                            cwd: config.record_dir,
+                            encoding: 'utf8'
+                        }, (err, stdout, stderr) => {
+                            if (err) {
+                                console.error(`Analog Extraction failed: FFMPEG reported a error!`)
+                                console.error(err)
+                                resolve(false)
+                            } else {
+                                if (stderr.length > 1)
+                                    console.error(stderr);
+                                console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                resolve(true)
+                            }
+                        });
+                    })
+                } else {
+                    console.error("Analog Recordings are not available for this time frame! Canceled")
+                }
+            } catch (e) {
+                console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
+                console.error(e);
+            }*/
 
             try {
                 let generateDigitalFile = false;
