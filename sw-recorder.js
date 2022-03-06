@@ -25,6 +25,7 @@ function msToTime(s) {
 }
 
 let activeRecordings = new Map();
+let LastSyncChannels = new Map();
 
 console.log(`Lizumi Digital Recorder v0.1`);
 (async () => {
@@ -76,10 +77,11 @@ console.log(`Lizumi Digital Recorder v0.1`);
             fs.writeFile(path.join(config.record_dir, `.AACSTREAM_${token}.m3u8`), playlist.toString(), () => resolve(`.AACSTREAM_${token}.m3u8`))
         })
     }
-    function startNewRecording(channel, limiter, lastSync) {
+    function startNewRecording(channel, limiter) {
         const maxFileTime = 2;
         return new Promise((resolve) => {
             limiter.removeTokens(1, async () => {
+                const lastSync = (LastSyncChannels.has(channel)) ? LastSyncChannels.get(channel) : undefined;
                 const streamData = await newRadioStream(channel);
                 const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
 
@@ -94,7 +96,7 @@ console.log(`Lizumi Digital Recorder v0.1`);
                 let metadata = {
                     channel: channel,
                     streamFile: steamFile,
-                    startSync: streamData.startSync - lastSync,
+                    startSync: streamData.startSync - startTime[1],
                     stopSync: streamData.startSync + (maxFileTime * 3600000),
                     targetDuration: (maxFileTime * 3600000),
                     startStream: streamData.startSync,
@@ -147,7 +149,8 @@ console.log(`Lizumi Digital Recorder v0.1`);
                     if (code === 0)
                         metadata.closedGracefully = true;
                     writeMetadata();
-                    resolve(false);
+                    LastSyncChannels.set(channel, metadata.stopSync);
+                    resolve(metadata.stopSync);
                 });
             })
         })
@@ -156,7 +159,7 @@ console.log(`Lizumi Digital Recorder v0.1`);
     async function continuousRecorder(channel) {
         const limiter = new RateLimiter(5, 60000);
         while (true) {
-            await startNewRecording(channel, limiter, lastSync);
+            await startNewRecording(channel, limiter);
         }
     }
 
