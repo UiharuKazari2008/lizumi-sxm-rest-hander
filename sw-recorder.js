@@ -37,8 +37,7 @@ function newRadioStream(channelNumber) {
                     resolve(false);
                 } else {
                     try {
-                        const data = body.toString();
-                        const _data = data.split('\n').map(e => {
+                        const data = body.toString().split('\n').map(e => {
                             if (e.startsWith('#EXT-X-KEY')) {
                                 return e.replace('URI="', `URI="http://${config.sxmclient_host}/`);
                             } else if (e.startsWith('AAC_Data')) {
