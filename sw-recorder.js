@@ -161,7 +161,7 @@ console.log(`Lizumi Digital Recorder v0.1`);
         const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital === true) {
             const limiter = new RateLimiter(5, 60000);
-            startNewRecording(channel, limiter);
+            startNewRecording(ch.id, limiter);
         }
     })
 })()
