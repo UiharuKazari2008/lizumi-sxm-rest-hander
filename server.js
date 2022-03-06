@@ -523,8 +523,8 @@ async function bounceEventFile(eventsToParse, types) {
                 console.error(e);
             }
 
+            let generateDigitalFile = false;
             try {
-                let generateDigitalFile = false;
                 let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf()) - 1
                 if (digitalStartFile < 0)
                     digitalStartFile = 0
