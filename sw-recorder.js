@@ -151,6 +151,7 @@ console.log(`Lizumi Digital Recorder v0.1`);
                     writeMetadata();
                     LastSyncChannels.set(channel, metadata.stopSync);
                     resolve(metadata.stopSync);
+                    startNewRecording(channel, limiter);
                 });
             })
         })
@@ -158,12 +159,10 @@ console.log(`Lizumi Digital Recorder v0.1`);
 
     async function continuousRecorder(channel) {
         const limiter = new RateLimiter(5, 60000);
-        while (true) {
-            await startNewRecording(channel, limiter);
-        }
+        startNewRecording(channel, limiter);
     }
 
-    Object.keys(config.channels).forEach(async (channelNumber) => {
+    Object.keys(config.channels).forEach((channelNumber) => {
         const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital === true) {
             continuousRecorder(ch.id);
