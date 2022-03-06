@@ -482,11 +482,10 @@ async function bounceEventFile(eventsToParse, types) {
                 digitalRecFiles = [];
                 digitalRecTimes = [];
             }
-            const fileDestination = path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`)
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
             let generateAnalogFile = false;
-            /*try {
+            try {
                 let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
                 if (analogStartFile < 0)
                     analogStartFile = 0
@@ -512,7 +511,7 @@ async function bounceEventFile(eventsToParse, types) {
                                 if (stderr.length > 1)
                                     console.error(stderr);
                                 console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                resolve(true)
+                                resolve(path.join(config.record_dir, `Extracted_${eventItem.syncStart}.mp3`))
                             }
                         });
                     })
@@ -522,7 +521,7 @@ async function bounceEventFile(eventsToParse, types) {
             } catch (e) {
                 console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
                 console.error(e);
-            }*/
+            }
 
             try {
                 let generateDigitalFile = false;
@@ -536,14 +535,6 @@ async function bounceEventFile(eventsToParse, types) {
                 const digitalFileList = digitalFileItems.map(e => e.file).join('|')
                 if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date) {
                     const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date)) + (parseInt(eventItem.delay.toString()) * 1000))
-
-                    console.log(trueTime.valueOf())
-                    console.log(digitalFileItems[0].date)
-                    console.log(parseInt(eventItem.delay.toString()) * 1000)
-                    console.log(trueTime.valueOf() - digitalFileItems[0].date)
-                    console.log((trueTime.valueOf() - digitalFileItems[0].date) + (parseInt(eventItem.delay.toString()) * 1000))
-                    console.log(Math.abs((trueTime.valueOf() - digitalFileItems[0].date)))
-
                     const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000 + (parseInt(eventItem.delay.toString()) * 1000))
                     console.log(`${digitalStartTime} | ${digitalEndTime}`)
                     generateDigitalFile = await new Promise(function (resolve) {
@@ -561,7 +552,7 @@ async function bounceEventFile(eventsToParse, types) {
                                 if (stderr.length > 1)
                                     console.error(stderr);
                                 console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                resolve(true)
+                                resolve(path.join(config.record_dir, `Digital_Extracted_${eventItem.syncStart}.mp3`))
                             }
                         });
                     })
@@ -573,11 +564,21 @@ async function bounceEventFile(eventsToParse, types) {
                 console.error(e);
             }
 
-            /*if (generateAnalogFile && fs.existsSync(fileDestination)) {
+            const extractedFile = (() => {
+                if (generateDigitalFile && fs.existsSync(generateDigitalFile.toString())) {
+                    return generateDigitalFile
+                } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                    return generateAnalogFile
+                } else {
+                    return null
+                }
+            })()
+
+            if (extractedFile) {
                 try {
                     if (config.backup_dir) {
                         await new Promise(resolve => {
-                            exec(`cp "${fileDestination.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
+                            exec(`cp "${extractedFile.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
                                 if (err)
                                     console.error(err)
                                 resolve((err))
@@ -586,7 +587,7 @@ async function bounceEventFile(eventsToParse, types) {
                     }
                     if (config.upload_dir) {
                         await new Promise(resolve => {
-                            exec(`cp "${fileDestination.toString()}" "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
+                            exec(`cp "${extractedFile.toString()}" "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
                                 if (err)
                                     console.error(err)
                                 resolve((err))
@@ -619,7 +620,7 @@ async function bounceEventFile(eventsToParse, types) {
                 }
             } else {
                 console.error(`Extraction failed: File was not generated correctly`)
-            }*/
+            }
             console.log(`PROGRESS:${(((parseInt(index) + 1) / eventsToParse.length) * 100).toFixed()}`)
             if (parseInt(index) + 1 === eventsToParse.length)
                 console.log('PROGRESS:100')
