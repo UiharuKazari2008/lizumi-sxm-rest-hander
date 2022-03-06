@@ -116,8 +116,6 @@ async function startNewRecording(channel, lastSync) {
             '-hide_banner',
             '-y',
             '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
-            '-reconnect', 'true',
-            '-reconnect_on_network_error', 'false',
             ...startTime[0],
             '-t', `${maxFileTime}:00:00`,
             '-i', steamFile,
@@ -130,14 +128,14 @@ async function startNewRecording(channel, lastSync) {
         writeMetadata();
 
         spawnedRecorder.stdout.on('data', (data) => {
-            if (data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
-
-            } else {
+            if (!data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
                 console.log(data.toString())
             }
         });
         spawnedRecorder.stderr.on('data', (data) => {
-            console.error(data.toString())
+            if (!data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
+                console.error(data.toString())
+            }
         });
         spawnedRecorder.on('close', (code) => {
             rimraf(steamFile, () => {});
