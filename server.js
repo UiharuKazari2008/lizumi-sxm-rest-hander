@@ -519,38 +519,43 @@ async function bounceEventFile(eventsToParse, types) {
                 console.error("Analog Recordings are not available for this time frame! Canceled")
             }
 
-            let generateDigitalFile = false;
-            let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - 1
-            if (digitalStartFile < 0)
-                digitalStartFile = 0
-            const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000))
-            const digitalFileItems = digitalRecFiles.slice(digitalStartFile, digitalEndFile)
-            const digitalFileList = digitalFileItems.map(e => e.file).join('|')
-            if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date.valueOf()) {
-                const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - digitalFileItems[0].date.valueOf()))
-                const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
-                console.log(`${digitalStartTime} | ${digitalEndTime}`)
-                generateDigitalFile = await new Promise(function (resolve) {
-                    console.log(`Ripping Digital File "${eventItem.filename.trim()}"...`)
-                    const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${digitalFileList}"`, '-ss', digitalStartTime, '-t', digitalEndTime, `Digital_Extracted_${eventItem.syncStart}.mp3`]
-                    exec(ffmpeg.join(' '), {
-                        cwd: config.record_dir,
-                        encoding: 'utf8'
-                    }, (err, stdout, stderr) => {
-                        if (err) {
-                            console.error(`Digital Extraction failed: FFMPEG reported a error!`)
-                            console.error(err)
-                            resolve(false)
-                        } else {
-                            if (stderr.length > 1)
-                                console.error(stderr);
-                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                            resolve(true)
-                        }
-                    });
-                })
-            } else {
-                console.error("Digital Recordings are not available for this time frame! Canceled")
+            try {
+                let generateDigitalFile = false;
+                let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000))
+                if (digitalStartFile < 0)
+                    digitalStartFile = 0
+                const digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd + (parseInt(eventItem.delay.toString()) * 1000))
+                const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile) : [ digitalRecFiles[digitalStartFile] ]
+                const digitalFileList = digitalFileItems.map(e => e.file).join('|')
+                if ((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) > digitalFileItems[0].date.valueOf()) {
+                    const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() + (parseInt(eventItem.delay.toString()) * 1000)) - digitalFileItems[0].date.valueOf()))
+                    const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+                    console.log(`${digitalStartTime} | ${digitalEndTime}`)
+                    generateDigitalFile = await new Promise(function (resolve) {
+                        console.log(`Ripping Digital File "${eventItem.filename.trim()}"...`)
+                        const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${digitalFileList}"`, '-ss', digitalStartTime, '-t', digitalEndTime, `Digital_Extracted_${eventItem.syncStart}.mp3`]
+                        exec(ffmpeg.join(' '), {
+                            cwd: config.record_dir,
+                            encoding: 'utf8'
+                        }, (err, stdout, stderr) => {
+                            if (err) {
+                                console.error(`Digital Extraction failed: FFMPEG reported a error!`)
+                                console.error(err)
+                                resolve(false)
+                            } else {
+                                if (stderr.length > 1)
+                                    console.error(stderr);
+                                console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                resolve(true)
+                            }
+                        });
+                    })
+                } else {
+                    console.error("Digital Recordings are not available for this time frame! Canceled")
+                }
+            } catch (e) {
+                console.error(`ALERT: FAULT - Digital Extraction Failed: ${e.message}`)
+                console.error(e);
             }
 
             if (generateAnalogFile && fs.existsSync(fileDestination)) {
