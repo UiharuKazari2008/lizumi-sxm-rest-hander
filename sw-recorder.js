@@ -131,11 +131,11 @@ async function startNewRecording(channel, lastSync) {
             if (data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
 
             } else {
-                console.log(data)
+                console.log(data.toString())
             }
         });
         spawnedRecorder.stderr.on('data', (data) => {
-            console.error(data)
+            console.error(data.toString())
         });
         spawnedRecorder.on('close', (code) => {
             rimraf(steamFile, () => {});
