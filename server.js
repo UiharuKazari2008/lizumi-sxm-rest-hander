@@ -471,7 +471,7 @@ async function bounceEventFile(eventsToParse, types) {
             if (eventItem.channelId) {
                 digitalRecFiles = fs.readdirSync(config.record_dir).filter(e => e.startsWith(`${config.digital_record_prefix}_${eventItem.channelId}_`) && e.endsWith(".mp3")).map(e => {
                     return {
-                        date: moment(parseInt(e.split('_').pop().split('.')[0])),
+                        date: moment(parseInt(e.split('_').pop().split('.')[0]), true),
                         file: e
                     }
                 });
