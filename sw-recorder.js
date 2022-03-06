@@ -116,7 +116,7 @@ async function startNewRecording(channel, lastSync) {
             '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
             ...startTime[0],
             '-t', `${maxFileTime}:00:00`,
-            '-i', `http://${config.sxmclient_host}/${channelNumber}.m3u8`,
+            '-i', `http://${config.sxmclient_host}/${channel}.m3u8`,
             `${recordingFile}.mp3`
         ], {
             cwd: config.record_dir,
