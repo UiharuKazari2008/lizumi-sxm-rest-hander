@@ -157,16 +157,11 @@ console.log(`Lizumi Digital Recorder v0.1`);
         })
     }
 
-    async function continuousRecorder(channel) {
-        const limiter = new RateLimiter(5, 60000);
-        startNewRecording(channel, limiter);
-    }
-
     Object.keys(config.channels).forEach((channelNumber) => {
         const ch = config.channels[channelNumber]
         if (ch.id && ch.allowDigital === true) {
-            continuousRecorder(ch.id);
+            const limiter = new RateLimiter(5, 60000);
+            startNewRecording(channel, limiter);
         }
     })
-    process.stdin.resume();
 })()
