@@ -6,7 +6,6 @@ const fs = require("fs");
 const request = require("request");
 const path = require("path");
 const rimraf = require('rimraf');
-const RateLimiter = require('limiter').RateLimiter;
 function msToTime(s) {
     // Pad to 2 or 3 digits, default is 2
     function pad(n, z) {
@@ -25,7 +24,6 @@ function msToTime(s) {
 }
 
 let activeRecordings = new Map();
-let LastSyncChannels = new Map();
 
 console.log(`Lizumi Digital Recorder v0.1`);
 function newRadioStream(channelNumber) {
@@ -76,10 +74,9 @@ function writeStreamSheet(playlist) {
         fs.writeFile(path.join(config.record_dir, `.AACSTREAM_${token}.m3u8`), playlist.toString(), () => resolve(`.AACSTREAM_${token}.m3u8`))
     })
 }
-function startNewRecording(channel, limiter) {
+async function startNewRecording(channel, lastSync) {
     const maxFileTime = 2;
-    limiter.removeTokens(1, async () => {
-        const lastSync = (LastSyncChannels.has(channel)) ? LastSyncChannels.get(channel) : undefined;
+    new Promise(resolve => {
         const streamData = await newRadioStream(channel);
         const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
 
@@ -147,8 +144,8 @@ function startNewRecording(channel, limiter) {
             if (code === 0)
                 metadata.closedGracefully = true;
             writeMetadata();
-            LastSyncChannels.set(channel, metadata.stopSync);
-            startNewRecording(channel, limiter);
+            resolve(true);
+            startNewRecording(channel, metadata.stopSync);
         });
     })
 }
@@ -157,7 +154,6 @@ Object.keys(config.channels).forEach((channelNumber) => {
     const ch = config.channels[channelNumber]
     if (ch.id && ch.allowDigital === true) {
         console.log(`Started Channel ${ch.id}`)
-        const limiter = new RateLimiter(5, 60000);
-        startNewRecording(ch.id, limiter);
+        startNewRecording(ch.id);
     }
 })
