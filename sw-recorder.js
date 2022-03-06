@@ -76,7 +76,7 @@ function writeStreamSheet(playlist) {
 }
 async function startNewRecording(channel, lastSync) {
     const maxFileTime = 2;
-    new Promise(resolve => {
+    return new Promise(async resolve => {
         const streamData = await newRadioStream(channel);
         const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
 
