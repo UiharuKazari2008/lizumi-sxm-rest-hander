@@ -47,8 +47,10 @@ function newRadioStream(channelNumber) {
                                 return e
                             }
                         })
+                        console.log(data[0])
                         const startSync = moment(data.find(e => e.startsWith('#EXT-X-PROGRAM-DATE-TIME')).split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf();
                         const stopSync = moment(data.reverse().find(e => e.startsWith('#EXT-X-PROGRAM-DATE-TIME')).split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf();
+                        console.log(data[0])
                         resolve({
                             playlist: data,
                             startSync,
