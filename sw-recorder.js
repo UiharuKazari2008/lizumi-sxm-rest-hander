@@ -80,7 +80,6 @@ async function startNewRecording(channel, lastSync) {
     const maxFileTime = 2;
     return new Promise(async resolve => {
         const streamData = await newRadioStream(channel);
-        const steamFile = await writeStreamSheet(streamData.playlist.join('\n'));
 
         const startTime = ((x,y) => {
             if (lastSync) {
@@ -118,7 +117,7 @@ async function startNewRecording(channel, lastSync) {
             '-protocol_whitelist', 'concat,file,http,https,tcp,tls,crypto',
             ...startTime[0],
             '-t', `${maxFileTime}:00:00`,
-            '-i', steamFile,
+            '-i', `http://${config.sxmclient_host}/${channelNumber}.m3u8`,
             `${recordingFile}.mp3`
         ], {
             cwd: config.record_dir,
@@ -131,10 +130,11 @@ async function startNewRecording(channel, lastSync) {
             console.log(data.toString())
         });
         spawnedRecorder.stderr.on('data', (data) => {
-            console.error(data.toString())
+            if (!data.toString().includes('#EXT-X-PROGRAM-DATE-TIME')) {
+                console.error(data.toString())
+            }
         });
         spawnedRecorder.on('close', (code) => {
-            rimraf(steamFile, () => {});
             activeRecordings.delete(channel);
             console.log(`Recorder closed with code: ${code}`);
             if (code === 0)
