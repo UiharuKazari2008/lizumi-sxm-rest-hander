@@ -131,7 +131,7 @@ async function updateMetadata() {
             const d = channelTimes.timetable.filter(e => e.digital === false).slice(-1).pop();
             const a = channelTimes.timetable.filter(e => e.digital === true).slice(-1).pop();
 
-            if (d.ch !== a.ch) {
+            if (d && a && d.ch !== a.ch) {
                 return [d, a]
             } else {
                 return [a]
