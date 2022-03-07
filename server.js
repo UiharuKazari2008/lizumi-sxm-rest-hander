@@ -853,6 +853,10 @@ app.get("/dtune/:channelNum", (req, res, next) => {
         res.status(400).send('MissingChannel')
     }
 });
+app.get("/pend_bounce/:format", (req, res) => {
+    registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined, req.params.format);
+    res.status(200).send('OK')
+})
 app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
@@ -862,10 +866,6 @@ app.get("/trigger/:display", (req, res, next) => {
                 break;
             case 'select_bounce_song':
                 bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
-                res.status(200).send('OK')
-                break;
-            case 'pend_bounce':
-                registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined );
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
