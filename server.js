@@ -823,7 +823,7 @@ app.get("/dtune/:channelNum", (req, res, next) => {
         request.get({
             url: `http://:lizumi@127.0.0.1:8080/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
             timeout: 5000
-        }, async function (err, res, body) {
+        }, async function (err, resReq, body) {
             if (!err) {
                 channelTimes.timetable.push({
                     time: moment().valueOf(),
