@@ -487,7 +487,7 @@ async function bounceEventFile(eventsToParse, types) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`
 
             let generateAnalogFile = false;
-            if ((eventItem.format && eventItem.format === "analog") || (!types || (types && types === "analog"))) {
+            if ((eventItem.format && eventItem.format === "analog") || (types && types === "analog")) {
                 try {
                     let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
                     if (analogStartFile < 0)
@@ -528,7 +528,7 @@ async function bounceEventFile(eventsToParse, types) {
             }
 
             let generateDigitalFile = false;
-            if ((eventItem.format && eventItem.format === "digital") || (!types || (types && types === "digital"))) {
+            if ((eventItem.format && eventItem.format === "digital") || (types && types === "digital")) {
                 try {
                     let digitalStartFile = findClosest(digitalRecTimes, trueTime.valueOf()) - 1
                     if (digitalStartFile < 0)
