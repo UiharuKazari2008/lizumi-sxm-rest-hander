@@ -356,7 +356,6 @@ async function bounceEventGUI(type, format) {
                     return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
                 }
             })()
-            eventItem.format = format
             eventItem.channelId = config.channels[eventItem.ch].id
             eventItem.filename = await new Promise(resolve => {
                 const dialog = [
