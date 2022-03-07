@@ -814,15 +814,37 @@ async function modifyMetadataGUI(type) {
 app.get("/tune/:channelNum", (req, res, next) => {
     if (req.params.channelNum) {
         console.log(`Tune event to channel ${req.params.channelNum}`)
-        channelTimes.timetable.push({
-            time: moment().valueOf(),
-            ch: req.params.channelNum,
-            digital: false
-        })
-        if (config.channels[req.params.channelNum].updateOnTune) {
-            updateMetadata();
+        if (config.channels[req.params.channelNum].tuneUrl) {
+            request.get({
+                url: config.channels[req.params.channelNum].tuneUrl.toString(),
+                timeout: 5000
+            }, async function (err, resReq, body) {
+                if (!err) {
+                    channelTimes.timetable.push({
+                        time: moment().valueOf(),
+                        ch: req.params.channelNum,
+                        digital: false
+                    })
+                    if (config.channels[req.params.channelNum].updateOnTune) {
+                        updateMetadata();
+                    }
+                    res.status(200).send('OK')
+                } else {
+                    res.status(500).send(err.message)
+                }
+            })
+        } else {
+            console.log(`Tune event to channel ${req.params.channelNum}`)
+            channelTimes.timetable.push({
+                time: moment().valueOf(),
+                ch: req.params.channelNum,
+                digital: false
+            })
+            if (config.channels[req.params.channelNum].updateOnTune) {
+                updateMetadata();
+            }
+            res.status(200).send('OK')
         }
-        res.status(200).send('OK')
     } else {
         res.status(400).send('MissingChannel')
     }
@@ -831,7 +853,7 @@ app.get("/dtune/:channelNum", (req, res, next) => {
     if (req.params.channelNum && config.channels[req.params.channelNum].digitalIndex) {
         console.log(`Tune event to digital channel ${req.params.channelNum}`)
         request.get({
-            url: `http://:lizumi@127.0.0.1:8080/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
+            url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
             timeout: 5000
         }, async function (err, resReq, body) {
             if (!err) {
