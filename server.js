@@ -635,41 +635,51 @@ async function bounceEventFile(eventsToParse, types) {
 }
 
 async function nowPlayingNotification(forceUpdate) {
-    const currentChannel = channelTimes.timetable.slice(-1).pop()
-    const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
-    /*console.log(nowPlaying)
-    console.log(nowPlayingGUID)*/
-    if (nowPlayingGUID !== nowPlaying.guid || nowPlaying.isUpdated || forceUpdate) {
-        nowPlayingGUID = nowPlaying.guid
-        nowPlaying.isUpdated = false
-        const eventText = (() => {
-            if (nowPlaying.filename) {
-                return nowPlaying.filename
-            } else if (nowPlaying.isEpisode) {
-                return `${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
-            } else if (nowPlaying.isSong) {
-                return `${nowPlaying.artist.replace(/[^\w\s]/gi, '')} - ${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
-            } else {
-                return `${nowPlaying.title.replace(/[^\w\s]/gi, '')} - ${nowPlaying.artist.replace(/[^\w\s]/gi, '')}`
-            }
-        })()
-        console.log(`Now Playing: Channel ${currentChannel.ch} - ${eventText}`)
-        await new Promise(resolve => {
-            const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
-            const childProcess = osascript.execute(list, function (err, result, raw) {
-                resolve(null);
-                if (err) return console.error(err)
-                clearTimeout(childKiller);
-            });
-            const childKiller = setTimeout(function () {
-                childProcess.stdin.pause();
-                childProcess.kill();
-                resolve(null);
-            }, 90000)
-        })
-        publishMetaIcecast(nowPlaying, currentChannel);
-        publishMetadataFile(nowPlaying, currentChannel);
-        searchForEvents(nowPlaying, currentChannel);
+    for (const currentChannel of (() => {
+        const d = channelTimes.timetable.filter(e => e.digital === false).slice(-1).pop();
+        const a = channelTimes.timetable.filter(e => e.digital === true).slice(-1).pop();
+
+        if (d && a && d.ch !== a.ch) {
+            return [d, a]
+        } else {
+            return [a]
+        }
+    })()) {
+        const nowPlaying = metadata[currentChannel.ch].slice(-1).pop()
+        /*console.log(nowPlaying)
+        console.log(nowPlayingGUID)*/
+        if (nowPlayingGUID !== nowPlaying.guid || nowPlaying.isUpdated || forceUpdate) {
+            nowPlayingGUID = nowPlaying.guid
+            nowPlaying.isUpdated = false
+            const eventText = (() => {
+                if (nowPlaying.filename) {
+                    return nowPlaying.filename
+                } else if (nowPlaying.isEpisode) {
+                    return `${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+                } else if (nowPlaying.isSong) {
+                    return `${nowPlaying.artist.replace(/[^\w\s]/gi, '')} - ${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+                } else {
+                    return `${nowPlaying.title.replace(/[^\w\s]/gi, '')} - ${nowPlaying.artist.replace(/[^\w\s]/gi, '')}`
+                }
+            })()
+            console.log(`Now Playing: Channel ${currentChannel.ch} - ${eventText}`)
+            await new Promise(resolve => {
+                const list = `display notification "${(nowPlaying.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(nowPlaying.syncStart).format("HH:mm:ss")}" with title "📻 ${(config.channels[currentChannel.ch].name) ? config.channels[currentChannel.ch].name : "SiriusXM"}"`
+                const childProcess = osascript.execute(list, function (err, result, raw) {
+                    resolve(null);
+                    if (err) return console.error(err)
+                    clearTimeout(childKiller);
+                });
+                const childKiller = setTimeout(function () {
+                    childProcess.stdin.pause();
+                    childProcess.kill();
+                    resolve(null);
+                }, 90000)
+            })
+            publishMetaIcecast(nowPlaying, currentChannel);
+            publishMetadataFile(nowPlaying, currentChannel);
+            searchForEvents(nowPlaying, currentChannel);
+        }
     }
 }
 async function modifyMetadataGUI(type) {
