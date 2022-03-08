@@ -72,6 +72,7 @@ if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
 
 async function updateMetadata() {
     try {
+        let gotChannels = [];
         function parseJson(_json) {
             try {
                 // Check if messages and successful response
@@ -139,7 +140,7 @@ async function updateMetadata() {
         })()) {
             for (let channelNumber of Object.keys(config.channels)) {
                 const channelInfo = config.channels[channelNumber]
-                if (!channelInfo.updateOnTune || (channelInfo.updateOnTune && currentChannel.ch === channelNumber)) {
+                if (gotChannels.indexOf(channelNumber) === -1 && (!channelInfo.updateOnTune || (channelInfo.updateOnTune && currentChannel.ch === channelNumber))) {
                     try {
                         const chmeta = await new Promise(resolve => {
                             const timestamp = new moment().utc().subtract(8, "hours").valueOf()
@@ -205,6 +206,7 @@ async function updateMetadata() {
                             } else {
                                 metadata[channelNumber] = chmeta.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                             }
+                            gotChannels.push(currentChannel);
                         }
                         console.log(`Pulled Metadata for ${channelNumber}`)
                     } catch (e) {
