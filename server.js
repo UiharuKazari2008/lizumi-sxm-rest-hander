@@ -538,7 +538,7 @@ async function bounceEventFile(eventsToParse, types) {
                     let digitalEndFile = findClosest(digitalRecTimes, eventItem.syncEnd)
                     if (digitalEndFile + 1 > digitalRecTimes.length)
                         digitalEndFile = digitalRecTimes.length - 1
-                    const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile) : [digitalRecFiles[digitalStartFile]]
+                    const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile + 1) : [digitalRecFiles[digitalStartFile]]
                     const digitalFileList = digitalFileItems.map(e => e.file).join('|')
                     if (trueTime.valueOf() > digitalFileItems[0].date.valueOf()) {
                         const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date.valueOf())))
