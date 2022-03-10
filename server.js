@@ -313,11 +313,11 @@ async function bounceEventGUI(type, format) {
                     if (e.filename) {
                         return e.filename
                     } else if (e.isEpisode) {
-                        return `${e.title.replace(/[^\w\s]/gi, '')}`
+                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else if (e.isSong) {
-                        return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
+                        return `${e.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else {
-                        return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
+                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')} - ${e.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                     }
                 })()
                 let exsists = false
@@ -351,11 +351,11 @@ async function bounceEventGUI(type, format) {
                 if (eventItem.filename) {
                     return eventItem.filename
                 } else if (eventItem.isEpisode) {
-                    return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else if (eventItem.isSong) {
-                    return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else {
-                    return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                 }
             })()
             eventItem.format = (eventItem.format === true) ? 'digital' : (eventItem.format === false) ? 'analog' : (format) ? foramt : undefined
@@ -427,11 +427,11 @@ async function processPendingBounces() {
                     if (thisEvent.filename) {
                         return thisEvent.filename
                     } else if (thisEvent.isEpisode) {
-                        return `${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else if (thisEvent.isSong) {
-                        return `${thisEvent.artist.replace(/[^\w\s]/gi, '')} - ${thisEvent.title.replace(/[^\w\s]/gi, '')}`
+                        return `${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else {
-                        return `${thisEvent.title.replace(/[^\w\s]/gi, '')} - ${thisEvent.artist.replace(/[^\w\s]/gi, '')}`
+                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                     }
                 })()
                 if (thisEvent.ch)
@@ -657,11 +657,11 @@ async function nowPlayingNotification(forceUpdate) {
                 if (nowPlaying.filename) {
                     return nowPlaying.filename
                 } else if (nowPlaying.isEpisode) {
-                    return `${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+                    return `${nowPlaying.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else if (nowPlaying.isSong) {
-                    return `${nowPlaying.artist.replace(/[^\w\s]/gi, '')} - ${nowPlaying.title.replace(/[^\w\s]/gi, '')}`
+                    return `${nowPlaying.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${nowPlaying.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else {
-                    return `${nowPlaying.title.replace(/[^\w\s]/gi, '')} - ${nowPlaying.artist.replace(/[^\w\s]/gi, '')}`
+                    return `${nowPlaying.title.replace(/[/\\?%*:|"<>]/g, '')} - ${nowPlaying.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                 }
             })()
             console.log(`Now Playing: Channel ${currentChannel.ch} - ${eventText}`)
@@ -706,11 +706,11 @@ async function modifyMetadataGUI(type) {
                     if (e.filename) {
                         return e.filename
                     } else if (e.isEpisode) {
-                        return `${e.title.replace(/[^\w\s]/gi, '')}`
+                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else if (e.isSong) {
-                        return `${e.artist.replace(/[^\w\s]/gi, '')} - ${e.title.replace(/[^\w\s]/gi, '')}`
+                        return `${e.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
                     } else {
-                        return `${e.title.replace(/[^\w\s]/gi, '')} - ${e.artist.replace(/[^\w\s]/gi, '')}`
+                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')} - ${e.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                     }
                 })()
                 let exsists = false
@@ -744,11 +744,11 @@ async function modifyMetadataGUI(type) {
                 if (eventItem.filename) {
                     return eventItem.filename
                 } else if (eventItem.isEpisode) {
-                    return `${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else if (eventItem.isSong) {
-                    return `${eventItem.artist.replace(/[^\w\s]/gi, '')} - ${eventItem.title.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
                 } else {
-                    return `${eventItem.title.replace(/[^\w\s]/gi, '')} - ${eventItem.artist.replace(/[^\w\s]/gi, '')}`
+                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                 }
             })()
             let realItem = metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)]
