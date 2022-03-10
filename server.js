@@ -541,7 +541,7 @@ async function bounceEventFile(eventsToParse, types) {
                     const digitalFileItems = (digitalStartFile < digitalEndFile) ? digitalRecFiles.slice(digitalStartFile, digitalEndFile) : [digitalRecFiles[digitalStartFile]]
                     const digitalFileList = digitalFileItems.map(e => e.file).join('|')
                     if (trueTime.valueOf() > digitalFileItems[0].date.valueOf()) {
-                        const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date.valueOf())) + ((parseInt(eventItem.delay.toString()) * 1000) / 2).toFixed())
+                        const digitalStartTime = msToTime(Math.abs((trueTime.valueOf() - digitalFileItems[0].date.valueOf())))
                         const digitalEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000 + (parseInt(eventItem.delay.toString()) * 1000))
                         console.log(`${digitalStartTime} | ${digitalEndTime}`)
                         generateDigitalFile = await new Promise(function (resolve) {
