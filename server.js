@@ -855,21 +855,52 @@ app.get("/dtune/:channelNum", (req, res, next) => {
     if (req.params.channelNum && config.channels[req.params.channelNum].digitalIndex) {
         console.log(`Tune event to digital channel ${req.params.channelNum}`)
         request.get({
-            url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
+            url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml`,
             timeout: 5000
         }, async function (err, resReq, body) {
             if (!err) {
-                channelTimes.timetable.push({
-                    time: moment().valueOf(),
-                    ch: req.params.channelNum,
-                    digital: true
-                })
-                if (config.channels[req.params.channelNum].updateOnTune) {
-                    updateMetadata();
+                const currentIndex = body.toString().split('\n').find(e => e.startsWith("<currentplid>")) !== `<currentplid>${config.channels[req.params.channelNum].digitalIndex}</currentplid>`
+                if (currentIndex) {
+                    request.get({
+                        url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
+                        timeout: 5000
+                    }, async function (err, resReq, body) {
+                        if (!err) {
+                            channelTimes.timetable.push({
+                                time: moment().valueOf(),
+                                ch: req.params.channelNum,
+                                digital: true
+                            })
+                            if (config.channels[req.params.channelNum].updateOnTune) {
+                                updateMetadata();
+                            }
+                            res.status(200).send('OK')
+                        } else {
+                            res.status(500).send(err.message)
+                        }
+                    })
+                } else {
+                    res.status(200).send('UNMODIFIED')
                 }
-                res.status(200).send('OK')
             } else {
-                res.status(500).send(err.message)
+                request.get({
+                    url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
+                    timeout: 5000
+                }, async function (err, resReq, body) {
+                    if (!err) {
+                        channelTimes.timetable.push({
+                            time: moment().valueOf(),
+                            ch: req.params.channelNum,
+                            digital: true
+                        })
+                        if (config.channels[req.params.channelNum].updateOnTune) {
+                            updateMetadata();
+                        }
+                        res.status(200).send('OK')
+                    } else {
+                        res.status(500).send(err.message)
+                    }
+                })
             }
         })
 
