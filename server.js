@@ -684,15 +684,16 @@ async function nowPlayingNotification(forceUpdate) {
         }
     }
 }
-async function modifyMetadataGUI(type) {
+async function modifyMetadataGUI(type, format) {
     try {
         let eventsMeta = [];
-        const lastIndex = channelTimes.timetable.length - 1
-        for (let c in channelTimes.timetable) {
-            let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)))) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
+        const timetable = (format) ? channelTimes.timetable.filter(e => e.digital === (format === 'digital')) : channelTimes.timetable
+        const lastIndex = timetable.length - 1
+        for (let c in timetable) {
+            let events = await metadata[timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (timetable[parseInt(c)].time - (5 * 60000)))) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
                 return {
                     ...e,
-                    ch: channelTimes.timetable[parseInt(c)].ch
+                    ch: timetable[parseInt(c)].ch
                 }
             })
             eventsMeta.push(...events)
