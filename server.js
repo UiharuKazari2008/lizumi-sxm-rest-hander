@@ -248,7 +248,7 @@ async function saveMetadata() {
     return true;
 }
 async function publishMetaIcecast(nowPlaying, currentChannel) {
-    if (config.icecase_meta) {
+    if (config.icecase_meta && config.icecase_meta[(currentChannel.digital) ? 'digital' : 'analog']) {
         const nowPlayingText = (() => {
             if (nowPlaying.isEpisode) {
                 return `${nowPlaying.title.replace("[\\\\/:*?\"<>|]", "_")}`
@@ -261,14 +261,14 @@ async function publishMetaIcecast(nowPlaying, currentChannel) {
 
         return new Promise(resolve => {
             request.get({
-                url: config.icecase_meta + encodeURIComponent(nowPlayingText + ' // ' + config.channels[currentChannel.ch].name),
+                url: config.icecase_meta[(currentChannel.digital) ? 'digital' : 'analog'] + encodeURIComponent(nowPlayingText + ' // ' + config.channels[currentChannel.ch].name),
                 timeout: 5000
             }, async function (err, res, body) { resolve(!err) })
         })
     }
 }
 async function publishMetadataFile(nowPlaying, currentChannel) {
-    if (config.nowPlaying) {
+    if (config.nowPlaying && config.nowPlaying[(currentChannel.digital) ? 'digital' : 'analog']) {
         let nowPlayingData = [`Title: ${nowPlaying.title}`];
         if (!nowPlaying.isEpisode) {
             nowPlayingData.push(`Artist: ${nowPlaying.artist}`)
@@ -281,7 +281,7 @@ async function publishMetadataFile(nowPlaying, currentChannel) {
             nowPlayingData.push(`Album: ${config.channels[currentChannel.ch].name}`)
         }
         return new Promise(resolve => {
-            fs.writeFile(path.join(config.record_dir, config.nowPlaying), nowPlayingData.join('\n').toString(), () => {
+            fs.writeFile(path.join(config.record_dir, config.nowPlaying[(currentChannel.digital) ? 'digital' : 'analog']), nowPlayingData.join('\n').toString(), () => {
                 resolve(null)
             })
         })
@@ -854,7 +854,7 @@ app.get("/tune/:channelNum", (req, res, next) => {
 app.get("/dtune/:channelNum", (req, res, next) => {
     if (req.params.channelNum && config.channels[req.params.channelNum].digitalIndex) {
         console.log(`Tune event to digital channel ${req.params.channelNum}`)
-        request.get({
+        /*request.get({
             url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml`,
             timeout: 5000
         }, async function (err, resReq, body) {
@@ -883,24 +883,25 @@ app.get("/dtune/:channelNum", (req, res, next) => {
                     res.status(200).send('UNMODIFIED')
                 }
             } else {
-                request.get({
-                    url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
-                    timeout: 5000
-                }, async function (err, resReq, body) {
-                    if (!err) {
-                        channelTimes.timetable.push({
-                            time: moment().valueOf(),
-                            ch: req.params.channelNum,
-                            digital: true
-                        })
-                        if (config.channels[req.params.channelNum].updateOnTune) {
-                            updateMetadata();
-                        }
-                        res.status(200).send('OK')
-                    } else {
-                        res.status(500).send(err.message)
-                    }
+
+            }
+        })*/
+        request.get({
+            url: `http://:${(config.vlc_password) ? config.vlc_password : 'lizumi'}@${(config.vlc_host) ? config.vlc_host : '127.0.0.1:8080'}/requests/status.xml?command=pl_play&id=${config.channels[req.params.channelNum].digitalIndex}`,
+            timeout: 5000
+        }, async function (err, resReq, body) {
+            if (!err) {
+                channelTimes.timetable.push({
+                    time: moment().valueOf(),
+                    ch: req.params.channelNum,
+                    digital: true
                 })
+                if (config.channels[req.params.channelNum].updateOnTune) {
+                    updateMetadata();
+                }
+                res.status(200).send('OK')
+            } else {
+                res.status(500).send(err.message)
             }
         })
 
