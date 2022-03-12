@@ -322,7 +322,7 @@ async function bounceEventGUI(type, format) {
                 })()
                 let exsists = false
                 try {
-                    exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
+                    exsists = (fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`)) || fs.existsSync(path.join(config.record_dir, `Digital_Extracted_${e.syncStart}.mp3`)))
                 } catch (err) { }
                 return `"[${(e.format) ? '💿' : '📡'}${e.ch}  📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '✅' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
             })
@@ -436,7 +436,8 @@ async function processPendingBounces() {
                 })()
                 if (thisEvent.ch)
                     thisEvent.channelId = config.channels[thisEvent.ch].id
-                await bounceEventFile([thisEvent], pendingEvent.format)
+                thisEvent.format = pendingEvent.format
+                await bounceEventFile([thisEvent])
                 pendingEvent.done = true
             }
         }
