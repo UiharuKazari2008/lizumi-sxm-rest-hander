@@ -926,7 +926,7 @@ app.get("/trigger/:display", (req, res, next) => {
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
-                modifyMetadataGUI((req.query.ch) ? req.query.ch : undefined);
+                modifyMetadataGUI(undefined, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             default:
