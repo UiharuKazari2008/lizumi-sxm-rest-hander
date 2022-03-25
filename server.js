@@ -1177,7 +1177,7 @@ function recordAudioInterface(tuner, time, event) {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
                         console.log(eventData)
                         if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                            const termTime = ((eventData.syncEnd + (eventData.delay * 1000)) - startTime) + (5 * 60000)
+                            const termTime = (startTime - (eventData.syncEnd + (eventData.delay * 1000))) + (5 * 60000)
                             console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
                             const stopwatch = setTimeout(() => {
                                 recorder.stdin.write('q')
