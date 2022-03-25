@@ -1130,8 +1130,10 @@ function adbLogStart(device) {
 }
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
-    console.log(`Tuneing Device ${device} to channel ${channel} @ ${time}...`);
-    const tune = await adbCommand(device, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
+    if (device.audio_interface)
+        await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
+    console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
+    const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
         'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
     return (tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }'))
 }
@@ -1216,7 +1218,7 @@ function recordAudioInterface(tuner, time, event) {
 // Tune, Record, Disconnect
 async function recordDigitalEvent(eventItem, tuner) {
     adbLogStart(tuner.serial)
-    if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner.serial)) {
+    if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner)) {
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000)
@@ -1377,7 +1379,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
             const ft = availableTuners().filter(e => (!e.digital && channel.tuneUrl[e.id]) || e.digital)
             if (ft.length > 0) {
                 const t = ft.slice(-1).pop()
-                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.serial) : await webRequest(channel.tuneUrl[t.id])
+                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[t.id])
                 let pcb = { ok: true }
                 if (t.tuner.post_tune_url && !req.params.no_event)
                     pcb = await webRequest(t.tuner.post_tune_url)
@@ -1454,7 +1456,7 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
             let chid = false
             if (req.query.ch) {
                 chid = getChannelbyNumber(req.query.ch)
-                const tune = await tuneDigitalChannel(chid.id, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t.serial)
+                const tune = await tuneDigitalChannel(chid.id, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t)
                 if (tune) {
                     const record = await recordAudioInterface(t, "00:01:00", `Extracted_test`)
                     if (record) {
