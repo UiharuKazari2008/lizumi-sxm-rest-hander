@@ -1171,8 +1171,8 @@ for (let t of listTuners()) {
     }
     ctrlq.set(`${(t.digital) ? 'D-': 'A-'}${t.id}`, mq)
 
-    if (!channelTimes.timetable[t])
-        channelTimes.timetable[t] = []
+    if (!channelTimes.timetable[t.id])
+        channelTimes.timetable[t.id] = []
 }
 
 // Tune to a channel
