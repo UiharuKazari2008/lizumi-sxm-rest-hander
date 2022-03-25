@@ -58,7 +58,7 @@ function msToTime(s) {
     return pad(hrs) + ':' + pad(mins) + ':' + pad(secs) + '.' + pad(ms, 3);
 }
 function cleanText(t) {
-    return t.split('/').join(' & ').replace(/[/\\?%*:|"<>]/g, '')
+    return t.split('/').join(' & ').split(',').join('').split('...').join('').replace(/[/\\?%*:|"<>]/g, '').trim()
 }
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
