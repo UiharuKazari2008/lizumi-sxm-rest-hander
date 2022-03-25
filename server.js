@@ -1165,21 +1165,21 @@ for (let t of listTuners()) {
     if (t.digital) {
         mq.process(async function (job, done) {
             console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
-            console.log(job)
+            console.log(job.data)
             try {
                 const tuner = getTuner(t.id);
-                const recorded = await recordDigitalEvent(job.metadata, tuner)
+                const recorded = await recordDigitalEvent(job.data.metadata, tuner)
                 if (recorded) {
-                    if (job.index) {
-                        channelTimes.pending[job.index].liveRec = false
-                        channelTimes.pending[job.index].done = true
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = true
                     }
-                    await postExtraction(recorded, `${job.metadata.filename.trim()} (${moment(job.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
+                    await postExtraction(recorded, `${job.data.metadata.filename.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
                 } else {
-                    if (job.index) {
-                        channelTimes.pending[job.index].liveRec = false
-                        channelTimes.pending[job.index].done = false
-                        channelTimes.pending[job.index].failedRec = true
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = false
+                        channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
                 return done(null, recorded);
