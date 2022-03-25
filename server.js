@@ -948,15 +948,17 @@ async function bounceEventGUI(type, device) {
         const eventSearch = await new Promise(resolve => {
             const listmeta = eventsMeta.reverse().map(e =>
                 [
+                    '"',
                     `[${(e.isDigital) ? '💿' : '📡'}${e.tunerName} - ${e.channel}]`,
                     `[📅${e.date}]`,
                     `${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂 ' : '' }${(e.exists) ? '✅' : (e.isExtractedDigitally) ? '🆕' : ''}`,
                     e.name,
                     `(${e.time})`
+                    '"'
                 ].join(' ')
             )
 
-            const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items "${listmeta[0]}" multiple selections allowed true empty selection allowed false`
+            const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             console.log(list)
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
