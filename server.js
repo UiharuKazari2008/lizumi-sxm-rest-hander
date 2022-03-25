@@ -1223,8 +1223,8 @@ async function recordDigitalEvent(eventItem, tuner) {
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
-        if (recordedEvent)
-            await postExtraction(recordedEvent, `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
+        if (fs.existsSync(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)))
+            await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (adblog_tuners.has(tuner.serial))
             adblog_tuners.get(tuner.serial).kill(9)
         return recordedEvent;
