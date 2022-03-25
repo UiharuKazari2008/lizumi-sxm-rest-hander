@@ -415,6 +415,7 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
+                audioPort: 28200 + i,
                 ...config.digital_radios[e],
                 digital: true,
                 activeCh: (a && m) ? { m, ...a} : null,
@@ -431,7 +432,6 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
-                audioPort: 28200 + i,
                 ...config.satellite_radios[e],
                 digital: false,
                 activeCh: (a && m) ? { m, ...a} : null,
@@ -1124,11 +1124,11 @@ async function tuneDigitalChannel(channel, time, device) {
 function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
         (async () => {
-            await adbCommand(device.serial, ["--remove", "forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
             await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
         })()
     }
-    return adbCommand(device.serial, ['shell', 'media', 'dispatch', 'pause'])
+    return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
