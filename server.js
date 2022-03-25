@@ -1347,7 +1347,6 @@ app.get("/trigger/:display", (req, res, next) => {
 app.get("/debug/digital/:tuner", (req, res, next) => {
     if (req.params.tuner) {
         const t = getTuner(req.params.tuner)
-        const recorded = await recordDigitalEvent({}, t)
     } else {
         res.status(400).send('Missing Tuner ID')
     }
