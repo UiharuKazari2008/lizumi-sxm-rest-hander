@@ -1124,7 +1124,7 @@ async function tuneDigitalChannel(channel, time, device) {
 function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
         (async () => {
-            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
             await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
         })()
     }
@@ -1140,8 +1140,8 @@ function recordAudioInterface(tuner, time, event) {
                 return tuner.audio_interface
             console.log("Setting up USB Audio Interface...")
             await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
             await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
+            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
             return (portInUse(tuner.audioPort)) ? ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`] : false
         })()
         if (!input) {
