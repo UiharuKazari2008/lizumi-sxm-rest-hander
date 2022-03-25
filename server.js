@@ -684,17 +684,17 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
 }
 
 async function bounceEventFile(eventsToParse) {
-    const analogRecFiles = fs.readdirSync((eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventsToParse.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
-        return {
-            date: moment(e.replace(eventsToParse.tuner.record_prefix, '').split('.')[0] + '', (eventsToParse.tuner.record_date_format) ? eventsToParse.tuner.record_date_format : "YYYYMMDD-HHmmss"),
-            file: e
-        }
-    });
-    const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
-
     for (let index in eventsToParse) {
         const eventItem = eventsToParse[index]
         console.log(eventItem)
+
+        const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
+            return {
+                date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
+                file: e
+            }
+        });
+        const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
 
         if (parseInt(eventItem.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.syncStart).local();
