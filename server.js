@@ -10,14 +10,16 @@ const cron = require('node-cron');
 const request = require('request').defaults({ encoding: null });
 const express = require("express");
 const app = express();
-
+const Queue = require('bee-queue');
+const ctrlq = new Map();
 
 let metadata = {};
 let channelTimes = {
     timetable: {
 
     },
-    pending: []
+    pending: [],
+    completed: []
 };
 let locked_tuners = new Map();
 //
@@ -54,6 +56,9 @@ function msToTime(s) {
     var hrs = (s - mins) / 60;
 
     return pad(hrs) + ':' + pad(mins) + ':' + pad(secs) + '.' + pad(ms, 3);
+}
+function cleanText(t) {
+    return t.split('/').join(' & ').replace(/[/\\?%*:|"<>]/g, '')
 }
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
@@ -358,9 +363,32 @@ function listChannels() {
 // List all tuners
 // digital indicates if a tuner is an Android device
 // tuner object and active channel is injected
-function listTuners() {
+function listTuners(digitalOnly) {
+    function sortRadios(arrayItemA, arrayItemB) {
+        if (arrayItemA.tuner.priority < arrayItemB.tuner.priority)
+            return -1
+        if (arrayItemA.tuner.priority > arrayItemB.tuner.priority)
+            return 1
+        return 0
+    }
     return [
-        ...((config.satellite_radios && config.satellite_radios.length > 0) ? Object.keys(config.satellite_radios).map(e => {
+        ...((digitalOnly !== undefined && digitalOnly === false) ? [] : (config.digital_radios && config.digital_radios.length > 0) ? Object.keys(config.digital_radios).map(e => {
+            const _a = channelTimes.timetable[e]
+            const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
+            const m = (() => {
+                if (a && a.length > 0)
+                    return metadata[a.ch].slice(-1).pop()
+                return null
+            })()
+            return {
+                id: e,
+                tuner: config.digital_radios[e],
+                digital: true,
+                activeCh: (a && m) ? { m, ...a} : null,
+                locked: locked_tuners.has(e)
+            }
+        }) : []),
+        ...((digitalOnly !== undefined && digitalOnly === true) ? [] : (config.satellite_radios && config.satellite_radios.length > 0) ? Object.keys(config.satellite_radios).map(e => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
@@ -372,25 +400,11 @@ function listTuners() {
                 id: e,
                 tuner: config.satellite_radios[e],
                 digital: false,
-                activeCh: (a && m) ? { m, ...a} : null
-            }
-        }) : []),
-        ...((config.digital_radios && config.digital_radios.length > 0) ? Object.keys(config.digital_radios).map(e => {
-            const _a = channelTimes.timetable[e]
-            const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
-            const m = (() => {
-                if (a && a.length > 0)
-                    return metadata[a.ch].slice(-1).pop()
-                return null
-            })()
-            return {
-                id: e,
-                tuner: config.satellite_radios[e],
-                digital: true,
-                activeCh: (a && m) ? { m, ...a} : null
+                activeCh: (a && m) ? { m, ...a} : null,
+                locked: locked_tuners.has(e)
             }
         }) : [])
-    ]
+    ].sort(sortRadios)
 }
 // Get tuner by id
 function getTuner(id) {
@@ -411,19 +425,112 @@ function findActiveRadioTune(channel) {
 // Return list if tuners that are available for tuning
 // Tuners that are locked due to recordings or manual lockout are omitted obviously
 function availableTuners() {
-    return listTuners().filter(e => !(e.tuner.lock_on_events && locked_tuners.has(e.id)) && !e.tuner.record_only)
+    return listTuners().filter(e => !(e.tuner.lock_on_events && e.locked) && !e.tuner.record_only)
+}
+function getBestDigitalTuner() {
+    function sortcb(arrayItemA, arrayItemB) {
+        if (arrayItemA.length < arrayItemB.length)
+            return -1
+        if (arrayItemA.length > arrayItemB.length)
+            return 1
+        return 0
+    }
+    return Array.from(ctrlq.keys()).filter(e => e.startsWith('D-')).map(e => {
+        return {
+            length: ctrlq.get(e).jobs.length,
+            id: e
+        }
+    }).sort(sortcb)[0].id
 }
 // List all events for a channel that are after start time
 function listEvents(channel, time) {
     return metadata[channel].filter(e => !e.isSong && e.syncStart < time)
+}
+// Get specific event by uuid
+function getEvent(channel, uuid) {
+    return metadata[channel].filter(e => !e.isSong && e.uuid.toLowerCase() === uuid.toLowerCase())[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time) {
     const e = listEvents(channel, time)
     return e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
-function listEventsValidated() {
-
+function listEventsValidated(songs, device, count) {
+    function sortEvents(arrayItemA, arrayItemB) {
+        if (arrayItemA.syncStart < arrayItemB.syncStart)
+            return -1
+        if (arrayItemA.syncStart > arrayItemB.syncStart)
+            return 1
+        return 0
+    }
+    const events = Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d =>
+        d.map((tc, i,a) =>
+            metadata[tc.ch].filter(f =>
+                // Has duration aka is completed
+                parseInt(f.duration.toString()) > 90 &&
+                // First Item or Was Tuned after event start
+                (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
+                // Is Last Item or Look ahead and see if this has not occured after the next channel change
+                (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time)) &&
+                // If Songs are wanted only return songs else Events only
+                ((!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
+            ).map((f, i, a) => {
+                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart))
+                    f.syncEnd = a[i + 1].syncStart - 1
+                return {
+                    ...f,
+                    channelId: tc.ch,
+                    tunerId: d
+                }
+            })
+        )
+    ).sort(sortEvents)
+    if (count)
+        return events.slice(Math.abs(count) * -1)
+    return events
+}
+function formatEventList(events) {
+    const channel = listChannels()
+    return events.map(e => {
+        const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
+        const dyp = (events.filter(f =>
+            (e.filename && f.filename && e.filename.toLowerCase() === f.filename.toLowerCase()) || (
+                f.title.toLowerCase() === e.title.toLowerCase() &&
+                ((f.artist && e.artist && f.artist.toLowerCase() === e.artist.toLowerCase()) || (!f.artist && !e.artist))
+            )).length > 1)
+        if (!e.filename) {
+            e.filename = (() => {
+                if (e.isEpisode) {
+                    return `${cleanText(e.title)}`
+                } else if (e.isSong) {
+                    return `${cleanText(e.artist)} - ${cleanText(e.title)}`
+                } else {
+                    return `${cleanText(e.title)} - ${cleanText(e.artist)}`
+                }
+            })()
+        }
+        const ex = (() => {
+            try {
+                return fs.existsSync(path.join((tun.record_dir) ? tun.record_dir : config.record_dir, `Extracted_${e.guid}.mp3`))
+            } catch (e) {
+                return false
+            }
+            return false
+        })()
+        return {
+            tunerId: tun.id,
+            tunerName: (tun.name) ? tun.name : tun.id,
+            isDigital: tun.digital,
+            channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
+            isExtractedDigitally: (e.startSync >= (Date.now() - (3 * 60 * 60 * 1000))),
+            date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
+            time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
+            exists: ex,
+            duplicate: ex,
+            name: e.filename,
+            event: e
+        }
+    })
 }
 
 // Process Pending Events to Extract
@@ -431,9 +538,13 @@ async function processPendingBounces() {
     try {
         for (let i in channelTimes.pending.filter(e => e.done === false)) {
             let pendingEvent = channelTimes.pending[i]
-            let thisEvent = findEvent(pendingEvent.ch, pendingEvent.time)
-            console.log(pendingEvent.time)
-            console.log(thisEvent)
+            let thisEvent = (() => {
+                if (pendingEvent.ch && pendingEvent.uuid)
+                    return getEvent(pendingEvent.ch, pendingEvent.uuid)
+                if (pendingEvent.ch && pendingEvent.time)
+                    return findEvent(pendingEvent.ch, pendingEvent.time)
+            })()
+            console.log(pendingEvent)
             /*if (!digitalRecorderBusy && thisEvent.ch && thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
                 if (thisEvent.ch)
                     thisEvent.channelId = config.channels[thisEvent.ch].id
@@ -445,6 +556,7 @@ async function processPendingBounces() {
             }*/
 
             if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
+                console.log(thisEvent)
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
@@ -457,20 +569,26 @@ async function processPendingBounces() {
                     }
                 })()
 
-                if (pendingEvent.tuner.digital && !pendingEvent.failedRec) {
+                if (pendingEvent.tunerId)
+                    pendingEvent.tuner = getTuner(pendingEvent.tunerId);
+
+                if (pendingEvent.tuner && !pendingEvent.digitalOnly) {
+                    if (pendingEvent.ch)
+                        thisEvent.channelId = pendingEvent.ch
+                    thisEvent.tuner = pendingEvent.tuner
+                    await bounceEventFile([thisEvent])
+
+                    pendingEvent.done = true
+                } else if (pendingEvent.failedRec) {
+                    // Implement Search for analog on failure
+                } else if (!pendingEvent.failedRec && (thisEvent.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
                     pendingEvent.liveRec = true
-                    recordDigitalFile(thisEvent, {...pendingEvent, index: i})
-                } else {
-                    if (thisEvent.ch)
-                        thisEvent.channelId = pendingEvent.id
-                    if (pendingEvent.failedRec) {
-                        // Add code to search for event in timeline for any tuner that was available during the time
-                    } else {
-                        thisEvent.tuner = pendingEvent.tuner
-                        await bounceEventFile([thisEvent])
-                    }
+                    pendingEvent.done = true
+                    queueDigitalRecording({
+                        metadata: thisEvent,
+                        index: i
+                    })
                 }
-                pendingEvent.done = true
             }
         }
         channelTimes.pending = channelTimes.pending.filter(e => e.done === false && e.liveRec === false)
@@ -480,31 +598,52 @@ async function processPendingBounces() {
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
 
-async function searchForEvents(_nowPlaying, currentChannel) {
-    if (config.autoBounce) {
-        config.autoBounce.forEach(lookup => {
-            metadata[currentChannel.ch].slice(-8).forEach(nowPlaying => {
-                if (!nowPlaying.isSong && (lookup.search.toLowerCase().includes(nowPlaying.title.toLowerCase()) || (nowPlaying.artist && lookup.search.toLowerCase().includes(nowPlaying.artist.toLowerCase()))) && channelTimes.pending.filter(e => e.lookup && e.lookup === lookup.search).length === 0) {
+async function searchForEvents() {
+    function search(l, m) {
+        if (m.title && l.search && m.title.toLowerCase() === l.search.toLowerCase())
+            return true
+        if (m.artist && l.search && m.artist.toLowerCase() === l.search.toLowerCase())
+            return true
+        if (m.album && l.search && m.album.toLowerCase() === l.search.toLowerCase())
+            return true
+        if (m.title && l.title && m.title.toLowerCase() === l.title.toLowerCase())
+            return true
+        if (m.artist && l.artist && m.artist.toLowerCase() === l.artist.toLowerCase())
+            return true
+        if (m.album && l.album && m.album.toLowerCase() === l.album.toLowerCase())
+            return true
+        return false
+    }
+    if (config.auto_extract) {
+        config.auto_extract.forEach(lookup => {
+            for (let k of Object.keys(metadata)) {
+                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && search(lookup, e) && channelTimes.completed.indexOf(e.uuid) !== -1).forEach(e => {
                     channelTimes.pending.push({
-                        lookup: lookup.search,
-                        ch: currentChannel.ch,
-                        time: moment().valueOf(),
+                        ch: k,
+                        lookup: lookup,
+                        tunerId: (lookup.tuner) ? lookup.tuner : undefined,
+                        uuid: e.uuid,
                         done: false
                     })
-                }
-            })
+                    channelTimes.completed.push(e.uuid)
+                })
+            }
         })
     }
 }
 
-async function registerBounce(addTime, channelNumber, tuner) {
+async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
+    // Get Passed Tuner or Find one that is using that channel number
     const t = (() => {
-        if (tuner)
+        if (tuner && (!digitalOnly || (digitalOnly && tuner.digital)))
             return tuner.id
+        if (digitalOnly)
+            return listTuners(true)[0].id
         if (channelNumber)
             return findActiveRadio(channelNumber).id
         return undefined
     })()
+    // Get passed channel number ot find that channel that's active with that tuner
     const ch = (() => {
         if (channelNumber)
             return channelTimes
@@ -512,27 +651,34 @@ async function registerBounce(addTime, channelNumber, tuner) {
             return t.activeCh.ch
         return undefined
     })()
-    channelTimes.pending.push({
-        ch,
-        tuner: t,
-        time: moment().valueOf() + (addTime * 60000),
-        done: false,
-    })
-    await new Promise(resolve => {
-        const channelData = config.channels.filter(e => e.id === ch)[0]
-        const list = `display notification "💿 This event will be bounced on completion" with title "📻 ${(channelData.name) ? channelData.name : "SiriusXM"}"`
-        const childProcess = osascript.execute(list, function (err, result, raw) {
-            resolve(null);
-            if (err) return console.error(err)
-            clearTimeout(childKiller);
-        });
-        const childKiller = setTimeout(function () {
-            childProcess.stdin.pause();
-            childProcess.kill();
-            resolve(null);
-        }, 90000)
-    })
-    await saveMetadata();
+
+    if (ch && t) {
+        channelTimes.pending.push({
+            ch,
+            tunerId: t,
+            time: moment().valueOf() + (addTime * 60000),
+            done: false,
+        })
+        // Replace me with non-macOS notification like Discord
+        await new Promise(resolve => {
+            const channelData = config.channels.filter(e => e.id === ch)[0]
+            const list = `display notification "💿 This event will be bounced on completion" with title "📻 ${(channelData.name) ? channelData.name : "SiriusXM"}"`
+            const childProcess = osascript.execute(list, function (err, result, raw) {
+                resolve(null);
+                if (err) return console.error(err)
+                clearTimeout(childKiller);
+            });
+            const childKiller = setTimeout(function () {
+                childProcess.stdin.pause();
+                childProcess.kill();
+                resolve(null);
+            }, 90000)
+        })
+        await saveMetadata();
+    } else {
+        console.error("Missing Required data to register a pending Extraction")
+        return false
+    }
 }
 
 async function bounceEventFile(eventsToParse) {
@@ -553,6 +699,7 @@ async function bounceEventFile(eventsToParse) {
             const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format((eventsToParse.tuner.record_date_format) ? eventsToParse.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
 
             let generateAnalogFile = false;
+            let generateDigitalFile = false;
             if (!eventItem.tuner.digital) {
                 try {
                     let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
@@ -593,9 +740,14 @@ async function bounceEventFile(eventsToParse) {
                     console.error(e);
                 }
             }
+            if (!generateAnalogFile && (eventItem.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                // Send job to Digital Extractor
+            }
 
             const extractedFile = (() => {
                 if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                    return generateAnalogFile
+                } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
                     return generateAnalogFile
                 } else {
                     return null
@@ -604,12 +756,10 @@ async function bounceEventFile(eventsToParse) {
 
             if (extractedFile) {
                 await postExtraction(extractedFile, eventFilename);
+                console.log(`Extraction complete for ${eventFilename.trim()}!`)
             } else {
                 console.error(`Extraction failed: File was not generated correctly`)
             }
-            console.log(`PROGRESS:${(((parseInt(index) + 1) / eventsToParse.length) * 100).toFixed()}`)
-            if (parseInt(index) + 1 === eventsToParse.length)
-                console.log('PROGRESS:100')
         }
     }
 }
@@ -640,7 +790,6 @@ async function postExtraction(extractedFile, eventFilename) {
                 })
             })
         }
-        console.log(`Ripping complete for ${eventFilename.trim()}!`)
         await new Promise(resolve => {
             const list = `display notification "✅ ${eventFilename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -788,44 +937,23 @@ async function modifyMetadataGUI(type) {
         console.error(e);
     }
 }
-async function bounceEventGUI(type, format) {
+// Show UI for selecting events to extract
+async function bounceEventGUI(type, device) {
     try {
-        let eventsMeta = [];
-        const timetable = (format) ? channelTimes.timetable.filter(e => e.digital === (format === 'digital')) : channelTimes.timetable
-        const lastIndex = timetable.length - 1
-        for (let c in timetable) {
-            let events = await metadata[timetable[parseInt(c)].ch].filter(f => parseInt(f.duration.toString()) > 90 && (parseInt(c) === 0 || (f.syncStart >= (timetable[parseInt(c)].time - (5 * 60000)))) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= timetable[parseInt(c) + 1].time)) && ((type && parseInt(f.duration.toString()) < 15 * 60) || (!type && parseInt(f.duration.toString()) > 15 * 60))).map(e => {
-                return {
-                    ...e,
-                    ch: timetable[parseInt(c)].ch,
-                    format: timetable[parseInt(c)].digital
-                }
-            })
-            eventsMeta.push(...events)
-        }
+        const eventsMeta = formatEventList(listEventsValidated(type, device, 250))
         if (eventsMeta.length === 0)
             return false
-        eventsMeta = eventsMeta.reverse().slice(0, 250).reverse()
         const eventSearch = await new Promise(resolve => {
-            const listmeta = eventsMeta.reverse().map(e => {
-                const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
-                const name = (() => {
-                    if (e.filename) {
-                        return e.filename
-                    } else if (e.isEpisode) {
-                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else if (e.isSong) {
-                        return `${e.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else {
-                        return `${e.title.replace(/[/\\?%*:|"<>]/g, '')} - ${e.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                    }
-                })()
-                let exsists = false
-                try {
-                    exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
-                } catch (err) { }
-                return `"[${(e.format) ? '💿' : '📡'}${e.ch}  📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(exsists) ? '✅' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
-            })
+            const listmeta = eventsMeta.reverse().map(e =>
+                [
+                    `[${(e.isDigital) ? '💿' : '📡'}${e.tunerName} - ${e.channel}]`,
+                    `[📅${e.date}]`,
+                    `${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂 ' : '' }${(e.exists) ? '✅' : (e.isExtractedDigitally) ? '🆕' : ''}`,
+                    e.name,
+                    `(${e.time})`
+                ].join(' ')
+            )
+
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
@@ -847,32 +975,40 @@ async function bounceEventGUI(type, format) {
         const eventsToParse = eventSearch.map(e => eventsMeta[e]);
 
         for (let eventItem of eventsToParse) {
-            const _eventFilename = (() => {
-                if (eventItem.filename) {
-                    return eventItem.filename
-                } else if (eventItem.isEpisode) {
-                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                } else if (eventItem.isSong) {
-                    return `${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                } else {
-                    return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                }
-            })()
-            eventItem.format = (eventItem.format === true) ? 'digital' : (eventItem.format === false) ? 'analog' : (format) ? foramt : undefined
-            eventItem.channelId = config.channels[eventItem.ch].id
-            eventItem.filename = await new Promise(resolve => {
+            let eventsToExtract = eventItem.event
+            eventsToExtract.digitalOnly = await new Promise(resolve => {
                 const dialog = [
-                    `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
+                    `set dialogResult to (display dialog "Attempt to get this digitaly" buttons {"No", "Yes"} default button 2 giving up after 90)`,
+                    `return (if the button returned of the dialogResult is "Yes")`
+                ].join('\n');
+                const childProcess = osascript.execute(dialog, function (err, result, raw) {
+                    if (err) {
+                        console.error(err)
+                        resolve(false);
+                    } else {
+                        resolve(result === "Yes")
+                        clearTimeout(childKiller);
+                    }
+                });
+                const childKiller = setTimeout(function () {
+                    childProcess.stdin.pause();
+                    childProcess.kill();
+                    resolve(false);
+                }, 120000)
+            });
+            eventsToExtract.filename = await new Promise(resolve => {
+                const dialog = [
+                    `set dialogResult to (display dialog "Set Filename" default answer "${eventItem.name}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
                     'return text returned of dialogResult',
                     'else',
-                    `return "${_eventFilename}"`,
+                    `return "${eventItem.name}"`,
                     'end if'
                 ].join('\n');
                 const childProcess = osascript.execute(dialog, function (err, result, raw) {
                     if (err) {
                         console.error(err)
-                        resolve(_eventFilename);
+                        resolve(eventItem.name);
                     } else {
                         resolve(result)
                         clearTimeout(childKiller);
@@ -881,7 +1017,7 @@ async function bounceEventGUI(type, format) {
                 const childKiller = setTimeout(function () {
                     childProcess.stdin.pause();
                     childProcess.kill();
-                    resolve(_eventFilename);
+                    resolve(eventItem.name);
                 }, 120000)
             });
         }
@@ -968,7 +1104,7 @@ function recordAudioInterface(tuner, time, name) {
 }
 // Tune, Record, Disconnect
 async function recordDigitalEvent(eventItem, tuner) {
-    if (await tuneDigitalChannel(eventItem.ch, (eventItem.syncStart + ((tuner.delay) ? tuner.delay * 1000 : 0)), tuner.serial)) {
+    if (await tuneDigitalChannel(eventItem.ch, (eventItem.syncStart + ((tuner.delay) ? tuner.delay * 1000 : (eventItem.delay) ? eventItem.delay * 1000 : 0)), tuner.serial)) {
         const recordedEvent = await recordAudioInterface(tuner, msToTime((parseInt(eventItem.duration.toString()) * 1000) + 30000), `Extracted_${eventItem.guid}`)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner.serial)
@@ -976,26 +1112,64 @@ async function recordDigitalEvent(eventItem, tuner) {
     }
     return false
 }
-// Digital Recorder Controller
-async function recordDigitalFile(eventItem, options) {
-    if (options.tuner.digital) {
-        const recorded = await recordDigitalEvent(eventItem, options.tuner)
-        if (recorded) {
-            if (options.index) {
-                channelTimes.pending[options.index].liveRec = false
-                channelTimes.pending[options.index].done = true
-            }
-            await postExtraction(recorded, `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
-        } else {
-            if (options.index) {
-                channelTimes.pending[options.index].liveRec = false
-                channelTimes.pending[options.index].done = false
-                channelTimes.pending[options.index].failedRec = true
-            }
+// Job creation for any digital recorder that is free
+function queueDigitalRecording(jobOptions) {
+    return new Promise((resolve => {
+        const best_recorder = getBestDigitalTuner()
+        if (!best_recorder) {
+            resolve(false)
+        }else {
+            const recorder = ctrlq.get(best_recorder)
+            const job = recorder.createJob(jobOptions);
+            job.save();
+            job.on('succeeded', (result) => {
+                resolve(result)
+                console.log(`Received result for job ${job.id}: ${result}`);
+            });
+            job.on('failed', (result) => {
+                resolve(false)
+                console.error(result)
+            });
         }
+    }))
+}
+
+console.log("Settings up recorder queues...")
+for (let t of listTuners()) {
+    const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
+    if (t.digital) {
+        mq.process(async function (job, done) {
+            console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
+            console.log(job)
+            try {
+                const tuner = getTuner(t.id);
+                const recorded = await recordDigitalEvent(job.metadata, tuner)
+                if (recorded) {
+                    if (job.index) {
+                        channelTimes.pending[job.index].liveRec = false
+                        channelTimes.pending[job.index].done = true
+                    }
+                    await postExtraction(recorded, `${job.metadata.filename.trim()} (${moment(job.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
+                } else {
+                    if (job.index) {
+                        channelTimes.pending[job.index].liveRec = false
+                        channelTimes.pending[job.index].done = false
+                        channelTimes.pending[job.index].failedRec = true
+                    }
+                }
+                return done(null, recorded);
+            } catch (e) {
+                return done(e, false);
+            }
+        });
     } else {
-        console.error("This is not a digital recorder")
+        mq.process(async function (job, done) {
+            console.log(`Not implemented for analog devices yet`);
+            console.log(job)
+            return done(null, false);
+        });
     }
+    ctrlq.set(`${(t.digital) ? 'D-': 'A-'}${t.id}`, mq)
 }
 
 // Tune to a channel
@@ -1028,7 +1202,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 ) {
                     const tcb = (ca.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[ca.id])
                     let pcb = {ok: true}
-                    if (t.post_tune_url) {
+                    if (t.post_tune_url && !req.params.no_event) {
                         pcb = await webRequest(t.post_tune_url)
                     }
                     if (((ca.digital && tcb) || (!ca.digital && tcb.ok)) && pcb.ok) {
@@ -1054,7 +1228,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 const t = ft.slice(-1).pop()
                 const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.tuner) : (channel.tuneUrl[t.id]) ? await webRequest(channel.tuneUrl[t.id]) : {ok: true, manual: true}
                 let pcb = {ok: true}
-                if (t.tuner.post_tune_url) {
+                if (t.tuner.post_tune_url && !req.params.no_event) {
                     pcb = await webRequest(t.tuner.post_tune_url)
                 }
                 if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
@@ -1077,7 +1251,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 const t = ft.slice(-1).pop()
                 const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[t.id])
                 let pcb = { ok: true }
-                if (t.tuner.post_tune_url)
+                if (t.tuner.post_tune_url && !req.params.no_event)
                     pcb = await webRequest(t.tuner.post_tune_url)
                 if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
                     channelTimes.timetable[t.id].push({
@@ -1102,13 +1276,13 @@ app.get("/pend_bounce", (req, res) => {
     if (req.query.tuner) {
         const t = listTuners().filter(t => t.id === req.query.tuner)
         if (t.length > 0) {
-            registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined, t[0]);
+            registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined, t[0], (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
             res.status(200).send('OK')
         } else {
             res.status(404).send('Tuner not found')
         }
     } else if (req.query.ch) {
-        registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined, undefined);
+        registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, req.query.ch, undefined, (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined );
     } else {
         req.status(400).send('You must provide a tuner or channel')
     }
