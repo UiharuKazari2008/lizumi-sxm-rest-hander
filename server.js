@@ -1192,8 +1192,8 @@ app.get("/tune/:channelNum", async (req, res, next) => {
     if (channel) {
         // Get Active Tuner
         const ca = findActiveRadioTune(channel.id)
-        console.log(`Tune any available radio to channel ${channel.name}`)
         if (ca && !req.query.tuner) {
+            console.log(`Tune any available radio to channel ${channel.name}`)
             // If channel is active and did not request a specifc Tuner
             const t = getTuner(ca.id)
             if (t) {
@@ -1223,6 +1223,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 res.status(500).send('Internal Error when referencing tuner config')
             }
         } else if (req.query.tuner) {
+            console.log(`Tune ${req.query.tuner} to channel ${channel.name}`)
             const ft = availableTuners().filter(e => e.id === req.query.tuner)
             if (ft.length > 0) {
                 const t = ft.slice(-1).pop()
