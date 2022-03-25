@@ -956,8 +956,8 @@ async function bounceEventGUI(type, device) {
                 ].join(' ')
             )
 
-            console.log(listmeta)
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
+            console.log(list)
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 if (result) {
