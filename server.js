@@ -483,7 +483,7 @@ function listEvents(channel, time) {
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
-    return metadata[channel].filter(e => !e.isSong && e.guid === guid)[0]
+    return metadata[channel].filter(e => e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time) {
@@ -1175,6 +1175,7 @@ function recordAudioInterface(tuner, time, event) {
                     console.log("No time specified, setting up stopwatch watchdog")
                     controller = setInterval(() => {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
+                        console.log(eventData)
                         if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
                             const termTime = ((eventData.syncEnd + (eventData.delay * 1000)) - startTime) + (5 * 60000)
                             console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
