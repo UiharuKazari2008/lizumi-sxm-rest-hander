@@ -1330,7 +1330,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 ) {
                     const tcb = (ca.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[ca.id])
                     let pcb = {ok: true}
-                    if (t.post_tune_url && !req.params.no_event) {
+                    if (t.post_tune_url !== undefined && t.post_tune_url && !req.params.no_event) {
                         pcb = await webRequest(t.post_tune_url)
                     }
                     if (((ca.digital && tcb) || (!ca.digital && tcb.ok)) && pcb.ok) {
@@ -1358,7 +1358,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 const t = ft
                 const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.tuner) : (channel.tuneUrl[t.id]) ? await webRequest(channel.tuneUrl[t.id]) : {ok: true, manual: true}
                 let pcb = {ok: true}
-                if (t.tuner.post_tune_url && !req.params.no_event) {
+                if (t.tuner.post_tune_url !== undefined && t.tuner.post_tune_url && !req.params.no_event) {
                     pcb = await webRequest(t.tuner.post_tune_url)
                 }
                 if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
@@ -1381,7 +1381,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
                 const t = ft.slice(-1).pop()
                 const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[t.id])
                 let pcb = { ok: true }
-                if (t.tuner.post_tune_url && !req.params.no_event)
+                if (t.tuner.post_tune_url !== undefined && t.tuner.post_tune_url && !req.params.no_event)
                     pcb = await webRequest(t.tuner.post_tune_url)
                 if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
                     channelTimes.timetable[t.id].push({
