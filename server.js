@@ -1133,9 +1133,9 @@ function disconnectDigitalChannel(device) {
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
 function recordAudioInterface(tuner, time, event) {
-    return new Promise(function (resolve) {
+    return new Promise(async function (resolve) {
         let controller = null
-        const input = (async () => {
+        const input = await (async () => {
             if (tuner.audio_interface)
                 return tuner.audio_interface
             console.log("Setting up USB Audio Interface...")
