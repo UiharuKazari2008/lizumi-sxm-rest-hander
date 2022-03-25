@@ -1124,7 +1124,7 @@ function adbLogStart(device) {
 }
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
-    console.log(`Tuneing Device ${device} to channel ${channel}...`);
+    console.log(`Tuneing Device ${device} to channel ${channel} @ ${time}...`);
     const tune = await adbCommand(device, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
         'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
     return (tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }'))
