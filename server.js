@@ -593,7 +593,6 @@ async function processPendingBounces() {
                         thisEvent.channelId = pendingEvent.ch
                     thisEvent.tuner = pendingEvent.tuner
                     await bounceEventFile([thisEvent])
-
                     pendingEvent.done = true
                 } else if (pendingEvent.failedRec) {
                     // Implement Search for analog on failure
@@ -1300,9 +1299,13 @@ app.get("/tune/:channelNum", async (req, res, next) => {
 });
 app.get("/pend_bounce", (req, res) => {
     if (req.query.tuner) {
-        const t = listTuners().filter(t => t.id === req.query.tuner)
-        if (t.length > 0) {
-            registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (req.query.ch) ? req.query.ch : undefined, t[0], (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
+        const t = getTuner(req.query.tuner)
+        if (t) {
+            let chid = false
+            if (req.query.ch)
+                chid = getChannelbyNumber(req.query.ch)
+
+            registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, (chid) ? chid.id : undefined, t[0], (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
             res.status(200).send('OK')
         } else {
             res.status(404).send('Tuner not found')
@@ -1343,7 +1346,8 @@ app.get("/trigger/:display", (req, res, next) => {
 });
 app.get("/debug/digital/:tuner", (req, res, next) => {
     if (req.params.tuner) {
-
+        const t = getTuner(req.params.tuner)
+        const recorded = await recordDigitalEvent({}, t)
     } else {
         res.status(400).send('Missing Tuner ID')
     }
