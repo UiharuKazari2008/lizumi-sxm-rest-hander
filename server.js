@@ -1174,18 +1174,18 @@ for (let t of listTuners()) {
                 const tuner = getTuner(t.id);
                 const recorded = await recordDigitalEvent(job.data.metadata, tuner)
                 let complete
-                if (recorded) {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = true
-                    }
-                    complete = await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
-                } else {
+                if (recorded === false) {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
                         channelTimes.pending[job.data.index].done = false
                         channelTimes.pending[job.data.index].failedRec = true
                     }
+                } else {
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = true
+                    }
+                    complete = await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
                 }
                 return done(null, complete);
             } catch (e) {
