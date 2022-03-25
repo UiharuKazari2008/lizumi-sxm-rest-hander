@@ -785,6 +785,8 @@ async function bounceEventFile(eventsToParse) {
 }
 async function postExtraction(extractedFile, eventFilename) {
     try {
+        console.log(extractedFile)
+        console.log(extractedFilename)
         if (config.backup_dir) {
             await new Promise(resolve => {
                 exec(`cp "${extractedFile.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
@@ -821,7 +823,7 @@ async function postExtraction(extractedFile, eventFilename) {
                 childProcess.stdin.pause();
                 childProcess.kill();
                 resolve(null);
-            }, 90000)
+            }, 5000)
         })
     } catch (e) {
         console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
@@ -1175,7 +1177,7 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].liveRec = false
                         channelTimes.pending[job.data.index].done = true
                     }
-                    await postExtraction(recorded, `${job.data.metadata.filename.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
+                    await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
                 } else {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
