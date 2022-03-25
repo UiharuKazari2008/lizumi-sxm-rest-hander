@@ -1169,6 +1169,7 @@ function recordAudioInterface(tuner, time, event) {
             })
 
             if (!time) {
+                console.log("No time specified, setting up stopwatch watchdog")
                 controller = setInterval(() => {
                     const eventData = getEvent(event.event.channelId, event.event.guid)
                     if (eventData) {
@@ -1195,7 +1196,7 @@ async function recordDigitalEvent(eventItem, tuner) {
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
                 return msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 30000)
-            return false
+            return undefined
         })()
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
         if (tuner.record_only)
