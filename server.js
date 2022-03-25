@@ -524,8 +524,6 @@ function formatEventList(events) {
         })()
         return {
             tunerId: tun.id,
-            tunerName: (tun.name) ? tun.name : tun.id,
-            isDigital: tun.digital,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
             isExtractedDigitally: (e.startSync >= (Date.now() - (3 * 60 * 60 * 1000))),
@@ -954,7 +952,7 @@ async function bounceEventGUI(type, device) {
             const listmeta = eventsMeta.reverse().map(e =>
                 [
                     '"',
-                    `[${(e.isDigital) ? '💿' : '📡'}${e.tunerName} - ${e.channel}]`,
+                    `[${(e.tuner.isDigital) ? '💿' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
                     `[📅${e.date}]`,
                     `${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂 ' : '' }${(e.exists) ? '✅' : (e.isExtractedDigitally) ? '🆕' : ''}`,
                     e.name,
