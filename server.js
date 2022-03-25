@@ -1006,7 +1006,8 @@ async function bounceEventGUI(type, device) {
                         console.error(err)
                         resolve(false);
                     } else {
-                        resolve(result === "true")
+                        console.log(result)
+                        resolve(result == "true")
                         clearTimeout(childKiller);
                     }
                 });
