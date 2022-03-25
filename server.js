@@ -562,7 +562,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() <= (Date.now() - 10800000)),
+            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - 10800000)),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -602,7 +602,7 @@ async function processPendingBounces() {
                 if (pendingEvent.tunerId)
                     pendingEvent.tuner = getTuner(pendingEvent.tunerId);
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() - 10800000)) && digitalAvailable) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 10800000)) && digitalAvailable) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
@@ -793,9 +793,6 @@ async function bounceEventFile(eventsToParse) {
                         console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
                         console.error(e);
                     }
-                }
-                if (!generateAnalogFile && (moment.utc(eventItem.event.syncStart).local().valueOf() >= (Date.now() - 10800000))) {
-                    // Send job to Digital Extractor
                 }
 
                 const extractedFile = (() => {
