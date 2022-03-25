@@ -700,9 +700,9 @@ async function bounceEventFile(eventsToParse) {
         });
         const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
 
-        if (parseInt(eventItem.duration.toString()) > 0) {
-            const trueTime = moment.utc(eventItem.syncStart).local();
-            const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format((eventsToParse.tuner.record_date_format) ? eventsToParse.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
+        if (parseInt(eventItem.event.duration.toString()) > 0) {
+            const trueTime = moment.utc(eventItem.event.syncStart).local();
+            const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventsToParse.tuner.record_date_format) ? eventsToParse.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
 
             let generateAnalogFile = false;
             let generateDigitalFile = false;
@@ -711,17 +711,17 @@ async function bounceEventFile(eventsToParse) {
                     let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
                     if (analogStartFile < 0)
                         analogStartFile = 0
-                    const analogEndFile = findClosest(analogRecTimes, eventItem.syncEnd)
+                    const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
                     const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
                     const analogFileList = analogFileItems.map(e => e.file).join('|')
 
                     if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
                         const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
-                        const analogEndTime = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000)
+                        const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
                         console.log(`${analogStartTime} | ${analogEndTime}`)
                         generateAnalogFile = await new Promise(function (resolve) {
-                            console.log(`Ripping Analog File "${eventItem.filename.trim()}"...`)
-                            const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
+                            console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
+                            const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
                             exec(ffmpeg.join(' '), {
                                 cwd: (eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir,
                                 encoding: 'utf8'
@@ -734,7 +734,7 @@ async function bounceEventFile(eventsToParse) {
                                     if (stderr.length > 1)
                                         console.error(stderr);
                                     console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                    resolve(path.join((eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.mp3`))
+                                    resolve(path.join((eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
                                 }
                             });
                         })
@@ -746,7 +746,7 @@ async function bounceEventFile(eventsToParse) {
                     console.error(e);
                 }
             }
-            if (!generateAnalogFile && (eventItem.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
+            if (!generateAnalogFile && (eventItem.event.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
                 // Send job to Digital Extractor
             }
 
