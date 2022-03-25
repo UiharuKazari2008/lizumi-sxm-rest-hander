@@ -702,7 +702,7 @@ async function bounceEventFile(eventsToParse) {
 
         if (parseInt(eventItem.event.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.event.syncStart).local();
-            const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventsToParse.tuner.record_date_format) ? eventsToParse.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
+            const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
 
             let generateAnalogFile = false;
             let generateDigitalFile = false;
