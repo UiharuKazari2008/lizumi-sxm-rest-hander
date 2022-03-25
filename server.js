@@ -13,6 +13,7 @@ const app = express();
 const Queue = require('bee-queue');
 const ctrlq = new Map();
 const net = require('net');
+const rimraf = require("rimraf");
 
 let metadata = {};
 let channelTimes = {
@@ -1225,8 +1226,12 @@ async function recordDigitalEvent(eventItem, tuner) {
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
-        if (fs.existsSync(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)))
+        const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
+        if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
             await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
+        } else if (fs.existsSync(completedFile)) {
+            rimraf(completedFile, () => {})
+        }
         if (adblog_tuners.has(tuner.serial))
             adblog_tuners.get(tuner.serial).kill(9)
         return recordedEvent;
