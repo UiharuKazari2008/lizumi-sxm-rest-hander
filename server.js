@@ -701,7 +701,7 @@ async function bounceEventFile(eventsToParse) {
         const eventItem = eventsToParse[index]
         console.log(eventItem)
 
-        if (eventItem.digitalOnly) {
+        if (eventItem.event.digitalOnly) {
             queueDigitalRecording({ metadata: eventItem })
         } else {
             const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
