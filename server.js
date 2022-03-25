@@ -1136,6 +1136,8 @@ async function recordDigitalEvent(eventItem, tuner) {
         //const recordedEvent = await recordAudioInterface(tuner, msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 30000), `Extracted_${eventItem.event.guid}`)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner.serial)
+        if (recordedEvent)
+            await postExtraction(recordedEvent, `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
         return recordedEvent;
     }
     return false
@@ -1174,18 +1176,17 @@ for (let t of listTuners()) {
                 const tuner = getTuner(t.id);
                 const recorded = await recordDigitalEvent(job.data.metadata, tuner)
                 let complete
-                if (recorded === false) {
+                if (recorded) {
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = true
+                    }
+                } else {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
                         channelTimes.pending[job.data.index].done = false
                         channelTimes.pending[job.data.index].failedRec = true
                     }
-                } else {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = true
-                    }
-                    complete = await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
                 }
                 return done(null, complete);
             } catch (e) {
