@@ -607,7 +607,10 @@ async function processPendingBounces() {
                     pendingEvent.done = true
                     queueDigitalRecording({
                         metadata: {
-                            event: thisEvent,
+                            event: {
+                                channelId: pendingEvent.ch,
+                                ...thisEvent
+                            },
                             name: thisEvent.filename
                         },
                         index: i
@@ -625,7 +628,10 @@ async function processPendingBounces() {
                 pendingEvent.done = true
                 queueDigitalRecording({
                     metadata: {
-                        event: thisEvent,
+                        event: {
+                            channelId: pendingEvent.ch,
+                            ...thisEvent
+                        },
                         name: thisEvent.filename
                     },
                     index: i
