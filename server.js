@@ -1102,7 +1102,6 @@ function adbLogStart(device) {
     });
     logWawtcher.stdout.on('data', (data) => {
         if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
-            console.log(`${device} : ${data}`)
             device_logs[device].push(data.toString().split('\n'))
         }
     })
@@ -1459,7 +1458,7 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner).serial
-    res.status(200).send(device_logs[serial])
+    res.status(200).send(device_logs[serial].join("\n"))
 })
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
