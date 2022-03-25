@@ -1459,7 +1459,7 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner)
-    req.status(200).send(device_logs[serial])
+    res.status(200).send(device_logs[serial])
 })
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
