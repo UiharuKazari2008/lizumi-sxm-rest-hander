@@ -47,7 +47,7 @@ function newRadioStream(channelNumber) {
                                 return e
                             }
                         })
-                        const startSync = moment(data.find(e => e.startsWith('#EXT-X-PROGRAM-DATE-TIME')).split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf();
+                        const syncStart = moment(data.find(e => e.startsWith('#EXT-X-PROGRAM-DATE-TIME')).split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf();
                         const stopSync = moment(data.reverse().find(e => e.startsWith('#EXT-X-PROGRAM-DATE-TIME')).split('PROGRAM-DATE-TIME:').pop().split('+')[0]).valueOf();
                         resolve({
                             playlist: data.reverse(),

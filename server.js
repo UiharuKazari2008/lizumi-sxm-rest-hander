@@ -556,12 +556,11 @@ function formatEventList(events) {
             }
             return false
         })()
-        console.log(`(${moment.utc(e.syncStart).local().valueOf()} <= (${Date.now()} - 10800000)`)
         return {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (Date.now() - 10800000)),
+            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() <= (Date.now() - 10800000)),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -601,22 +600,22 @@ async function processPendingBounces() {
                 if (pendingEvent.tunerId)
                     pendingEvent.tuner = getTuner(pendingEvent.tunerId);
 
-                if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
-                    if (pendingEvent.ch)
-                        thisEvent.channelId = pendingEvent.ch
-                    thisEvent.tuner = pendingEvent.tuner
-                    await bounceEventFile([thisEvent])
-                    pendingEvent.done = true
-                    pendingEvent.inprogress = false
-                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (Date.now() - 10800000))) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() - 10800000))) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
                         metadata: thisEvent,
                         index: i
                     })
+                } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
+                    if (pendingEvent.ch)
+                        thisEvent.channelId = pendingEvent.ch
+                    thisEvent.tuner = pendingEvent.tuner
+                    await bounceEventFile([thisEvent])
+                    pendingEvent.done = true
+                    pendingEvent.inprogress = false
                 }
-            } else if ((moment.utc(thisEvent.startSync).local().valueOf() >= (Date.now() - 10800000))) {
+            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && !pendingEvent.tunerId) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -625,7 +624,7 @@ async function processPendingBounces() {
                 })
             }
         }
-        channelTimes.pending = channelTimes.pending.filter(e => e.done === true && e.inprogress === false)
+        //channelTimes.pending = channelTimes.pending.filter(e => e.done === true && e.inprogress === false)
     } catch (err) {
         console.error(err)
     }
@@ -673,7 +672,7 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
         if (tuner && (!digitalOnly || (digitalOnly && tuner.digital)))
             return tuner.id
         if (digitalOnly)
-            return listTuners(true)[0].id
+            return undefined
         if (channelNumber)
             return findActiveRadio(channelNumber).id
         return undefined
@@ -780,7 +779,7 @@ async function bounceEventFile(eventsToParse) {
                         console.error(e);
                     }
                 }
-                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (Date.now() - 10800000))) {
+                if (!generateAnalogFile && (moment.utc(eventItem.event.syncStart).local().valueOf() >= (Date.now() - 10800000))) {
                     // Send job to Digital Extractor
                 }
 
@@ -1206,7 +1205,7 @@ async function recordDigitalEvent(eventItem, tuner) {
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000)
             return undefined
         })()
-        const recordedEvent = await recordAudioInterface(tuner, undefined, eventItem)
+        const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
         if (recordedEvent)
