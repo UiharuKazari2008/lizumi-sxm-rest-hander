@@ -361,9 +361,9 @@ function listChannels() {
     }
 }
 
-function getChannel() {
+function getChannel(number) {
     const channels = listChannels()
-    const index = channels.numbers.indexOf(req.query.ch)
+    const index = channels.numbers.indexOf(number)
     return (index !== -1) ? channels.channels[index] : false
 }
 // List all tuners
