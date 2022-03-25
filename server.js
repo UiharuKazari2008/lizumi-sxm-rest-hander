@@ -953,7 +953,7 @@ async function bounceEventGUI(type, device) {
                     `[📅${e.date}]`,
                     `${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂 ' : '' }${(e.exists) ? '✅' : (e.isExtractedDigitally) ? '🆕' : ''}`,
                     e.name,
-                    `(${e.time})`
+                    `(${e.time})`,
                     '"'
                 ].join(' ')
             )
