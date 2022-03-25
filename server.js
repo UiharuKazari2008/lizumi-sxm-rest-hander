@@ -495,7 +495,7 @@ function formatEventList(events) {
         const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
         const dyp = (events.filter(f =>
             (e.filename && f.filename && e.filename.toLowerCase() === f.filename.toLowerCase()) || (
-                f.title.toLowerCase() === e.title.toLowerCase() &&
+                (f.title && e.title && f.title.toLowerCase() === e.title.toLowerCase()) &&
                 ((f.artist && e.artist && f.artist.toLowerCase() === e.artist.toLowerCase()) || (!f.artist && !e.artist))
             )).length > 1)
         if (!e.filename) {
