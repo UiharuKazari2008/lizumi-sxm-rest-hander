@@ -1139,11 +1139,6 @@ async function tuneDigitalChannel(channel, time, device) {
 }
 // Stop Playback on Android Device aka Release Stream Entity
 function disconnectDigitalChannel(device) {
-    if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
-        (async () => {
-            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-        })()
-    }
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
