@@ -1131,7 +1131,7 @@ function disconnectDigitalChannel(device) {
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
-function recordAudioInterface(tuner, _time, event) {
+function recordAudioInterface(tuner, time, event) {
     return new Promise(async function (resolve) {
         let controller = null
         const input = await (async () => {
@@ -1207,7 +1207,7 @@ async function recordDigitalEvent(eventItem, tuner) {
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000)
             return undefined
         })()
-        const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
+        const recordedEvent = await recordAudioInterface(tuner, undefined, eventItem)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
         if (recordedEvent)
