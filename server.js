@@ -1225,6 +1225,7 @@ async function recordDigitalEvent(eventItem, tuner) {
             return undefined
         })()
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
+        console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
         if (recordedEvent)
