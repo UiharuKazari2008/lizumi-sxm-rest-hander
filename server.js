@@ -624,7 +624,10 @@ async function processPendingBounces() {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
-                    metadata: thisEvent,
+                    metadata: {
+                        event: thisEvent,
+                        name: thisEvent.filename
+                    },
                     index: i
                 })
             }
