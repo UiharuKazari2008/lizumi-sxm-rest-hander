@@ -129,7 +129,7 @@ async function updateMetadata() {
             }
         }
         const activeChannels = [...new Set(listTuners().filter(e => e.activeCh).map(e => e.activeCh.ch))]
-        const channelsToUpdate = listChannels().channels.filter(e => (!e.updateOnTune || (e.updateOnTune && e.id && activeChannels.indexOf(e.id))))
+        const channelsToUpdate = listChannels().channels.filter(e => (!e.updateOnTune || (e.updateOnTune && e.id && activeChannels.indexOf(e.id) !== -1)))
 
         for (const channelInfo of channelsToUpdate) {
             try {
