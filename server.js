@@ -382,7 +382,7 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
-                tuner: config.digital_radios[e],
+                ...config.digital_radios[e],
                 digital: true,
                 activeCh: (a && m) ? { m, ...a} : null,
                 locked: locked_tuners.has(e)
@@ -398,7 +398,7 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
-                tuner: config.satellite_radios[e],
+                ...config.satellite_radios[e],
                 digital: false,
                 activeCh: (a && m) ? { m, ...a} : null,
                 locked: locked_tuners.has(e)
