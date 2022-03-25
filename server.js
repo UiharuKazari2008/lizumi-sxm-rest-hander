@@ -1225,6 +1225,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
         } else if (req.query.tuner) {
             console.log(`Tune ${req.query.tuner} to channel ${channel.name}`)
             const ft = getTuner(req.query.tuner)
+            console.log(ft)
             if (ft) {
                 const t = ft
                 const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.tuner) : (channel.tuneUrl[t.id]) ? await webRequest(channel.tuneUrl[t.id]) : {ok: true, manual: true}
