@@ -463,9 +463,9 @@ function listEventsValidated(songs, device, count) {
             return 1
         return 0
     }
-    const events = Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d =>
-        channelTimes.timetable[d].map((tc, i, a) =>
-            metadata[tc.ch].filter(f =>
+    const events = Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d => {
+        return [...channelTimes.timetable[d].map((tc, i, a) => {
+            return [...metadata[tc.ch].filter(f =>
                 // Has duration aka is completed
                 parseInt(f.duration.toString()) > 90 &&
                 // First Item or Was Tuned after event start
@@ -482,9 +482,9 @@ function listEventsValidated(songs, device, count) {
                     channelId: tc.ch,
                     tunerId: d
                 }
-            })
-        )
-    ).sort(sortEvents)
+            })]
+        })]
+    }).sort(sortEvents)
     console.log(events)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
