@@ -1034,7 +1034,7 @@ async function bounceEventGUI(type, device) {
         for (let eventItem of eventsToParse) {
             let eventsToExtract = eventItem.event
             eventsToExtract.tuner = eventItem.tuner
-            eventsToExtract.digitalOnly = await new Promise(resolve => {
+            eventsToExtract.digitalOnly = (e.isExtractedDigitally) ? await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Attempt to get this digitaly" buttons {"No", "Yes"} default button 2 giving up after 90)`,
                     `return (the button returned of the dialogResult is "Yes")`
@@ -1054,7 +1054,7 @@ async function bounceEventGUI(type, device) {
                     childProcess.kill();
                     resolve(false);
                 }, 120000)
-            });
+            }) : false
             eventsToExtract.filename = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Set Filename" default answer "${eventItem.name}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
