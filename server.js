@@ -1170,6 +1170,9 @@ for (let t of listTuners()) {
         });
     }
     ctrlq.set(`${(t.digital) ? 'D-': 'A-'}${t.id}`, mq)
+
+    if (!channelTimes.timetable[t])
+        channelTimes.timetable[t] = []
 }
 
 // Tune to a channel
