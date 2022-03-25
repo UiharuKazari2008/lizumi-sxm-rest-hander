@@ -1096,7 +1096,7 @@ function adbCommand(device, commandArray) {
 }
 function adbLogStart(device) {
     device_logs[device] = [];
-    const adblaunch = ['-s', device, "adb", "logcat"]
+    const adblaunch = ['-s', device, "logcat"]
     const logWawtcher = spawn(config.adb_command, adblaunch, {
         encoding: 'utf8'
     });
