@@ -1151,23 +1151,7 @@ function recordAudioInterface(tuner, time, event) {
         } else {
             const startTime = moment().local().valueOf()
             const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
-            if (!time) {
-                controller = setInterval(() => {
-                    const eventData = getEvent(event.event.channelId, event.event.guid)
-                    if (eventData) {
-                        if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                            const stopwatch = setTimeout(() => {
-                                const recorder = locked_tuners.get(tuner.id)
-                                recorder.kill(2)
-                                stopwatches_tuners.delete(tuner.id)
-                            }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
-                            stopwatches_tuners.set(tuner.id, stopwatch)
-                            clearInterval(controller)
-                        }
-                    }
-                }, 60000)
-            }
-            locked_tuners.set(tuner.id, exec(ffmpeg.join(' '), {
+            const recorder = exec(ffmpeg.join(' '), {
                 cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                 encoding: 'utf8'
             }, (err, stdout, stderr) => {
@@ -1182,7 +1166,25 @@ function recordAudioInterface(tuner, time, event) {
                     resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
                     locked_tuners.delete(tuner.id)
                 }
-            }))
+            })
+
+            if (!time) {
+                controller = setInterval(() => {
+                    const eventData = getEvent(event.event.channelId, event.event.guid)
+                    if (eventData) {
+                        if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                            const stopwatch = setTimeout(() => {
+                                recorder.kill(2)
+                                stopwatches_tuners.delete(tuner.id)
+                            }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
+                            stopwatches_tuners.set(tuner.id, stopwatch)
+                            clearInterval(controller)
+                        }
+                    }
+                }, 60000)
+            }
+
+            locked_tuners.set(tuner.id, recorder)
         }
     })
 }
