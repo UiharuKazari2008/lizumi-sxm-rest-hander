@@ -1141,7 +1141,7 @@ function recordAudioInterface(tuner, time, event) {
                 return tuner.audio_interface
             console.log("Setting up USB Audio Interface...")
             await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            await adbCommand(tuner.serial, ["forward", `t`cp:${tuner.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
             await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
             return (portInUse(tuner.audioPort)) ? ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`] : false
         })()
