@@ -1149,7 +1149,7 @@ function recordAudioInterface(tuner, time, event) {
             await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
             await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
             await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
-            return (portInUse(tuner.audioPort)) ? ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`] : false
+            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
         })()
         if (!input) {
             console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
