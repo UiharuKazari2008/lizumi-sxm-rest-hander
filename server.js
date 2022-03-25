@@ -463,27 +463,29 @@ function listEventsValidated(songs, device, count) {
             return 1
         return 0
     }
-    const events = Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d =>
-        d.map((tc, i,a) =>
-            metadata[tc.ch].filter(f =>
-                // Has duration aka is completed
-                parseInt(f.duration.toString()) > 90 &&
-                // First Item or Was Tuned after event start
-                (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
-                // Is Last Item or Look ahead and see if this has not occured after the next channel change
-                (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time)) &&
-                // If Songs are wanted only return songs else Events only
-                ((!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
-            ).map((f, i, a) => {
-                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart))
-                    f.syncEnd = a[i + 1].syncStart - 1
-                return {
-                    ...f,
-                    channelId: tc.ch,
-                    tunerId: d
-                }
-            })
-        )
+    const events = Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d => {
+        console.log(d)
+        return d.map((tc, i, a) =>
+                metadata[tc.ch].filter(f =>
+                    // Has duration aka is completed
+                    parseInt(f.duration.toString()) > 90 &&
+                    // First Item or Was Tuned after event start
+                    (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
+                    // Is Last Item or Look ahead and see if this has not occured after the next channel change
+                    (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time)) &&
+                    // If Songs are wanted only return songs else Events only
+                    ((!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
+                ).map((f, i, a) => {
+                    if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart))
+                        f.syncEnd = a[i + 1].syncStart - 1
+                    return {
+                        ...f,
+                        channelId: tc.ch,
+                        tunerId: d
+                    }
+                })
+            )
+        }
     ).sort(sortEvents)
     if (count)
         return events.slice(Math.abs(count) * -1)
