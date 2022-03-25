@@ -485,6 +485,7 @@ function listEventsValidated(songs, device, count) {
             })
         )
     ).sort(sortEvents)
+    console.log(events)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
@@ -527,7 +528,7 @@ function formatEventList(events) {
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
-            duplicate: ex,
+            duplicate: dyp,
             name: e.filename,
             event: e
         }
