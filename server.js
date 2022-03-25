@@ -1134,7 +1134,6 @@ function disconnectDigitalChannel(device) {
 // Record Audio from Interface attached to a Android Recorder with a set end time
 function recordAudioInterface(tuner, time, event) {
     return new Promise(function (resolve) {
-        console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
         let controller = null
         const input = (async () => {
             if (tuner.audio_interface)
@@ -1149,6 +1148,7 @@ function recordAudioInterface(tuner, time, event) {
             console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
             resolve(false)
         } else {
+            console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             const startTime = moment().local().valueOf()
             const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
             const recorder = exec(ffmpeg.join(' '), {
