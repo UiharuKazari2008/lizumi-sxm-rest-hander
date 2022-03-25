@@ -1101,15 +1101,12 @@ function adbLogStart(device) {
         encoding: 'utf8'
     });
     logWawtcher.stdout.on('data', (data) => {
-        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
-            console.log(`${device} : data`)
-            device_logs[device].push(data.toString().split('\n'))
-        }
+        console.log(`${device} : data`)
+        device_logs[device].push(data.toString().split('\n'))
     })
     logWawtcher.stderr.on('data', (data) => {
-        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy'))
-            console.error(`${device} : data`)
-            device_logs[device].push(data.toString().split('\n'))
+        console.error(`${device} : data`)
+        device_logs[device].push(data.toString().split('\n'))
     })
     adblog_tuners.set(device, logWawtcher)
 }
