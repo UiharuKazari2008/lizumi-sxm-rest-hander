@@ -1129,9 +1129,7 @@ function recordAudioInterface(tuner, time, name) {
 }
 // Tune, Record, Disconnect
 async function recordDigitalEvent(eventItem, tuner) {
-    console.log(eventItem)
-    console.log(tuner)
-    if (await tuneDigitalChannel(eventItem.event.channelId, (eventItem.event.syncStart + ((tuner.delay) ? tuner.delay * 1000 : (eventItem.event.delay) ? eventItem.event.delay * 1000 : 0)), tuner.serial)) {
+    if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner.serial)) {
         const recordedEvent = await recordAudioInterface(tuner, msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 30000), `Extracted_${eventItem.event.guid}`)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner.serial)
