@@ -662,7 +662,7 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
     // Get passed channel number ot find that channel that's active with that tuner
     const ch = (() => {
         if (channelNumber)
-            return channelTimes
+            return channelNumber
         if (t)
             return t.activeCh.ch
         return undefined
