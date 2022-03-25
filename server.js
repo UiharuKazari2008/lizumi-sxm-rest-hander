@@ -510,7 +510,7 @@ function listEventsValidated(songs, device, count) {
                 // Is Last Item or Look ahead and see if this has not occured after the next channel change
                 (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time)) &&
                 // If Songs are wanted only return songs else Events only
-                ((!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
+                (parseInt(f.duration.toString()) === 0 || (!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
             ).map((f, i, a) => {
                 if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart))
                     f.syncEnd = a[i + 1].syncStart - 1
