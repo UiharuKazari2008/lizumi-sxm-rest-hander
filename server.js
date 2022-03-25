@@ -1351,7 +1351,17 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
             let chid = false
             if (req.query.ch) {
                 chid = getChannelbyNumber(req.query.ch)
-                await tuneDigitalChannel(chid, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t.serial)
+                const tune = await tuneDigitalChannel(chid, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t.serial)
+                if (tune) {
+                    const record = await recordAudioInterface(t, "00:01:00", `Extracted_test`)
+                    if (record) {
+                        res.sendFile(record)
+                    } else {
+                        res.status(500).send('Failed to Record')
+                    }
+                } else {
+                    res.status(500).send('Failed to Tune')
+                }
             } else {
                 res.status(400).send('Channel nunber not found')
             }
