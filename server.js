@@ -483,7 +483,7 @@ function listEvents(channel, time) {
 }
 // Get specific event by uuid
 function getEvent(channel, uuid) {
-    return metadata[channel].filter(e => !e.isSong && e.uuid.toLowerCase() === uuid.toLowerCase())[0]
+    return metadata[channel].filter(e => !e.isSong && e.uuid === uuid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time) {
@@ -556,6 +556,7 @@ function formatEventList(events) {
             }
             return false
         })()
+        console.log(`(${moment.utc(e.startSync).local().valueOf()} <= (${Date.now()} - (3 * 60 * 60 * 1000)))`)
         return {
             tunerId: tun.id,
             tuner: tun,
@@ -1202,7 +1203,7 @@ async function recordDigitalEvent(eventItem, tuner) {
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner.serial)) {
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
-                return msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 30000)
+                return msToTime(parseInt(eventItem.event.duration.toString()) * 1000)
             return undefined
         })()
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
