@@ -482,8 +482,8 @@ function listEvents(channel, time) {
     return metadata[channel].filter(e => !e.isSong && e.syncStart < time)
 }
 // Get specific event by uuid
-function getEvent(channel, uuid) {
-    return metadata[channel].filter(e => !e.isSong && e.uuid === uuid)[0]
+function getEvent(channel, guid) {
+    return metadata[channel].filter(e => !e.isSong && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time) {
@@ -578,8 +578,8 @@ async function processPendingBounces() {
         for (let i in channelTimes.pending.filter(e => e.done === false)) {
             let pendingEvent = channelTimes.pending[i]
             let thisEvent = (() => {
-                if (pendingEvent.ch && pendingEvent.uuid)
-                    return getEvent(pendingEvent.ch, pendingEvent.uuid)
+                if (pendingEvent.ch && pendingEvent.guid)
+                    return getEvent(pendingEvent.ch, pendingEvent.guid)
                 if (pendingEvent.ch && pendingEvent.time)
                     return findEvent(pendingEvent.ch, pendingEvent.time)
             })()
@@ -651,16 +651,16 @@ async function searchForEvents() {
     if (config.auto_extract) {
         config.auto_extract.forEach(lookup => {
             for (let k of Object.keys(metadata)) {
-                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && search(lookup, e) && channelTimes.completed.indexOf(e.uuid) !== -1 && (!e.isEpisode || (lookup.allow_episodes && e.isEpisode))).forEach(e => {
+                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && search(lookup, e) && channelTimes.completed.indexOf(e.guid) !== -1 && (!e.isEpisode || (lookup.allow_episodes && e.isEpisode))).forEach(e => {
                     channelTimes.pending.push({
                         ch: k,
                         lookup: lookup,
                         tunerId: (lookup.tuner) ? lookup.tuner : undefined,
-                        uuid: e.uuid,
+                        guid: e.guid,
                         inprogress: false,
                         done: false
                     })
-                    channelTimes.completed.push(e.uuid)
+                    channelTimes.completed.push(e.guid)
                 })
             }
         })
@@ -1175,17 +1175,15 @@ function recordAudioInterface(tuner, time, event) {
                     console.log("No time specified, setting up stopwatch watchdog")
                     controller = setInterval(() => {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
-                        if (eventData) {
-                            if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                                const termTime = ((eventData.syncEnd + (eventData.delay * 1000)) - startTime) + (5 * 60000)
-                                console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
-                                const stopwatch = setTimeout(() => {
-                                    recorder.stdin.write('q')
-                                    stopwatches_tuners.delete(tuner.id)
-                                }, termTime)
-                                stopwatches_tuners.set(tuner.id, stopwatch)
-                                clearInterval(controller)
-                            }
+                        if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                            const termTime = ((eventData.syncEnd + (eventData.delay * 1000)) - startTime) + (5 * 60000)
+                            console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
+                            const stopwatch = setTimeout(() => {
+                                recorder.stdin.write('q')
+                                stopwatches_tuners.delete(tuner.id)
+                            }, termTime)
+                            stopwatches_tuners.set(tuner.id, stopwatch)
+                            clearInterval(controller)
                         }
                     }, 60000)
                 }
