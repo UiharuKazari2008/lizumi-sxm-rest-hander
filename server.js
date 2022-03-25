@@ -699,6 +699,7 @@ async function bounceEventFile(eventsToParse) {
             }
         });
         const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
+        console.log(analogRecFiles)
 
         if (parseInt(eventItem.event.duration.toString()) > 0) {
             const trueTime = moment.utc(eventItem.event.syncStart).local();
@@ -713,7 +714,6 @@ async function bounceEventFile(eventsToParse) {
                         analogStartFile = 0
                     const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
                     const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
-                    console.log(analogFileItems)
                     const analogFileList = analogFileItems.map(e => e.file).join('|')
 
                     if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
