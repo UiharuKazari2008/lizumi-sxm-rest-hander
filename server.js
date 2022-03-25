@@ -427,6 +427,7 @@ function findActiveRadioTune(channel) {
 function availableTuners() {
     return listTuners().filter(e => !(e.tuner.lock_on_events && e.locked) && !e.tuner.record_only)
 }
+//
 function getBestDigitalTuner() {
     function sortcb(arrayItemA, arrayItemB) {
         if (arrayItemA.length < arrayItemB.length)
@@ -455,6 +456,7 @@ function findEvent(channel, time) {
     const e = listEvents(channel, time)
     return e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
+//
 function listEventsValidated(songs, device, count) {
     function sortEvents(arrayItemA, arrayItemB) {
         if (arrayItemA.syncStart < arrayItemB.syncStart)
@@ -491,6 +493,7 @@ function listEventsValidated(songs, device, count) {
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
 }
+//
 function formatEventList(events) {
     const channel = listChannels()
     return events.map(e => {
@@ -523,6 +526,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tunerName: (tun.name) ? tun.name : tun.id,
             isDigital: tun.digital,
+            tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
             isExtractedDigitally: (e.startSync >= (Date.now() - (3 * 60 * 60 * 1000))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
@@ -981,6 +985,7 @@ async function bounceEventGUI(type, device) {
 
         for (let eventItem of eventsToParse) {
             let eventsToExtract = eventItem.event
+            eventsToExtract.tuner = eventItem.tuner
             eventsToExtract.digitalOnly = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Attempt to get this digitaly" buttons {"No", "Yes"} default button 2 giving up after 90)`,
