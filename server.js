@@ -560,7 +560,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (moment().local().valueOf() - (3 * 60 * 60 * 1000))),
+            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (Date.now() - (3 * 60 * 60 * 1000))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -607,7 +607,7 @@ async function processPendingBounces() {
                     await bounceEventFile([thisEvent])
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
-                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (moment().local().valueOf() - (3 * 60 * 60 * 1000)))) {
+                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (Date.now() - (3 * 60 * 60 * 1000)))) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
@@ -615,7 +615,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (moment().local().valueOf() - thisEvent.delay - (5 * 60 * 1000)))) {
+            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (Date.now() - thisEvent.delay - (5 * 60 * 1000)))) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -779,7 +779,7 @@ async function bounceEventFile(eventsToParse) {
                         console.error(e);
                     }
                 }
-                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (moment().local().valueOf() - (3 * 60 * 60 * 1000)))) {
+                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (Date.now() - (3 * 60 * 60 * 1000)))) {
                     // Send job to Digital Extractor
                 }
 
@@ -1149,45 +1149,50 @@ function recordAudioInterface(tuner, time, event) {
             resolve(false)
         } else {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
-            const startTime = moment().local().valueOf()
-            const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
-            console.log(ffmpeg.join(' '))
-            const recorder = exec(ffmpeg.join(' '), {
-                cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                encoding: 'utf8'
-            }, (err, stdout, stderr) => {
-                if (err) {
-                    console.error(`Digital recording failed: FFMPEG reported a error!`)
-                    console.error(err)
-                    resolve(false)
-                } else {
-                    console.log('FFMPEG Closed')
-                    if (stderr.length > 1)
-                        console.error(stderr);
-                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                    resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
-                    locked_tuners.delete(tuner.id)
-                }
-            })
-
-            if (!time) {
-                console.log("No time specified, setting up stopwatch watchdog")
-                controller = setInterval(() => {
-                    const eventData = getEvent(event.event.channelId, event.event.guid)
-                    if (eventData) {
-                        if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                            const stopwatch = setTimeout(() => {
-                                recorder.kill(2)
-                                stopwatches_tuners.delete(tuner.id)
-                            }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
-                            stopwatches_tuners.set(tuner.id, stopwatch)
-                            clearInterval(controller)
-                        }
+            try {
+                const startTime = Date.now()
+                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
+                console.log(ffmpeg.join(' '))
+                const recorder = exec(ffmpeg.join(' '), {
+                    cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
+                    encoding: 'utf8'
+                }, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(`Digital recording failed: FFMPEG reported a error!`)
+                        console.error(err)
+                        resolve(false)
+                    } else {
+                        console.log('FFMPEG Closed')
+                        if (stderr.length > 1)
+                            console.error(stderr);
+                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                        resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
+                        locked_tuners.delete(tuner.id)
                     }
-                }, 60000)
-            }
+                })
 
-            locked_tuners.set(tuner.id, recorder)
+                if (!time) {
+                    console.log("No time specified, setting up stopwatch watchdog")
+                    controller = setInterval(() => {
+                        const eventData = getEvent(event.event.channelId, event.event.guid)
+                        if (eventData) {
+                            if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                                const stopwatch = setTimeout(() => {
+                                    recorder.kill(2)
+                                    stopwatches_tuners.delete(tuner.id)
+                                }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
+                                stopwatches_tuners.set(tuner.id, stopwatch)
+                                clearInterval(controller)
+                            }
+                        }
+                    }, 60000)
+                }
+
+                locked_tuners.set(tuner.id, recorder)
+            } catch (e) {
+                console.error(e)
+                resolve(false)
+            }
         }
     })
 }
