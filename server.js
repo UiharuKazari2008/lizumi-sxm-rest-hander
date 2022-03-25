@@ -414,7 +414,7 @@ function getTuner(id) {
 // Return the best radio that is currently tuned to channel else false
 // use true or false after channel if you want all that are tuned to a channel
 function findActiveRadio(channel, all) {
-    const f = listTuners().filter(e => e.activeCh.ch === channel)
+    const f = listTuners().filter(e => !e.activeCh || (e.activeCh && e.activeCh.ch === channel))
     return (f && f.length > 0) ? (all) ? f : f.slice(-1).pop() : false
 }
 // Return a tuner that is tuned to a channel else false
@@ -1318,11 +1318,11 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
-        await saveMetadata();
         await processPendingBounces();
         cron.schedule("* * * * *", async () => {
             updateMetadata();
-        });cron.schedule("*/5 * * * *", async () => {
+        });
+        cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
         });
         cron.schedule("*/5 * * * *", async () => {
