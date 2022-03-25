@@ -1315,7 +1315,7 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
-                return done(null, recorded);
+                return done((!recorded) ? true : null, { result: recorded});
             } catch (e) {
                 return done(e, false);
             }
