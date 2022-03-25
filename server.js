@@ -492,6 +492,7 @@ function listEventsValidated(songs, device, count) {
 function formatEventList(events) {
     const channel = listChannels()
     return events.map(e => {
+        console.log(e)
         const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
         const dyp = (events.filter(f =>
             (e.filename && f.filename && e.filename.toLowerCase() === f.filename.toLowerCase()) || (
