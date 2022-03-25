@@ -504,7 +504,7 @@ function listEventsValidated(songs, device, count) {
         return channelTimes.timetable[d].map((tc, i, a) => {
             return metadata[tc.ch].filter(f =>
                 // Has duration aka is completed
-                parseInt(f.duration.toString()) > 90 &&
+                (parseInt(f.duration.toString()) > 90  || parseInt(f.duration.toString()) === 0)  &&
                 // First Item or Was Tuned after event start
                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
                 // Is Last Item or Look ahead and see if this has not occured after the next channel change
