@@ -1158,7 +1158,7 @@ function recordAudioInterface(tuner, time, event) {
                         if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
                             const stopwatch = setTimeout(() => {
                                 const recorder = locked_tuners.get(tuner.id)
-                                recorder.recorder.kill(2)
+                                recorder.kill(2)
                                 stopwatches_tuners.delete(tuner.id)
                             }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
                             stopwatches_tuners.set(tuner.id, stopwatch)
@@ -1167,24 +1167,22 @@ function recordAudioInterface(tuner, time, event) {
                     }
                 }, 60000)
             }
-            locked_tuners.set(tuner.id, {
-                recorder: exec(ffmpeg.join(' '), {
-                    cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                    encoding: 'utf8'
-                }, (err, stdout, stderr) => {
-                    if (err) {
-                        console.error(`Digital recording failed: FFMPEG reported a error!`)
-                        console.error(err)
-                        resolve(false)
-                    } else {
-                        if (stderr.length > 1)
-                            console.error(stderr);
-                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                        resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
-                        locked_tuners.delete(tuner.id)
-                    }
-                })
-            })
+            locked_tuners.set(tuner.id, exec(ffmpeg.join(' '), {
+                cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
+                encoding: 'utf8'
+            }, (err, stdout, stderr) => {
+                if (err) {
+                    console.error(`Digital recording failed: FFMPEG reported a error!`)
+                    console.error(err)
+                    resolve(false)
+                } else {
+                    if (stderr.length > 1)
+                        console.error(stderr);
+                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                    resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
+                    locked_tuners.delete(tuner.id)
+                }
+            }))
         }
     })
 }
@@ -1454,7 +1452,9 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner).serial
-    res.status(200).send(device_logs[serial].join("\n"))
+    res.status(200).json({
+        logs: device_logs[serial]
+    })
 })
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
