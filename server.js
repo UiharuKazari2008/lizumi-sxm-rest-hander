@@ -12,7 +12,7 @@ const express = require("express");
 const app = express();
 const Queue = require('bee-queue');
 const ctrlq = new Map();
-const net = request('net');
+const net = require('net');
 
 let metadata = {};
 let channelTimes = {
