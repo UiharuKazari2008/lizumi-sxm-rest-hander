@@ -1150,13 +1150,14 @@ function queueDigitalRecording(jobOptions) {
             const recorder = ctrlq.get(best_recorder)
             const job = recorder.createJob(jobOptions);
             job.save();
-            job.on('succeeded', (result) => {
-                resolve(result)
-                console.log(`Received result for job ${job.id}: ${result}`);
+            job.on('succeeded', (err, results) => {
+                resolve(results)
+                console.log(`Received result for job ${job.id}: ${results}`);
             });
-            job.on('failed', (result) => {
+            job.on('failed', (err, results) => {
                 resolve(false)
-                console.error(result)
+                console.error(err)
+                console.error(results)
             });
         }
     }))
@@ -1186,7 +1187,7 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
-                return done(null, post);
+                return done(null, complete);
             } catch (e) {
                 return done(e, false);
             }
