@@ -12,6 +12,7 @@ const express = require("express");
 const app = express();
 const Queue = require('bee-queue');
 const ctrlq = new Map();
+const net = request('net');
 
 let metadata = {};
 let channelTimes = {
@@ -22,6 +23,8 @@ let channelTimes = {
     completed: []
 };
 let locked_tuners = new Map();
+let adblog_tuners = new Map();
+let device_logs = {};
 let stopwatches_tuners = new Map();
 let nowPlayingGUID = {};
 let pendingBounceTimer = null;
@@ -59,6 +62,24 @@ function msToTime(s) {
 }
 function cleanText(t) {
     return t.split('/').join(' & ').split(',').join('').split('...').join('').replace(/[/\\?%*:|"<>]/g, '').trim()
+}
+function portInUse(port) {
+    return new Promise((callback) => {
+        const server = net.createServer(function(socket) {
+            socket.write('Echo server\r\n');
+            socket.pipe(socket);
+        });
+
+        server.on('error', function (e) {
+            callback(true);
+        });
+        server.on('listening', function (e) {
+            server.close();
+            callback(false);
+        });
+
+        server.listen(port, '127.0.0.1');
+    })
 }
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
@@ -400,7 +421,7 @@ function listTuners(digitalOnly) {
                 locked: locked_tuners.has(e)
             }
         }) : []),
-        ...((digitalOnly === false) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map(e => {
+        ...((digitalOnly === false) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
@@ -410,6 +431,7 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
+                audioPort: 28200 + i,
                 ...config.satellite_radios[e],
                 digital: false,
                 activeCh: (a && m) ? { m, ...a} : null,
@@ -1054,101 +1076,126 @@ async function bounceEventGUI(type, device) {
 }
 
 // ** Android/Digital Recorder Tools **
-// Tune to Digital Channel on Android Device
-function tuneDigitalChannel(channel, time, device) {
+// ADB Command Runner
+function adbCommand(device, commandArray) {
     return new Promise(function (resolve) {
-        console.log(`Tuneing Device ${device} to channel ${channel}...`);
-        // shell am start -a android.intent.action.MAIN -n com.sirius/.android.everest.welcome.WelcomeActivity -e linkAction '"Api:tune:liveAudio:9472::1647694800000"'
-        const adblaunch = [config.adb_command, '-s', device, 'shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
-            'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`]
+        const adblaunch = [config.adb_command, '-s', device, ...commandArray]
         exec(adblaunch.join(' '), {
             encoding: 'utf8'
         }, (err, stdout, stderr) => {
             if (err) {
-                console.error(`Failed to send event start command!`)
-                console.error(err)
-                resolve(false)
-            } else {
-                if (stderr.length > 1)
-                    console.error(stderr);
-                const log = stdout.split('\n').filter(e => e.length > 0 && e !== '')
-                console.log(log)
-                if (log.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
-                    resolve(true)
-                } else {
-                    resolve(false)
-                }
-            }
-        });
-    })
-}
-// Stop Playback on Android Device aka Release Stream Entity
-function disconnectDigitalChannel(device) {
-    return new Promise(function (resolve) {
-        console.log(`Stopping Device ${device}...`);
-        // shell input keyevent 86
-        const adblaunch = [config.adb_command, '-s', device, 'shell', 'input', 'keyevent', '86']
-        exec(adblaunch.join(' '), {
-            encoding: 'utf8'
-        }, (err, stdout, stderr) => {
-            if (err) {
-                console.error(`Failed to send event stop command!`)
                 console.error(err)
                 resolve(false)
             } else {
                 if (stderr.length > 1)
                     console.error(stderr);
                 console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                resolve(true)
+                resolve(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
             }
         });
     })
+}
+function adbLogStart(device) {
+    device_logs[device] = [];
+    const adblaunch = ['-s', device, "adb", "logcat"]
+    const logWawtcher = spawn(config.adb_command, adblaunch, {
+        encoding: 'utf8'
+    });
+    logWawtcher.stdout.on('data', (data) => {
+        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
+            console.log(`${device} : data`)
+            device_logs[device].push(data.toString().split('\n'))
+        }
+    })
+    logWawtcher.stderr.on('data', (data) => {
+        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy'))
+            console.error(`${device} : data`)
+            device_logs[device].push(data.toString().split('\n'))
+    })
+    adblog_tuners.set(device, logWawtcher)
+}
+// Tune to Digital Channel on Android Device
+async function tuneDigitalChannel(channel, time, device) {
+    console.log(`Tuneing Device ${device} to channel ${channel}...`);
+    const tune = await adbCommand(device, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
+        'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+    return (tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }'))
+}
+// Stop Playback on Android Device aka Release Stream Entity
+function disconnectDigitalChannel(device) {
+    if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
+        (async () => {
+            await adbCommand(device.serial, ["--remove", "forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+        })()
+    }
+    return adbCommand(device.serial, ['shell', 'media', 'dispatch', 'pause'])
+
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
 function recordAudioInterface(tuner, time, event) {
     return new Promise(function (resolve) {
         console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
         let controller = null
-        const startTime = Date.now()
-        const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...tuner.audio_interface, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
-        if (!time) {
-            controller = setInterval(() => {
-                const eventData = getEvent(event.event.channelId, event.event.guid)
-                if (eventData) {
-                    if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                        const stopwatch = setTimeout(() => {
-                            const recorder = locked_tuners.get(tuner.id)
-                            recorder.recorder.kill(2)
-                            stopwatches_tuners.delete(tuner.id)
-                        }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
-                        stopwatches_tuners.set(tuner.id, stopwatch)
-                        clearInterval(controller)
+        const input = (async () => {
+            if (tuner.audio_interface)
+                return tuner.audio_interface
+            if (!portInUse(tuner.audioPort)) {
+                console.log("Setting up USB Audio Interface...")
+                await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+                await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
+                await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
+                return (portInUse(tuner.audioPort)) ? ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`] : false
+            } else {
+                return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
+            }
+        })()
+        if (!input) {
+            console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
+            resolve(false)
+        } else {
+            const startTime = Date.now()
+            const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
+            if (!time) {
+                controller = setInterval(() => {
+                    const eventData = getEvent(event.event.channelId, event.event.guid)
+                    if (eventData) {
+                        if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                            const stopwatch = setTimeout(() => {
+                                const recorder = locked_tuners.get(tuner.id)
+                                recorder.recorder.kill(2)
+                                stopwatches_tuners.delete(tuner.id)
+                            }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
+                            stopwatches_tuners.set(tuner.id, stopwatch)
+                            clearInterval(controller)
+                        }
                     }
-                }
-            }, 60000)
-        }
-        locked_tuners.set(tuner.id, {
-            recorder: exec(ffmpeg.join(' '), {
-                cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                encoding: 'utf8'
-            }, (err, stdout, stderr) => {
-                if (err) {
-                    console.error(`Digital recording failed: FFMPEG reported a error!`)
-                    console.error(err)
-                    resolve(false)
-                } else {
-                    if (stderr.length > 1)
-                        console.error(stderr);
-                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                    resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
-                    locked_tuners.delete(tuner.id)
-                }
+                }, 60000)
+            }
+            locked_tuners.set(tuner.id, {
+                recorder: exec(ffmpeg.join(' '), {
+                    cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
+                    encoding: 'utf8'
+                }, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(`Digital recording failed: FFMPEG reported a error!`)
+                        console.error(err)
+                        resolve(false)
+                    } else {
+                        if (stderr.length > 1)
+                            console.error(stderr);
+                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                        resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
+                        locked_tuners.delete(tuner.id)
+                    }
+                })
             })
-        })
+        }
     })
 }
 // Tune, Record, Disconnect
 async function recordDigitalEvent(eventItem, tuner) {
+    adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner.serial)) {
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
@@ -1157,9 +1204,11 @@ async function recordDigitalEvent(eventItem, tuner) {
         })()
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
         if (tuner.record_only)
-            await disconnectDigitalChannel(tuner.serial)
+            await disconnectDigitalChannel(tuner)
         if (recordedEvent)
             await postExtraction(recordedEvent, `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
+        if (adblog_tuners.has(tuner.serial))
+            adblog_tuners.get(tuner.serial).kill(9)
         return recordedEvent;
     }
     return false
@@ -1408,6 +1457,10 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
     }
 });
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
+app.use("/debug/logcat/:tuner", (req, res) => {
+    const serial = getTuner(req.params.tuner)
+    req.status(200).send(device_logs[serial])
+})
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     console.log("Server running");
