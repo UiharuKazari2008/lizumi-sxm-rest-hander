@@ -810,7 +810,7 @@ async function postExtraction(extractedFile, eventFilename) {
                 })
             })
         }
-        await new Promise(resolve => {
+        new Promise(resolve => {
             const list = `display notification "✅ ${eventFilename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 resolve(null);
@@ -1170,7 +1170,6 @@ for (let t of listTuners()) {
             try {
                 const tuner = getTuner(t.id);
                 const recorded = await recordDigitalEvent(job.data.metadata, tuner)
-                console.log(recorded)
                 if (recorded) {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
