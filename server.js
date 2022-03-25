@@ -28,6 +28,8 @@ let device_logs = {};
 let stopwatches_tuners = new Map();
 let nowPlayingGUID = {};
 let pendingBounceTimer = null;
+let digitalAvailable = false
+let satelliteAvailable = false
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -600,11 +602,14 @@ async function processPendingBounces() {
                 if (pendingEvent.tunerId)
                     pendingEvent.tuner = getTuner(pendingEvent.tunerId);
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() - 10800000))) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() - 10800000)) && digitalAvailable) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
-                        metadata: thisEvent,
+                        metadata: {
+                            event: thisEvent,
+                            name: thisEvent.filename
+                        },
                         index: i
                     })
                 } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
@@ -1250,7 +1255,6 @@ for (let t of listTuners()) {
             try {
                 const tuner = getTuner(t.id);
                 const recorded = await recordDigitalEvent(job.data.metadata, tuner)
-                let complete
                 if (recorded) {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].inprogress = false
@@ -1265,7 +1269,7 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
-                return done(null, complete);
+                return done(null, recorded);
             } catch (e) {
                 return done(e, false);
             }
@@ -1473,7 +1477,12 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
-        await processPendingBounces();
+        const tun = listTuners()
+        if (tun.filter(e => e.digital).length > 0)
+            digitalAvailable = true
+        if (tun.filter(e => !e.digital).length > 0)
+            satelliteAvailable = true
+
         cron.schedule("* * * * *", async () => {
             updateMetadata();
         });
@@ -1484,6 +1493,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
         });
-        console.log(listTuners())
+        await processPendingBounces();
+        console.log(tun)
     }
 });
