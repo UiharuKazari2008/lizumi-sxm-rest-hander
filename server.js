@@ -1101,11 +1101,11 @@ function adbLogStart(device) {
         encoding: 'utf8'
     });
     logWawtcher.stdout.on('data', (data) => {
-        console.log(`${device} : data`)
+        console.log(`${device} : ${data}`)
         device_logs[device].push(data.toString().split('\n'))
     })
     logWawtcher.stderr.on('data', (data) => {
-        console.error(`${device} : data`)
+        console.error(`${device} : ${data}`)
         device_logs[device].push(data.toString().split('\n'))
     })
     adblog_tuners.set(device, logWawtcher)
