@@ -487,7 +487,6 @@ function listEventsValidated(songs, device, count) {
         })
     })
     events.sort(sortEvents)
-    console.log(events)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
@@ -495,7 +494,6 @@ function listEventsValidated(songs, device, count) {
 function formatEventList(events) {
     const channel = listChannels()
     return events.map(e => {
-        console.log(e)
         const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
         const dyp = (events.filter(f =>
             (e.filename && f.filename && e.filename.toLowerCase() === f.filename.toLowerCase()) || (
@@ -958,6 +956,7 @@ async function bounceEventGUI(type, device) {
                 ].join(' ')
             )
 
+            console.log(listmeta)
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
@@ -1300,11 +1299,11 @@ app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
             case 'select_bounce_event':
-                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'select_bounce_song':
-                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
