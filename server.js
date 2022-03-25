@@ -1305,6 +1305,7 @@ app.get("/pend_bounce", (req, res) => {
         const chid = getChannel(req.query.ch)
         if (chid) {
             registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, chid, undefined, (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
+            res.status(200).send('OK')
         } else {
             req.status(404).send('Unknown Channel')
         }
