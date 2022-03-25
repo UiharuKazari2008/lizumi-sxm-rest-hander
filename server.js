@@ -1344,9 +1344,20 @@ app.get("/trigger/:display", (req, res, next) => {
         res.status(400).send('MissingAction')
     }
 });
-app.get("/debug/digital/:tuner", (req, res, next) => {
+app.get("/debug/digital/:tuner", async (req, res, next) => {
     if (req.params.tuner) {
         const t = getTuner(req.params.tuner)
+        if (t) {
+            let chid = false
+            if (req.query.ch) {
+                chid = getChannelbyNumber(req.query.ch)
+                await tuneDigitalChannel(chid, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t.serial)
+            } else {
+                res.status(400).send('Channel nunber not found')
+            }
+        } else {
+            res.status(400).send('Invalid Tuner ID')
+        }
     } else {
         res.status(400).send('Missing Tuner ID')
     }
