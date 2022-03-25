@@ -1329,5 +1329,6 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
         });
+        console.log(listTuners())
     }
 });
