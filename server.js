@@ -360,6 +360,12 @@ function listChannels() {
         ids: id
     }
 }
+
+function getChannel() {
+    const channels = listChannels()
+    const index = channels.numbers.indexOf(req.query.ch)
+    return (index !== -1) ? channels.channels[index] : false
+}
 // List all tuners
 // digital indicates if a tuner is an Android device
 // tuner object and active channel is injected
@@ -1094,7 +1100,7 @@ function recordAudioInterface(tuner, time, name) {
         console.log(`Recording Digital Event "${name.trim()}"...`)
         const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...tuner.audio_interface, '-t', time, `${name}.mp3`]
         locked_tuners.set(tuner.id, exec(ffmpeg.join(' '), {
-            cwd: config.record_dir,
+            cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
             encoding: 'utf8'
         }, (err, stdout, stderr) => {
             if (err) {
@@ -1263,7 +1269,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
             const ft = availableTuners().filter(e => (!e.digital && channel.tuneUrl[e.id]) || e.digital)
             if (ft.length > 0) {
                 const t = ft.slice(-1).pop()
-                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[t.id])
+                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.serial) : await webRequest(channel.tuneUrl[t.id])
                 let pcb = { ok: true }
                 if (t.tuner.post_tune_url && !req.params.no_event)
                     pcb = await webRequest(t.tuner.post_tune_url)
@@ -1296,7 +1302,12 @@ app.get("/pend_bounce", (req, res) => {
             res.status(404).send('Tuner not found')
         }
     } else if (req.query.ch) {
-        registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, req.query.ch, undefined, (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined );
+        const chid = getChannel(req.query.ch)
+        if (chid) {
+            registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, chid, undefined, (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
+        } else {
+            req.status(404).send('Unknown Channel')
+        }
     } else {
         req.status(400).send('You must provide a tuner or channel')
     }
@@ -1321,6 +1332,13 @@ app.get("/trigger/:display", (req, res, next) => {
         }
     } else {
         res.status(400).send('MissingAction')
+    }
+});
+app.get("/debug/digital/:tuner", (req, res, next) => {
+    if (req.params.tuner) {
+
+    } else {
+        res.status(400).send('Missing Tuner ID')
     }
 });
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
