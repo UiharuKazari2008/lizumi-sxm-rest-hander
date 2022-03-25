@@ -722,7 +722,7 @@ async function bounceEventFile(eventsToParse) {
                             console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
                             const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
                             exec(ffmpeg.join(' '), {
-                                cwd: (eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir,
+                                cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
                                 encoding: 'utf8'
                             }, (err, stdout, stderr) => {
                                 if (err) {
@@ -733,7 +733,7 @@ async function bounceEventFile(eventsToParse) {
                                     if (stderr.length > 1)
                                         console.error(stderr);
                                     console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                    resolve(path.join((eventsToParse.tuner.record_dir) ? eventsToParse.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
+                                    resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
                                 }
                             });
                         })
