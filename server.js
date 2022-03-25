@@ -1205,7 +1205,7 @@ function recordAudioInterface(tuner, time, event) {
                         console.log(`${tuner.id}: ${data}`);
                     })
                     recorder.stderr.on('data', (data) => {
-                        console.log(`${tuner.id}: ${data}`);
+                        console.error(`${tuner.id}: ${data}`);
                     });
                     recorder.on('close', (code, signal) => {
                         console.log('FFMPEG Closed')
