@@ -1136,6 +1136,11 @@ async function tuneDigitalChannel(channel, time, device) {
 }
 // Stop Playback on Android Device aka Release Stream Entity
 function disconnectDigitalChannel(device) {
+    if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
+        (async () => {
+            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+        })()
+    }
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
@@ -1149,7 +1154,7 @@ function recordAudioInterface(tuner, time, event) {
             await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
             await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
             await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
-            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
+            return (portInUse(tuner.audioPort)) ? ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`] : false
         })()
         if (!input) {
             console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
@@ -1213,7 +1218,7 @@ async function recordDigitalEvent(eventItem, tuner) {
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner)) {
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
-                return msToTime(parseInt(eventItem.event.duration.toString()) * 1000)
+                return msToTime(parseInt(eventItem.event.duration.toString()) * 1000).split('.')[0]
             return undefined
         })()
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
