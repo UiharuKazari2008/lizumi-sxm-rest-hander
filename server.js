@@ -984,7 +984,7 @@ async function bounceEventGUI(type, device) {
             eventsToExtract.digitalOnly = await new Promise(resolve => {
                 const dialog = [
                     `set dialogResult to (display dialog "Attempt to get this digitaly" buttons {"No", "Yes"} default button 2 giving up after 90)`,
-                    `return (if the button returned of the dialogResult is "Yes")`
+                    `return (the button returned of the dialogResult is "Yes")`
                 ].join('\n');
                 const childProcess = osascript.execute(dialog, function (err, result, raw) {
                     if (err) {
