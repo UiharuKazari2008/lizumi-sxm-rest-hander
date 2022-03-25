@@ -615,7 +615,7 @@ async function processPendingBounces() {
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                 }
-            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && !pendingEvent.tunerId) {
+            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && pendingEvent.digitalOnly) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -690,6 +690,7 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
         channelTimes.pending.push({
             ch,
             tunerId: t,
+            digitalOnly: (digitalOnly),
             time: moment().valueOf() + (addTime * 60000),
             inprogress: false,
             done: false,
