@@ -785,8 +785,6 @@ async function bounceEventFile(eventsToParse) {
 }
 async function postExtraction(extractedFile, eventFilename) {
     try {
-        console.log(extractedFile)
-        console.log(extractedFilename)
         if (config.backup_dir) {
             await new Promise(resolve => {
                 exec(`cp "${extractedFile.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
@@ -825,8 +823,10 @@ async function postExtraction(extractedFile, eventFilename) {
                 resolve(null);
             }, 5000)
         })
+        return true
     } catch (e) {
         console.error(`Extraction failed: cant not be parsed because the file failed to be copied!`)
+        return false
     }
 }
 
@@ -1172,12 +1172,13 @@ for (let t of listTuners()) {
             try {
                 const tuner = getTuner(t.id);
                 const recorded = await recordDigitalEvent(job.data.metadata, tuner)
+                let complete
                 if (recorded) {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
                         channelTimes.pending[job.data.index].done = true
                     }
-                    await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
+                    complete = await postExtraction(recorded, `${job.data.name.trim()} (${moment(job.data.metadata.syncStart).format("YYYY-MM-DD HHmm")})${config.record_format}`)
                 } else {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].liveRec = false
@@ -1185,7 +1186,7 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
-                return done(null, recorded);
+                return done(null, post);
             } catch (e) {
                 return done(e, false);
             }
