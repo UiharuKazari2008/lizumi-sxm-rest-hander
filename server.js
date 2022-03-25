@@ -701,80 +701,84 @@ async function bounceEventFile(eventsToParse) {
         const eventItem = eventsToParse[index]
         console.log(eventItem)
 
-        const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
-            return {
-                date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
-                file: e
-            }
-        });
-        const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
-        console.log(analogRecFiles)
+        if (eventItem.digitalOnly) {
+            queueDigitalRecording({ metadata: eventItem })
+        } else {
+            const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
+                return {
+                    date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
+                    file: e
+                }
+            });
+            const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
+            console.log(analogRecFiles)
 
-        if (parseInt(eventItem.event.duration.toString()) > 0) {
-            const trueTime = moment.utc(eventItem.event.syncStart).local();
-            const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
+            if (parseInt(eventItem.event.duration.toString()) > 0) {
+                const trueTime = moment.utc(eventItem.event.syncStart).local();
+                const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
 
-            let generateAnalogFile = false;
-            let generateDigitalFile = false;
-            if (!eventItem.tuner.digital) {
-                try {
-                    let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
-                    if (analogStartFile < 0)
-                        analogStartFile = 0
-                    const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
-                    const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
-                    const analogFileList = analogFileItems.map(e => e.file).join('|')
+                let generateAnalogFile = false;
+                let generateDigitalFile = false;
+                if (!eventItem.tuner.digital) {
+                    try {
+                        let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
+                        if (analogStartFile < 0)
+                            analogStartFile = 0
+                        const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
+                        const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
+                        const analogFileList = analogFileItems.map(e => e.file).join('|')
 
-                    if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
-                        const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
-                        const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
-                        console.log(`${analogStartTime} | ${analogEndTime}`)
-                        generateAnalogFile = await new Promise(function (resolve) {
-                            console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
-                            const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
-                            exec(ffmpeg.join(' '), {
-                                cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
-                                encoding: 'utf8'
-                            }, (err, stdout, stderr) => {
-                                if (err) {
-                                    console.error(`Analog Extraction failed: FFMPEG reported a error!`)
-                                    console.error(err)
-                                    resolve(false)
-                                } else {
-                                    if (stderr.length > 1)
-                                        console.error(stderr);
-                                    console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                    resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
-                                }
-                            });
-                        })
-                    } else {
-                        console.error("Analog Recordings are not available for this time frame! Canceled")
+                        if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
+                            const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
+                            const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
+                            console.log(`${analogStartTime} | ${analogEndTime}`)
+                            generateAnalogFile = await new Promise(function (resolve) {
+                                console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
+                                const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
+                                exec(ffmpeg.join(' '), {
+                                    cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
+                                    encoding: 'utf8'
+                                }, (err, stdout, stderr) => {
+                                    if (err) {
+                                        console.error(`Analog Extraction failed: FFMPEG reported a error!`)
+                                        console.error(err)
+                                        resolve(false)
+                                    } else {
+                                        if (stderr.length > 1)
+                                            console.error(stderr);
+                                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
+                                        resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
+                                    }
+                                });
+                            })
+                        } else {
+                            console.error("Analog Recordings are not available for this time frame! Canceled")
+                        }
+                    } catch (e) {
+                        console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
+                        console.error(e);
                     }
-                } catch (e) {
-                    console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
-                    console.error(e);
                 }
-            }
-            if (!generateAnalogFile && (eventItem.event.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
-                // Send job to Digital Extractor
-            }
+                if (!generateAnalogFile && (eventItem.event.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                    // Send job to Digital Extractor
+                }
 
-            const extractedFile = (() => {
-                if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
-                    return generateAnalogFile
-                } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
-                    return generateAnalogFile
+                const extractedFile = (() => {
+                    if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                        return generateAnalogFile
+                    } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                        return generateAnalogFile
+                    } else {
+                        return null
+                    }
+                })()
+
+                if (extractedFile) {
+                    await postExtraction(extractedFile, eventFilename);
+                    console.log(`Extraction complete for ${eventFilename.trim()}!`)
                 } else {
-                    return null
+                    console.error(`Extraction failed: File was not generated correctly`)
                 }
-            })()
-
-            if (extractedFile) {
-                await postExtraction(extractedFile, eventFilename);
-                console.log(`Extraction complete for ${eventFilename.trim()}!`)
-            } else {
-                console.error(`Extraction failed: File was not generated correctly`)
             }
         }
     }
