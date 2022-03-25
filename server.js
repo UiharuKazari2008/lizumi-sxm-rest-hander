@@ -486,7 +486,7 @@ function listEventsValidated(songs, device, count) {
         )
     ).sort(sortEvents)
     if (count)
-        return events.slice(Math.abs(count) * -1)
+        return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
 }
 function formatEventList(events) {
