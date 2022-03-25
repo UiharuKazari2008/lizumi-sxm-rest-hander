@@ -1101,12 +1101,16 @@ function adbLogStart(device) {
         encoding: 'utf8'
     });
     logWawtcher.stdout.on('data', (data) => {
-        console.log(`${device} : ${data}`)
-        device_logs[device].push(data.toString().split('\n'))
+        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
+            console.log(`${device} : ${data}`)
+            device_logs[device].push(data.toString().split('\n'))
+        }
     })
     logWawtcher.stderr.on('data', (data) => {
-        console.error(`${device} : ${data}`)
-        device_logs[device].push(data.toString().split('\n'))
+        if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
+            console.error(`${device} : ${data}`)
+            device_logs[device].push(data.toString().split('\n'))
+        }
     })
     adblog_tuners.set(device, logWawtcher)
 }
@@ -1454,7 +1458,7 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
 });
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
-    const serial = getTuner(req.params.tuner)
+    const serial = getTuner(req.params.tuner).serial
     res.status(200).send(device_logs[serial])
 })
 
