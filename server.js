@@ -686,7 +686,7 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
         return undefined
     })()
 
-    if (ch && t) {
+    if (ch) {
         channelTimes.pending.push({
             ch,
             tunerId: t,
