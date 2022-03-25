@@ -1151,6 +1151,7 @@ function recordAudioInterface(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             const startTime = moment().local().valueOf()
             const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
+            console.log(ffmpeg.join(' '))
             const recorder = exec(ffmpeg.join(' '), {
                 cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                 encoding: 'utf8'
@@ -1160,6 +1161,7 @@ function recordAudioInterface(tuner, time, event) {
                     console.error(err)
                     resolve(false)
                 } else {
+                    console.log('FFMPEG Closed')
                     if (stderr.length > 1)
                         console.error(stderr);
                     console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
