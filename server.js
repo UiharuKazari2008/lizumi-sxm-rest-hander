@@ -361,9 +361,15 @@ function listChannels() {
     }
 }
 
-function getChannel(number) {
+function getChannelbyNumber(number) {
     const channels = listChannels()
     const index = channels.numbers.indexOf(number)
+    return (index !== -1) ? channels.channels[index] : false
+}
+
+function getChannelbyId(id) {
+    const channels = listChannels()
+    const index = channels.ids.indexOf(id)
     return (index !== -1) ? channels.channels[index] : false
 }
 // List all tuners
@@ -671,7 +677,7 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
         })
         // Replace me with non-macOS notification like Discord
         await new Promise(resolve => {
-            const channelData = config.channels.filter(e => e.id === ch)[0]
+            const channelData = getChannelbyId(ch)
             const list = `display notification "💿 This event will be bounced on completion" with title "📻 ${(channelData.name) ? channelData.name : "SiriusXM"}"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 resolve(null);
@@ -1302,7 +1308,7 @@ app.get("/pend_bounce", (req, res) => {
             res.status(404).send('Tuner not found')
         }
     } else if (req.query.ch) {
-        const chid = getChannel(req.query.ch)
+        const chid = getChannelbyNumber(req.query.ch)
         if (chid) {
             registerBounce((req.query.add_time) ? parseInt(req.query.add_time) : 0, chid, undefined, (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined);
             res.status(200).send('OK')
