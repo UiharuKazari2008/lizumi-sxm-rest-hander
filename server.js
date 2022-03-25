@@ -616,7 +616,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (Date.now() - 10800000))) {
+            } else if ((moment.utc(thisEvent.startSync).local().valueOf() >= (Date.now() - 10800000))) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -1177,7 +1177,7 @@ function recordAudioInterface(tuner, time, event) {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
                         console.log(eventData)
                         if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                            const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10 * 60000)
+                            const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
                             console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
                             const stopwatch = setTimeout(() => {
                                 recorder.stdin.write('q')
