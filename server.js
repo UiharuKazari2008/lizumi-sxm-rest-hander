@@ -561,6 +561,7 @@ async function processPendingBounces() {
                     return findEvent(pendingEvent.ch, pendingEvent.time)
             })()
             console.log(pendingEvent)
+            console.log(thisEvent)
             /*if (!digitalRecorderBusy && thisEvent.ch && thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
                 if (thisEvent.ch)
                     thisEvent.channelId = config.channels[thisEvent.ch].id
@@ -572,7 +573,6 @@ async function processPendingBounces() {
             }*/
 
             if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 60000) {
-                console.log(thisEvent)
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
