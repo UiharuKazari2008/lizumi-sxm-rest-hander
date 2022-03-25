@@ -365,9 +365,9 @@ function listChannels() {
 // tuner object and active channel is injected
 function listTuners(digitalOnly) {
     function sortRadios(arrayItemA, arrayItemB) {
-        if (arrayItemA.tuner.priority < arrayItemB.tuner.priority)
+        if (arrayItemA.priority < arrayItemB.priority)
             return -1
-        if (arrayItemA.tuner.priority > arrayItemB.tuner.priority)
+        if (arrayItemA.priority > arrayItemB.priority)
             return 1
         return 0
     }
