@@ -560,7 +560,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (e.startSync <= (Date.now() - (3 * 60 * 60 * 1000))),
+            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (moment().local().valueOf() - (3 * 60 * 60 * 1000))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -607,7 +607,7 @@ async function processPendingBounces() {
                     await bounceEventFile([thisEvent])
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
-                } else if (!pendingEvent.failedRec && (thisEvent.startSync <= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (moment().local().valueOf() - (3 * 60 * 60 * 1000)))) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
@@ -615,7 +615,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if ((thisEvent.startSync >= (Date.now() - thisEvent.delay - (5 * 60 * 1000)))) {
+            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (moment().local().valueOf() - thisEvent.delay - (5 * 60 * 1000)))) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -779,7 +779,7 @@ async function bounceEventFile(eventsToParse) {
                         console.error(e);
                     }
                 }
-                if (!generateAnalogFile && (eventItem.event.startSync >= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (moment().local().valueOf() - (3 * 60 * 60 * 1000)))) {
                     // Send job to Digital Extractor
                 }
 
@@ -999,7 +999,6 @@ async function bounceEventGUI(type, device) {
             )
 
             const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
-            console.log(list)
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err) return console.error(err)
                 if (result) {
@@ -1154,7 +1153,7 @@ function recordAudioInterface(tuner, time, event) {
             console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
             resolve(false)
         } else {
-            const startTime = Date.now()
+            const startTime = moment().local().valueOf()
             const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
             if (!time) {
                 controller = setInterval(() => {
