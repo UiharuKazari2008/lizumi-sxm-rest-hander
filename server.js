@@ -556,12 +556,12 @@ function formatEventList(events) {
             }
             return false
         })()
-        console.log(`(${moment.utc(e.startSync).local().valueOf()} <= (${Date.now()} - (3 * 60 * 60 * 1000)))`)
+        console.log(`(${moment.utc(e.syncStart).local().valueOf()} <= (${Date.now()} - 10800000)`)
         return {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (Date.now() - (3 * 60 * 60 * 1000))),
+            isExtractedDigitally: (moment.utc(e.startSync).local().valueOf() <= (Date.now() - 10800000)),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -608,7 +608,7 @@ async function processPendingBounces() {
                     await bounceEventFile([thisEvent])
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
-                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                } else if (!pendingEvent.failedRec && (moment.utc(thisEvent.startSync).local().valueOf()  <= (Date.now() - 10800000))) {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     queueDigitalRecording({
@@ -616,7 +616,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (Date.now() - thisEvent.delay - (5 * 60 * 1000)))) {
+            } else if ((moment.utc(thisEvent.startSync).local().valueOf()  >= (Date.now() - 10800000))) {
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
                 queueDigitalRecording({
@@ -780,7 +780,7 @@ async function bounceEventFile(eventsToParse) {
                         console.error(e);
                     }
                 }
-                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (Date.now() - (3 * 60 * 60 * 1000)))) {
+                if (!generateAnalogFile && (moment.utc(eventItem.event.startSync).local().valueOf() >= (Date.now() - 10800000))) {
                     // Send job to Digital Extractor
                 }
 
@@ -1126,14 +1126,12 @@ function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached && portInUse(device.audioPort)) {
         (async () => {
             await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-            //await adbCommand(device.serial, ["shell", "am", "force-stop", "com.rom1v.sndcpy"])
         })()
     }
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
-
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
-function recordAudioInterface(tuner, time, event) {
+function recordAudioInterface(tuner, _time, event) {
     return new Promise(async function (resolve) {
         let controller = null
         const input = await (async () => {
@@ -1152,24 +1150,25 @@ function recordAudioInterface(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['/usr/local/bin/ffmpeg', '-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
-                const recorder = exec(ffmpeg.join(' '), {
+                const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
-                }, (err, stdout, stderr) => {
-                    if (err) {
+                })
+                recorder.stdout.on('data', (data) => {
+                    console.log(`${tuner.id}: ${data}`);
+                })
+                recorder.stderr.on('data', (data) => {
+                    console.log(`${tuner.id}: ${data}`);
+                });
+                recorder.on('close', (code, signal) => {
+                    console.log('FFMPEG Closed')
+                    if (code !== 0)
                         console.error(`Digital recording failed: FFMPEG reported a error!`)
-                        console.error(err)
-                        resolve(false)
-                    } else {
-                        console.log('FFMPEG Closed')
-                        if (stderr.length > 1)
-                            console.error(stderr);
-                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                        resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
-                        locked_tuners.delete(tuner.id)
-                    }
+
+                    resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
+                    locked_tuners.delete(tuner.id)
                 })
 
                 if (!time) {
@@ -1178,10 +1177,12 @@ function recordAudioInterface(tuner, time, event) {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
                         if (eventData) {
                             if (eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                                const termTime = ((eventData.syncEnd + (eventData.delay * 1000)) - startTime) + (5 * 60000)
+                                console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
                                 const stopwatch = setTimeout(() => {
-                                    recorder.kill(2)
+                                    recorder.stdin.write('q')
                                     stopwatches_tuners.delete(tuner.id)
-                                }, (eventData.syncEnd + (eventData.delay * 1000)) - startTime)
+                                }, termTime)
                                 stopwatches_tuners.set(tuner.id, stopwatch)
                                 clearInterval(controller)
                             }
