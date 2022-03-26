@@ -1181,15 +1181,14 @@ function adbCommand(device, commandArray, expectJson) {
         });
 
         command.stdout.on('data', (data) => {
-            console.log(data.toString().split('\n').map(e => `${device.serial}: ${e}`));
+            console.log(data.toString().split('\n').map(e => `${serial}: ${e}`));
             output += data.toString().trim()
         })
         command.stderr.on('data', (data) => {
-            console.error(data.toString().split('\n').map(e => `${device.serial}: ${e}`));
+            console.error(data.toString().split('\n').map(e => `${serial}: ${e}`));
             output += data.toString().trim()
         });
         command.on('close', (code, signal) => {
-            console.log(code)
             if (code !== 0)
                 console.error(`Command Failed: ${code}`)
             if (expectJson) {
@@ -1408,7 +1407,7 @@ function launchDigitalTunerMQ(device) {
 async function digitalTunerWatchdog(device) {
     console.log(`Please connect Digital Tuner "${device.name}":${device.serial} via USB or Enable Wireless ADB...`)
     await adbCommand(device.serial, ["wait-for-device"])
-    const socketready = startAudioDevice(device);
+    const socketready = await startAudioDevice(device);
     if (socketready) {
         if (!ctrlq.has(`${(device.digital) ? 'D-': 'A-'}${device.id}`)) {
             launchDigitalTunerMQ(device);
