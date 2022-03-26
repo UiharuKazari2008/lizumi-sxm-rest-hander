@@ -1440,21 +1440,6 @@ function queueDigitalRecording(jobOptions) {
     }))
 }
 
-console.log("Settings up recorder queues...")
-for (let t of listTuners()) {
-    if (t.digital)
-        digitalTunerWatchdog(t);
-    if (!channelTimes.timetable[t.id])
-        channelTimes.timetable[t.id] = []
-}
-const mq = new Queue(`extractor`)
-mq.process(async function (job, done) {
-    console.log(`Processing Extraction Job ${job.id}`);
-    await extractSatelliteRecording(job.data)
-    return done(null, {result: recorded});
-});
-ctrlq.set('extractor', mq)
-
 // Tune to a channel
 // channelNum or channelId: Channel Number or ID to tune to
 // tuner: Tuner ID to tune too
@@ -1646,6 +1631,21 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
         const tun = listTuners()
+        console.log("Settings up recorder queues...")
+        for (let t of tun) {
+            if (t.digital)
+                digitalTunerWatchdog(t);
+            if (!channelTimes.timetable[t.id])
+                channelTimes.timetable[t.id] = []
+        }
+        const mq = new Queue(`extractor`)
+        mq.process(async function (job, done) {
+            console.log(`Processing Extraction Job ${job.id}`);
+            const recorded = await extractSatelliteRecording(job.data)
+            return done(null, {result: recorded});
+        });
+        ctrlq.set('extractor', mq)
+
         if (tun.filter(e => e.digital).length > 0)
             digitalAvailable = true
         if (tun.filter(e => !e.digital).length > 0)
@@ -1661,7 +1661,9 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
         });
-        await processPendingBounces();
+        setTimeout(() => {
+            processPendingBounces();
+        }, 30000)
         console.log(tun)
     }
 });
