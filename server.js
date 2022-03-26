@@ -1310,12 +1310,12 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
                 const startTime = Date.now()
                 const ffmpeg = ['-hide_banner', '-nostats', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
-                const recorder = spawn((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', ffmpeg, {
+                const recorder = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
                 })
-                recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line)); })
-                recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line)); });
+                recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) })
+                recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) });
                 recorder.on('close', (code, signal) => {
                     console.log(`Record/${tuner.id} CLOSED!`)
                     const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
