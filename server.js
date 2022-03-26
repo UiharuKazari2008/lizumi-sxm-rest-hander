@@ -1189,6 +1189,7 @@ function adbCommand(device, commandArray, expectJson) {
             output += data.toString().trim()
         });
         command.on('close', (code, signal) => {
+            console.log(code)
             if (code !== 0)
                 console.error(`Command Failed: ${code}`)
             if (expectJson) {
