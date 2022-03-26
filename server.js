@@ -1352,8 +1352,6 @@ function queueDigitalRecording(jobOptions) {
         }else {
             const recorder = ctrlq.get(best_recorder)
             const job = recorder.createJob(jobOptions);
-            job.retries(3)
-            job.backoff('immediate')
             job.save();
             job.on('succeeded', (err, results) => {
                 resolve(results)
@@ -1393,11 +1391,7 @@ for (let t of listTuners()) {
                     channelTimes.pending[job.data.index].failedRec = true
                 }
             }
-            if (recorded) {
-                return done(null, {result: recorded});
-            } else {
-                return done(new Error(`Did not get a good result`));
-            }
+            return done(null, {result: recorded});
         });
     } else {
         mq.process(async function (job, done) {
