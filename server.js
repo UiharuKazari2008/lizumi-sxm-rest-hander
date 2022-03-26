@@ -1395,7 +1395,7 @@ for (let t of listTuners()) {
             if (recorded) {
                 return done(null, {result: recorded});
             } else {
-                throw done(new Error(`Did not get a good result`), false);
+                return done(new Error(`Did not get a good result`));
             }
         });
     } else {
