@@ -1413,7 +1413,6 @@ function launchDigitalTunerMQ(device) {
 async function digitalTunerWatchdog(device) {
     console.log(`Please connect Digital Tuner "${device.name}":${device.serial} via USB or Enable Wireless ADB...`)
     await adbCommand(device.serial, ["wait-for-device"])
-    startAudioDevice()
     const socketready = startAudioDevice(device);
     if (socketready) {
         if (!ctrlq.has(`${(device.digital) ? 'D-': 'A-'}${device.id}`)) {
