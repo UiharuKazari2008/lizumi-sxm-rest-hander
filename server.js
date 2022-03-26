@@ -1369,7 +1369,7 @@ function queueDigitalRecording(jobOptions) {
 
 console.log("Settings up recorder queues...")
 for (let t of listTuners()) {
-    const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`, { activateDelayedJobs: true })
+    const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
     if (t.digital) {
         mq.process(async (job, done) => {
             console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
