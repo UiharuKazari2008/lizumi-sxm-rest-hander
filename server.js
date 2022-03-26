@@ -1159,23 +1159,24 @@ function adbLogStart(device) {
 }
 // Tune to Digital Channel on Android Device
 async function startAudioDevice(device) {
-    console.log(`Setting up USB Audio Interface for "${device.name}"...`)
-    async function start() {
-        await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-        await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
-        await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-        await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
-        await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-        await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-        await adbCommand(device.serial, ["shell", "sleep", "5"])
-    }
-    let i = 0
-    while (!(await portInUse(device.audioPort)) && i < 9) {
-        await start();
-        i++
-    }
-    return (i < 9)
-
+    return await new Promise(async (resolve, reject) => {
+        console.log(`Setting up USB Audio Interface for "${device.name}"...`)
+        async function start() {
+            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+            await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
+            await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+            await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+            await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
+            await adbCommand(device.serial, ["shell", "sleep", "5"])
+        }
+        let i = 0
+        while (!(await portInUse(device.audioPort)) && i < 9) {
+            await start();
+            i++
+        }
+        resolve(i < 9)
+    })
 }
 async function stopAudioDevice(device) {
     await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
