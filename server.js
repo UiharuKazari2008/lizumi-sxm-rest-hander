@@ -1170,6 +1170,7 @@ async function startAudioDevice(device) {
             await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
             await adbCommand(device.serial, ["shell", "sleep", "5"])
         }
+        await start();
         let i = 0
         while (!(await portInUse(device.audioPort)) && i < 9) {
             await start();
