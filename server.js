@@ -523,10 +523,14 @@ function listEventsValidated(songs, device, count) {
                     channelId: tc.ch,
                     tunerId: d
                 })
-            }).filter(f => (parseInt(f.duration.toString()) === 0 || (!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60)))
+            })
         })
     })
-    events.sort(sortEvents)
+    events.filter(f =>
+        (parseInt(f.duration.toString()) === 0 ||
+            (!songs && parseInt(f.duration.toString()) < 15 * 60) ||
+            (songs && parseInt(f.duration.toString()) > 15 * 60))
+    ).sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
