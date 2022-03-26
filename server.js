@@ -14,7 +14,6 @@ const Queue = require('bee-queue');
 const ctrlq = new Map();
 const net = require('net');
 const rimraf = require("rimraf");
-const constants = require("constants");
 
 let metadata = {};
 let channelTimes = {
@@ -25,6 +24,7 @@ let channelTimes = {
     completed: []
 };
 let locked_tuners = new Map();
+let tuner_watchdogs = new Map();
 let adblog_tuners = new Map();
 let device_logs = {};
 let stopwatches_tuners = new Map();
@@ -504,7 +504,7 @@ function listEventsValidated(songs, device, count) {
         return 0
     }
     let events = []
-   Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d => {
+    Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d => {
         return channelTimes.timetable[d].map((tc, i, a) => {
             return metadata[tc.ch].filter(f =>
                 // Has duration aka is completed
@@ -516,8 +516,10 @@ function listEventsValidated(songs, device, count) {
                 // If Songs are wanted only return songs else Events only
                 (parseInt(f.duration.toString()) === 0 || (!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
             ).map((f, i, a) => {
-                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart))
+                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                     f.syncEnd = a[i + 1].syncStart - 1
+                    f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                }
                 events.push({
                     ...f,
                     channelId: tc.ch,
@@ -600,13 +602,14 @@ async function processPendingBounces() {
                         return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                     }
                 })()
-
                 if (pendingEvent.tunerId)
                     pendingEvent.tuner = getTuner(pendingEvent.tunerId);
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 10800000)) && digitalAvailable) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 10800000)) && digitalAvailable && !config.disable_digital_extraction) {
+                    pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
+                    pendingEvent.inprogress = true
                     queueDigitalRecording({
                         metadata: {
                             event: {
@@ -618,16 +621,22 @@ async function processPendingBounces() {
                         index: i
                     })
                 } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
+                    pendingEvent.guid = thisEvent.guid;
                     if (pendingEvent.ch)
                         thisEvent.channelId = pendingEvent.ch
                     thisEvent.tuner = pendingEvent.tuner
-                    await bounceEventFile([thisEvent])
                     pendingEvent.done = true
-                    pendingEvent.inprogress = false
+                    pendingEvent.inprogress = true
+                    queueSatelliteExtraction({
+                        metadata: thisEvent,
+                        index: i
+                    })
                 }
-            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && pendingEvent.digitalOnly) {
+            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
+                pendingEvent.guid = thisEvent.guid;
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
+                pendingEvent.inprogress = true
                 queueDigitalRecording({
                     metadata: {
                         event: {
@@ -640,13 +649,13 @@ async function processPendingBounces() {
                 })
             }
         }
-        //channelTimes.pending = channelTimes.pending.filter(e => e.done === true && e.inprogress === false)
+        channelTimes.pending = channelTimes.pending.filter(e => e.done === true && e.inprogress === false)
     } catch (err) {
         console.error(err)
     }
     pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
-
+//
 async function searchForEvents() {
     function search(l, m) {
         if (m.title && l.search && m.title.toLowerCase() === l.search.toLowerCase())
@@ -732,91 +741,19 @@ async function registerBounce(addTime, channelNumber, tuner, digitalOnly) {
         return false
     }
 }
-
+//
 async function bounceEventFile(eventsToParse) {
     for (let index in eventsToParse) {
         const eventItem = eventsToParse[index]
-        console.log(eventItem)
 
         if (eventItem.event.digitalOnly) {
             queueDigitalRecording({ metadata: eventItem })
         } else {
-            const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
-                return {
-                    date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
-                    file: e
-                }
-            });
-            const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
-            console.log(analogRecFiles)
-
-            if (parseInt(eventItem.event.duration.toString()) > 0) {
-                const trueTime = moment.utc(eventItem.event.syncStart).local();
-                const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
-
-                let generateAnalogFile = false;
-                let generateDigitalFile = false;
-                if (!eventItem.tuner.digital) {
-                    try {
-                        let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
-                        if (analogStartFile < 0)
-                            analogStartFile = 0
-                        const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
-                        const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
-                        const analogFileList = analogFileItems.map(e => e.file).join('|')
-
-                        if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
-                            const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
-                            const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
-                            console.log(`${analogStartTime} | ${analogEndTime}`)
-                            generateAnalogFile = await new Promise(function (resolve) {
-                                console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
-                                const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
-                                exec(ffmpeg.join(' '), {
-                                    cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
-                                    encoding: 'utf8'
-                                }, (err, stdout, stderr) => {
-                                    if (err) {
-                                        console.error(`Analog Extraction failed: FFMPEG reported a error!`)
-                                        console.error(err)
-                                        resolve(false)
-                                    } else {
-                                        if (stderr.length > 1)
-                                            console.error(stderr);
-                                        console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                                        resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
-                                    }
-                                });
-                            })
-                        } else {
-                            console.error("Analog Recordings are not available for this time frame! Canceled")
-                        }
-                    } catch (e) {
-                        console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
-                        console.error(e);
-                    }
-                }
-
-                const extractedFile = (() => {
-                    if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
-                        return generateAnalogFile
-                    } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
-                        return generateAnalogFile
-                    } else {
-                        return null
-                    }
-                })()
-
-                if (extractedFile) {
-                    await postExtraction(extractedFile, eventFilename);
-                    console.log(`Extraction complete for ${eventFilename.trim()}!`)
-                } else {
-                    console.error(`Extraction failed: File was not generated correctly`)
-                }
-            }
+            queueSatelliteExtraction({ metadata: eventItem })
         }
     }
 }
+// Move extracted files to the upload and backup folder
 async function postExtraction(extractedFile, eventFilename) {
     try {
         if (config.backup_dir) {
@@ -1118,26 +1055,167 @@ async function bounceEventGUI(type, device) {
     }
 }
 
+//
+//
+async function extractSatelliteRecording(job) {
+    const eventItem = job.metadata
+
+    const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
+        return {
+            date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
+            file: e
+        }
+    });
+    const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
+
+    if (parseInt(eventItem.event.duration.toString()) > 0 && !eventItem.tuner.digital) {
+        const trueTime = moment.utc(eventItem.event.syncStart).local();
+        const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
+
+        let generateAnalogFile = false;
+        try {
+            let analogStartFile = findClosest(analogRecTimes, trueTime.valueOf()) - 1
+            if (analogStartFile < 0)
+                analogStartFile = 0
+            const analogEndFile = findClosest(analogRecTimes, eventItem.event.syncEnd)
+            const analogFileItems = (analogStartFile < analogEndFile) ? analogRecFiles.slice(analogStartFile, analogEndFile + 1) : [analogRecFiles[analogStartFile]]
+            const analogFileList = analogFileItems.map(e => e.file).join('|')
+
+            if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
+                const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
+                const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
+                console.log(`${analogStartTime} | ${analogEndTime}`)
+                generateAnalogFile = await new Promise(function (resolve) {
+                    console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
+                    const ffmpeg = ['-hide_banner', '-nostats', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
+                    const extraction = spawn((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', ffmpeg, {
+                        cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
+                        encoding: 'utf8'
+                    });
+                    extraction.stdout.on('data', (data) => { console.log(data.split('\n').map((line) => 'Extract: ' + line)); })
+                    extraction.stderr.on('data', (data) => { console.error(data.split('\n').map((line) => 'Extract: ' + line)); });
+                    extraction.on('close', (code, signal) => {
+                        if (code !== 0) {
+                            console.error(`Analog Extraction failed: FFMPEG reported a error - ${code}`)
+                            resolve(false)
+                        } else {
+                            resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
+                        }
+                    })
+                })
+            } else {
+                console.error("Analog Recordings are not available for this time frame! Canceled")
+            }
+        } catch (e) {
+            console.error(`ALERT: FAULT - Analog Extraction Failed: ${e.message}`)
+            console.error(e);
+        }
+
+        const extractedFile = (() => {
+            if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                return generateAnalogFile
+            } else if (generateAnalogFile && fs.existsSync(generateAnalogFile.toString())) {
+                return generateAnalogFile
+            } else {
+                return null
+            }
+        })()
+
+        if (extractedFile) {
+            await postExtraction(extractedFile, eventFilename);
+            if (job.index) {
+                const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.event.guid)
+                if (fs.existsSync(completedFile)) {
+                    channelTimes.pending[index].inprogress = false
+                    channelTimes.pending[index].liveRec = false
+                    channelTimes.pending[index].done = true
+                } else {
+                    channelTimes.pending[index].inprogress = false
+                    channelTimes.pending[index].liveRec = false
+                    channelTimes.pending[index].done = false
+                }
+            }
+            console.log(`Extraction complete for ${eventFilename.trim()}!`)
+            return true
+        } else {
+            console.error(`Extraction failed: File was not generated correctly`)
+            return false
+        }
+    } else {
+        console.log(`Event is not completed or is a digital tuner: This should be fixed if yo usee this`)
+        return false
+    }
+}
+//
+function queueSatelliteExtraction(jobOptions) {
+    return new Promise((resolve => {
+        if (jobOptions.metadata && jobOptions.metadata.tuner) {
+            const handler = ctrlq.get('extractor')
+            const job = handler.createJob(jobOptions);
+            job.save();
+            job.on('succeeded', (err, results) => {
+                resolve(results)
+                console.log(`Received result for job ${job.id}: ${results}`);
+            });
+            job.on('failed', (err, results) => {
+                resolve(false)
+                console.error(err)
+                console.error(results)
+            });
+        } else {
+            resolve(false)
+        }
+    }))
+}
+
+
 // ** Android/Digital Recorder Tools **
 // ADB Command Runner
-function adbCommand(device, commandArray) {
+function adbCommand(device, commandArray, expectJson) {
     return new Promise(function (resolve) {
-        const adblaunch = [config.adb_command, '-s', device, ...commandArray]
-        exec(adblaunch.join(' '), {
-            encoding: 'utf8'
-        }, (err, stdout, stderr) => {
-            if (err) {
-                console.error(err)
-                resolve(false)
-            } else {
-                if (stderr.length > 1)
-                    console.error(stderr);
-                console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-                resolve(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
-            }
+        const adblaunch = ['-s', device, ...commandArray]
+        let output = ''
+        const command = spawn((config.adb_command) ? config.adb_command : 'adb', adblaunch, {
+            encoding: 'utf8',
+            timeout: 10000
         });
+
+        command.stdout.on('data', (data) => {
+            console.log(data.split('\n').map(e => `${device.id}: ${e}`));
+            output += data.toString().trim()
+        })
+        command.stderr.on('data', (data) => {
+            console.error(data.split('\n').map(e => `${device.id}: ${e}`));
+            output += data.toString().trim()
+        });
+        command.on('close', (code, signal) => {
+            if (code !== 0)
+                console.error(`Command Failed: ${code}`)
+            if (expectJson) {
+                let log = output.split('\n').filter(e => e.length > 0 && e !== '')
+                try {
+                    resolve({
+                        log: JSON.parse(log.join('\n')),
+                        isValid: true,
+                        exitCode: code
+                    })
+                } catch (e) {
+                    resolve({
+                        log: log,
+                        isValid: false,
+                        exitCode: code
+                    })
+                }
+            } else {
+                resolve({
+                    log: output.split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== ''),
+                    exitCode: code
+                })
+            }
+        })
     })
 }
+// Start the Logcat
 function adbLogStart(device) {
     device_logs[device] = '';
     const adblaunch = ['-s', device, "logcat"]
@@ -1157,41 +1235,53 @@ function adbLogStart(device) {
     })
     adblog_tuners.set(device, logWawtcher)
 }
-// Tune to Digital Channel on Android Device
+//
 async function startAudioDevice(device) {
     return await new Promise(async (resolve, reject) => {
         console.log(`Setting up USB Audio Interface for "${device.name}"...`)
         async function start() {
-            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-            await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
-            await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
-            await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-            await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-            await adbCommand(device.serial, ["shell", "sleep", "5"])
+            const fwr = await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+            const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
+            if (ins.exitCode !== 0 || !ins.exitCode)
+                return false
+            const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+            if (alw.exitCode !== 0 || !alw.exitCode)
+                return false
+            const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+            if ((fwa.exitCode !== 0 || !fwa.exitCode) && fwa.log[0] !== `${device.audioPort}`)
+                return false
+            const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+            const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
+            if ((sta.exitCode !== 0 || !sta.exitCode) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {'))
+                return false
+            const wai = await adbCommand(device.serial, ["shell", "sleep", "5"])
+            return true
         }
-        await start();
+        let run = await start();
         let i = 0
         while (!(await portInUse(device.audioPort)) && i < 9) {
-            await start();
+            run = await start();
             i++
         }
-        resolve(i < 9)
+        resolve((i < 9 && run))
     })
 }
+//
 async function stopAudioDevice(device) {
     await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
     await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
 }
+//
 async function isDigitalTunerReady(device) {
     return (await portInUse(device.audioPort)) && (device_logs[device.id].slice(0).split('\n').reverse().filter(e => e.includes('Socket Ready!' || 'Connection Dropped, Not Ready!'))[0].includes('Socket Ready!'))
 }
+// Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
     return new Promise(async (resolve) => {
         console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
         const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
             'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-        resolve((tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
+        resolve((tune.log.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
     })
 }
 // Stop Playback on Android Device aka Release Stream Entity
@@ -1214,25 +1304,23 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['-hide_banner', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-nostats', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
-                const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
+                const recorder = spawn((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
                 })
-                recorder.stdout.on('data', (data) => {
-                    console.log(`${tuner.id}: ${data}`);
-                })
-                recorder.stderr.on('data', (data) => {
-                    console.error(`${tuner.id}: ${data}`);
-                });
+                recorder.stdout.on('data', (data) => { console.log(data.split('\n').map((line) => `Record/${tuner.id}: ` + line)); })
+                recorder.stderr.on('data', (data) => { console.error(data.split('\n').map((line) => `Record/${tuner.id}: ` + line)); });
                 recorder.on('close', (code, signal) => {
-                    console.log('FFMPEG Closed')
-                    if (code !== 0)
-                        console.error(`Digital recording failed: FFMPEG reported a error!`)
-
+                    console.log(`Record/${tuner.id} CLOSED!`)
                     const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
-                    resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                    if (code !== 0) {
+                        console.error(`Digital recording failed: FFMPEG reported a error!`)
+                        resolve(false)
+                    } else {
+                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                    }
                     locked_tuners.delete(tuner.id)
                 })
 
@@ -1240,10 +1328,9 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
                     console.log("No time specified, setting up stopwatch watchdog")
                     controller = setInterval(() => {
                         const eventData = getEvent(event.event.channelId, event.event.guid)
-                        console.log(eventData)
                         if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
                             const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
-                            console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
+                            console.log(`Event ${event.event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                             const stopwatch = setTimeout(() => {
                                 recorder.stdin.write('q')
                                 stopwatches_tuners.delete(tuner.id)
@@ -1255,68 +1342,6 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
                 }
 
                 locked_tuners.set(tuner.id, recorder)
-            } catch (e) {
-                console.error(e)
-                resolve(false)
-            }
-        }
-    })
-}
-// Record Audio from Interface attached to a Android Recorder with a set end time
-function recordAudioInterfaceSOX(tuner, time, event) {
-    return new Promise(async function (resolve) {
-        let controller = null
-        if (!tuner.audio_interface) {
-            console.error(`No Audio Interface is available for ${tuner.name}, SoX requires a physical audio interface!`)
-            resolve(false)
-        } else {
-            console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
-            try {
-                const startTime = Date.now()
-                // sox -t coreaudio "SiriusXM Tuner C" -C 320 test.mp3 trim 0 10
-                const sox = ['-V6', ...tuner.audio_interface, '-C', '320', `Extracted_${event.event.guid}.mp3`, ...((time) ? ['trim', '0', time] : [])]
-                console.log(sox.join(' '))
-                setTimeout(() => {
-                    const recorder = spawn((config.sox) ? config.sox : 'sox', sox, {
-                        cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                        encoding: 'utf8'
-                    })
-                    recorder.stdout.on('data', (data) => {
-                        console.log(`${tuner.id}: ${data}`);
-                    })
-                    recorder.stderr.on('data', (data) => {
-                        console.error(`${tuner.id}: ${data}`);
-                    });
-                    recorder.on('close', (code, signal) => {
-                        console.log('FFMPEG Closed')
-                        if (code !== 0)
-                            console.error(`Digital recording failed: SoX reported a error!`)
-
-                        const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
-                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
-                        locked_tuners.delete(tuner.id)
-                    })
-
-                    if (!time) {
-                        console.log("No time specified, setting up stopwatch watchdog")
-                        controller = setInterval(() => {
-                            const eventData = getEvent(event.event.channelId, event.event.guid)
-                            console.log(eventData)
-                            if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                                const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
-                                console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
-                                const stopwatch = setTimeout(() => {
-                                    recorder.kill()
-                                    stopwatches_tuners.delete(tuner.id)
-                                }, termTime)
-                                stopwatches_tuners.set(tuner.id, stopwatch)
-                                clearInterval(controller)
-                            }
-                        }, 60000)
-                    }
-
-                    locked_tuners.set(tuner.id, recorder)
-                }, 5000)
             } catch (e) {
                 console.error(e)
                 resolve(false)
@@ -1338,7 +1363,7 @@ async function recordDigitalEvent(job, tuner) {
             return undefined
         })()
         job.reportProgress(50);
-        const recordedEvent = (tuner.audio_interface) ? await recordAudioInterfaceSOX(tuner, time, eventItem) : await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
+        const recordedEvent = await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
         console.log(recordedEvent)
         if (tuner.record_only) {
             await disconnectDigitalChannel(tuner)
@@ -1352,9 +1377,52 @@ async function recordDigitalEvent(job, tuner) {
         }
         if (adblog_tuners.has(tuner.serial))
             adblog_tuners.get(tuner.serial).kill(9)
+        if (job.data.index) {
+            const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.event.guid)
+            if (fs.existsSync(completedFile)) {
+                channelTimes.pending[index].inprogress = false
+                channelTimes.pending[index].liveRec = false
+                channelTimes.pending[index].done = true
+            } else {
+                channelTimes.pending[index].inprogress = false
+                channelTimes.pending[index].liveRec = false
+                channelTimes.pending[index].done = false
+                channelTimes.pending[index].failedRec = true
+            }
+        }
         return (fs.existsSync(completedFile));
     }
     return false
+}
+// Start MQ for Tuner
+function launchDigitalTunerMQ(device) {
+    console.log(`Tuner ${device.name} Audio Interface is now open! MQ Opened`)
+    const mq = new Queue(`${(device.digital) ? 'D-': 'A-'}${device.id}`)
+    mq.process(async (job, done) => {
+        console.log(`Processing Job for Tuner ${device.id} ${job.id}`);
+        console.log(job.data)
+        const tuner = getTuner(device.id);
+        job.reportProgress(25);
+        const recorded = await recordDigitalEvent(job, tuner)
+        job.reportProgress(95);
+        return done(null, {result: recorded});
+    });
+    ctrlq.set(`${(device.digital) ? 'D-': 'A-'}${device.id}`, mq)
+}
+// Wait for device to connect and handle disconnects
+async function digitalTunerWatchdog(device) {
+    console.log(`Please connect Digital Tuner "${device.name}":${device.serial} via USB or Enable Wireless ADB...`)
+    await adbCommand(device.serial, ["wait-for-device"])
+    startAudioDevice()
+    const socketready = startAudioDevice(device);
+    if (socketready) {
+        if (!ctrlq.has(`${(device.digital) ? 'D-': 'A-'}${device.id}`)) {
+            launchDigitalTunerMQ(device);
+        }
+    } else {
+        console.error(`Tuner ${device.id} has been locked out because the audio interface did not start!`)
+        locked_tuners.set(device.id, {})
+    }
 }
 // Job creation for any digital recorder that is free
 function queueDigitalRecording(jobOptions) {
@@ -1362,7 +1430,7 @@ function queueDigitalRecording(jobOptions) {
         const best_recorder = getBestDigitalTuner()
         if (!best_recorder) {
             resolve(false)
-        }else {
+        } else {
             const recorder = ctrlq.get(best_recorder)
             const job = recorder.createJob(jobOptions);
             job.save();
@@ -1381,49 +1449,18 @@ function queueDigitalRecording(jobOptions) {
 
 console.log("Settings up recorder queues...")
 for (let t of listTuners()) {
-    const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
-    if (t.digital) {
-        const socketready = startAudioDevice(t);
-        if (socketready) {
-            mq.process(async (job, done) => {
-                console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
-                console.log(job.data)
-                const tuner = getTuner(t.id);
-                job.reportProgress(25);
-                const recorded = await recordDigitalEvent(job, tuner)
-                job.reportProgress(95);
-                if (recorded) {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].inprogress = false
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = true
-                    }
-                } else {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].inprogress = false
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = false
-                        channelTimes.pending[job.data.index].failedRec = true
-                    }
-                }
-                return done(null, {result: recorded});
-            });
-        } else {
-            console.error(`Tuner ${t.id} has been locked out because the audio interface did not start!`)
-            locked_tuners.set(t.id, {})
-        }
-    } else {
-        mq.process(async function (job, done) {
-            console.log(`Not implemented for analog devices yet`);
-            console.log(job)
-            return done(null, false);
-        });
-    }
-    ctrlq.set(`${(t.digital) ? 'D-': 'A-'}${t.id}`, mq)
-
+    if (t.digital)
+        digitalTunerWatchdog(t);
     if (!channelTimes.timetable[t.id])
         channelTimes.timetable[t.id] = []
 }
+const mq = new Queue(`extractor`)
+mq.process(async function (job, done) {
+    console.log(`Processing Extraction Job ${job.id}`);
+    await extractSatelliteRecording(job.data)
+    return done(null, {result: recorded});
+});
+ctrlq.set('extractor', mq)
 
 // Tune to a channel
 // channelNum or channelId: Channel Number or ID to tune to
