@@ -508,13 +508,11 @@ function listEventsValidated(songs, device, count) {
         return channelTimes.timetable[d].map((tc, i, a) => {
             return metadata[tc.ch].filter(f =>
                 // Has duration aka is completed
-                (parseInt(f.duration.toString()) > 90  || parseInt(f.duration.toString()) === 0)  &&
+                (parseInt(f.duration.toString()) > 60  || parseInt(f.duration.toString()) === 0)  &&
                 // First Item or Was Tuned after event start
                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
                 // Is Last Item or Look ahead and see if this has not occured after the next channel change
-                (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time)) &&
-                // If Songs are wanted only return songs else Events only
-                (parseInt(f.duration.toString()) === 0 || (!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60))
+                (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
             ).map((f, i, a) => {
                 if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                     f.syncEnd = a[i + 1].syncStart - 1
@@ -525,7 +523,7 @@ function listEventsValidated(songs, device, count) {
                     channelId: tc.ch,
                     tunerId: d
                 })
-            })
+            }).filter(f => (parseInt(f.duration.toString()) === 0 || (!songs && parseInt(f.duration.toString()) < 15 * 60) || (songs && parseInt(f.duration.toString()) > 15 * 60)))
         })
     })
     events.sort(sortEvents)
