@@ -1176,7 +1176,7 @@ function disconnectDigitalChannel(device) {
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
-function recordAudioInterface(tuner, time, event) {
+function recordAudioInterfaceFFMPEG(tuner, time, event) {
     return new Promise(async function (resolve) {
         let controller = null
         const input = await (async () => {
@@ -1195,7 +1195,7 @@ function recordAudioInterface(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), `Extracted_${event.event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
                 setTimeout(() => {
                     const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
@@ -1245,6 +1245,76 @@ function recordAudioInterface(tuner, time, event) {
         }
     })
 }
+// Record Audio from Interface attached to a Android Recorder with a set end time
+function recordAudioInterfaceVLC(tuner, time, event) {
+    return new Promise(async function (resolve) {
+        let controller = null
+        const input = await (async () => {
+            if (tuner.audio_interface)
+                return `"${tuner.audio_interface}"`
+            console.log("Setting up USB Audio Interface...")
+            await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
+            await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
+            return ['--demux', 'rawaud', '--network-caching=0', '--play-and-exit', `"tcp://localhost:${tuner.audioPort}"`]
+        })()
+        if (!input) {
+            console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
+            resolve(false)
+        } else {
+            console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
+            try {
+                const startTime = Date.now()
+                const vlc = ['--no-repeat', '--no-loop', '-Idummy', ...input, ...((time) ? ['--stop-time=' + time] : []), `--sout="#transcode{vcodec=none,acodec=mp3,ab=320,channels=2,samplerate=44100}:std{access=file,mux=dummy,dst='Extracted_${event.event.guid}.mp3'}"`]
+                console.log(vlc.join(' '))
+                setTimeout(() => {
+                    const recorder = spawn((config.vlc) ? config.vlc : '/Applications/VLC.app/Contents/MacOS/VLC', vlc, {
+                        cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
+                        encoding: 'utf8'
+                    })
+                    recorder.stdout.on('data', (data) => {
+                        console.log(`${tuner.id}: ${data}`);
+                    })
+                    recorder.stderr.on('data', (data) => {
+                        console.error(`${tuner.id}: ${data}`);
+                    });
+                    recorder.on('close', (code, signal) => {
+                        console.log('FFMPEG Closed')
+                        if (code !== 0)
+                            console.error(`Digital recording failed: FFMPEG reported a error!`)
+
+                        const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
+                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                        locked_tuners.delete(tuner.id)
+                    })
+
+                    if (!time) {
+                        console.log("No time specified, setting up stopwatch watchdog")
+                        controller = setInterval(() => {
+                            const eventData = getEvent(event.event.channelId, event.event.guid)
+                            console.log(eventData)
+                            if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                                const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
+                                console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
+                                const stopwatch = setTimeout(() => {
+                                    recorder.kill(2)
+                                    stopwatches_tuners.delete(tuner.id)
+                                }, termTime)
+                                stopwatches_tuners.set(tuner.id, stopwatch)
+                                clearInterval(controller)
+                            }
+                        }, 60000)
+                    }
+
+                    locked_tuners.set(tuner.id, recorder)
+                }, 5000)
+            } catch (e) {
+                console.error(e)
+                resolve(false)
+            }
+        }
+    })
+}
 // Tune, Record, Disconnect
 async function recordDigitalEvent(job, tuner) {
     const eventItem = job.data.metadata
@@ -1257,7 +1327,7 @@ async function recordDigitalEvent(job, tuner) {
             return undefined
         })()
         job.reportProgress(50);
-        const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
+        const recordedEvent = await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
@@ -1501,7 +1571,7 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
                 chid = getChannelbyNumber(req.query.ch)
                 const tune = await tuneDigitalChannel(chid.id, (moment().subtract(15, "minutes").valueOf() + ((t.delay) ? t.delay * 1000 : 0)), t)
                 if (tune) {
-                    const record = await recordAudioInterface(t, "00:01:00", `Extracted_test`)
+                    const record = await recordAudioInterfaceFFMPEG(t, "00:01:00", `Extracted_test`)
                     if (record) {
                         res.sendFile(record)
                     } else {
