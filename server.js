@@ -1187,7 +1187,6 @@ async function isDigitalTunerReady(device) {
     return (await portInUse(device.audioPort)) && (device_logs[device.id].slice(0).split('\n').reverse().filter(e => e.includes('Socket Ready!' || 'Connection Dropped, Not Ready!'))[0].includes('Socket Ready!'))
 }
 async function tuneDigitalChannel(channel, time, device) {
-    await startAudioDevice(device)
     return new Promise(async (resolve) => {
         console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
         const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
