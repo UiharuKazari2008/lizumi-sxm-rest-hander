@@ -658,7 +658,7 @@ async function processPendingBounces() {
                 })
             }
         }
-        channelTimes.pending = channelTimes.pending.filter(e => e.done === true && e.inprogress === false)
+        channelTimes.pending = channelTimes.pending.filter(e => !(e.done === true && e.inprogress === false))
     } catch (err) {
         console.error(err)
     }
