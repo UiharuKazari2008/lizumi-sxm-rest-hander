@@ -1097,12 +1097,13 @@ async function extractSatelliteRecording(job) {
                 generateAnalogFile = await new Promise(function (resolve) {
                     console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
                     const ffmpegOptions = ['-hide_banner', '-nostats', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
+                    console.log(ffmpegOptions)
                     const extraction = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpegOptions, {
                         cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
                         encoding: 'utf8'
                     });
-                    extraction.stdout.on('data', (data) => { console.log(data.toString().trim().split('\n').map((line) => 'Extract: ' + line)); })
-                    extraction.stderr.on('data', (data) => { console.error(data.toString().trim().split('\n').map((line) => 'Extract: ' + line)); });
+                    extraction.stdout.on('data', (data) => {console.log(data.toString().trim().split('\n').map((line) => 'Extract: ' + line).join('\n'))})
+                    extraction.stderr.on('data', (data) => {console.error(data.toString().trim().split('\n').map((line) => 'Extract: ' + line).join('\n'))});
                     extraction.on('close', (code, signal) => {
                         if (code !== 0) {
                             console.error(`Analog Extraction failed: FFMPEG reported a error - ${code}`)
