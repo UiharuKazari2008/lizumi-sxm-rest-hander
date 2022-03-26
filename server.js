@@ -1072,7 +1072,7 @@ async function extractSatelliteRecording(job) {
     const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
         return {
             date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
-            file: path.resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, e))
+            file: e
         }
     });
     const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
@@ -1096,22 +1096,22 @@ async function extractSatelliteRecording(job) {
                 console.log(`${analogStartTime} | ${analogEndTime}`)
                 generateAnalogFile = await new Promise(function (resolve) {
                     console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
-                    const ffmpegOptions = ['-hide_banner', '-nostats', '-y', '-i', `concat:\"${analogFileList}\"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
-                    console.log(ffmpegOptions.join(' '))
-                    const extraction = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpegOptions, {
+                    const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${analogFileList}"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
+                    exec(ffmpeg.join(' '), {
                         cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
                         encoding: 'utf8'
-                    });
-                    extraction.stdout.on('data', (data) => {console.log(data.toString().trim().split('\n').map((line) => 'Extract: ' + line).join('\n'))})
-                    extraction.stderr.on('data', (data) => {console.error(data.toString().trim().split('\n').map((line) => 'Extract: ' + line).join('\n'))});
-                    extraction.on('close', (code, signal) => {
-                        if (code !== 0) {
-                            console.error(`Analog Extraction failed: FFMPEG reported a error - ${code}`)
+                    }, (err, stdout, stderr) => {
+                        if (err) {
+                            console.error(`Analog Extraction failed: FFMPEG reported a error!`)
+                            console.error(err)
                             resolve(false)
                         } else {
+                            if (stderr.length > 1)
+                                console.error(stderr);
+                            console.log(stdout.split('\n').filter(e => e.length > 0 && e !== ''))
                             resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.mp3`))
                         }
-                    })
+                    });
                 })
             } else {
                 console.error("Analog Recordings are not available for this time frame! Canceled")
