@@ -1181,12 +1181,12 @@ function adbCommand(device, commandArray, expectJson) {
         });
 
         command.stdout.on('data', (data) => {
-            console.log(data.toString().split('\n').map(e => `${serial}: ${e}`));
+            console.log(data.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'));
             output += data.toString().trim()
         })
         command.stderr.on('data', (data) => {
-            console.error(data.toString().split('\n').map(e => `${serial}: ${e}`));
-            output += data.toString().trim()
+            console.error(data.toString().split('\n').map(e => `${device}: ${e}`).join('\n'));
+            output += data.toString().trim().trim()
         });
         command.on('close', (code, signal) => {
             if (code !== 0)
