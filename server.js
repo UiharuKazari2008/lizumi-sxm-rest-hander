@@ -1195,7 +1195,7 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['-hide_banner', '-v', 'debug', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
                 const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
@@ -1351,6 +1351,8 @@ function queueDigitalRecording(jobOptions) {
         }else {
             const recorder = ctrlq.get(best_recorder)
             const job = recorder.createJob(jobOptions);
+            job.retries(3)
+            job.backoff('immediate')
             job.save();
             job.on('succeeded', (err, results) => {
                 resolve(results)
@@ -1393,7 +1395,6 @@ for (let t of listTuners()) {
             if (recorded) {
                 return done(null, {result: recorded});
             } else {
-                queueDigitalRecording(job.data)
                 return done(new Error(`Did not get a good result`));
             }
         });
