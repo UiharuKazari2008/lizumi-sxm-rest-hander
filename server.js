@@ -1159,12 +1159,18 @@ function adbLogStart(device) {
 }
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
-    if (!device.audio_interface)
-        await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
-    console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
-    const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
-        'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-    return (tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }'))
+    return new Promise(async (resolve) => {
+        if (!device.audio_interface) {
+            await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
+        }
+
+        setTimeout(async () => {
+            console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
+            const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
+                'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+            resolve((tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
+        }, 5000)
+    })
 }
 // Stop Playback on Android Device aka Release Stream Entity
 async function disconnectDigitalChannel(device) {
@@ -1321,8 +1327,9 @@ async function recordDigitalEvent(job, tuner) {
         job.reportProgress(50);
         const recordedEvent = (tuner.audio_interface) ? await recordAudioInterfaceSOX(tuner, time, eventItem) : await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
         console.log(recordedEvent)
-        if (tuner.record_only)
+        if (tuner.record_only) {
             await disconnectDigitalChannel(tuner)
+        }
         job.reportProgress(75);
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
