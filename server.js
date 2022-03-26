@@ -1262,8 +1262,7 @@ function recordAudioInterfaceSOX(tuner, time, event) {
                 setTimeout(() => {
                     const recorder = spawn((config.sox) ? config.sox : 'sox', sox, {
                         cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                        encoding: 'utf8',
-                        uid: 501
+                        encoding: 'utf8'
                     })
                     recorder.stdout.on('data', (data) => {
                         console.log(`${tuner.id}: ${data}`);
