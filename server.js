@@ -1255,7 +1255,8 @@ function recordAudioInterfaceVLC(tuner, time, event) {
             console.log("Setting up USB Audio Interface...")
             await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
             await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
-            await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity"])
+            await adbCommand(tuner.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+            await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
             return ['--demux', 'rawaud', '--network-caching=0', '--play-and-exit', `"tcp://localhost:${tuner.audioPort}"`]
         })()
         if (!input) {
@@ -1322,12 +1323,14 @@ async function recordDigitalEvent(job, tuner) {
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner)) {
         job.reportProgress(30);
         const time = (() => {
+            if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0 && tuner.use_vlc)
+                return eventItem.event.duration.toString()
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000).split('.')[0]
             return undefined
         })()
         job.reportProgress(50);
-        const recordedEvent = await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
+        const recordedEvent = (tuner.use_vlc) ? await recordAudioInterfaceVLC(tuner, time, eventItem) : await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
