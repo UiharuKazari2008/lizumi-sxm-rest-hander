@@ -1257,7 +1257,7 @@ function recordAudioInterfaceSOX(tuner, time, event) {
             try {
                 const startTime = Date.now()
                 // sox -t coreaudio "SiriusXM Tuner C" -C 320 test.mp3 trim 0 10
-                const sox = [...tuner.audio_interface, '-C', '320', `Extracted_${event.event.guid}.mp3`, ...((time) ? ['trim', '0', time] : [])]
+                const sox = ['-V6', ...tuner.audio_interface, '-C', '320', `Extracted_${event.event.guid}.mp3`, ...((time) ? ['trim', '0', time] : [])]
                 console.log(sox.join(' '))
                 setTimeout(() => {
                     const recorder = spawn((config.sox) ? config.sox : 'sox', sox, {
