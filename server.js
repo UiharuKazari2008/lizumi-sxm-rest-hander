@@ -1352,7 +1352,9 @@ function queueDigitalRecording(jobOptions) {
             resolve(false)
         }else {
             const recorder = ctrlq.get(best_recorder)
-            const job = recorder.createJob(jobOptions).retries(3).backoff('immediate');
+            const job = recorder.createJob(jobOptions);
+            job.retries(3)
+            job.backoff('immediate')
             job.save();
             job.on('succeeded', (err, results) => {
                 resolve(results)
