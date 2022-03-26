@@ -504,33 +504,40 @@ function listEventsValidated(songs, device, count) {
         return 0
     }
     let events = []
-    Object.keys(channelTimes.timetable).filter(e => !device || (device && e === device)).map(d => {
-        return channelTimes.timetable[d].map((tc, i, a) => {
-            return metadata[tc.ch].filter(f =>
-                // Has duration aka is completed
-                (parseInt(f.duration.toString()) > 60  || parseInt(f.duration.toString()) === 0)  &&
-                // First Item or Was Tuned after event start
-                (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
-                // Is Last Item or Look ahead and see if this has not occured after the next channel change
-                (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
-            ).map((f, i, a) => {
-                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                    f.syncEnd = a[i + 1].syncStart - 1
-                    f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
-                }
-                events.push({
-                    ...f,
-                    channelId: tc.ch,
-                    tunerId: d
+    Object.keys(channelTimes.timetable)
+        .slice(0)
+        .filter(e => !device || (device && e === device))
+        .map(d => {
+            return channelTimes.timetable[d]
+                .slice(0)
+                .map((tc, i, a) => {
+                    return metadata[tc.ch].filter(f =>
+                        // Has duration aka is completed
+                        (parseInt(f.duration.toString()) > 60  || parseInt(f.duration.toString()) === 0)  &&
+                        // First Item or Was Tuned after event start
+                        (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
+                        // Is Last Item or Look ahead and see if this has not occured after the next channel change
+                        (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
+                    ).map((f, i, a) => {
+                        if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                            f.syncEnd = a[i + 1].syncStart - 1
+                            f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                        }
+                        events.push({
+                            ...f,
+                            channelId: tc.ch,
+                            tunerId: d
+                        })
+                    })
                 })
-            })
-        })
     })
-    events.filter(f =>
-        (parseInt(f.duration.toString()) === 0 ||
+    events = events
+        .filter(f =>
+            (parseInt(f.duration.toString()) === 0 ||
             (!songs && parseInt(f.duration.toString()) < 15 * 60) ||
             (songs && parseInt(f.duration.toString()) > 15 * 60))
-    ).sort(sortEvents)
+        )
+        .sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
