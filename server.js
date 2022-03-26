@@ -1181,11 +1181,11 @@ function adbCommand(device, commandArray, expectJson) {
         });
 
         command.stdout.on('data', (data) => {
-            console.log(data.toString().split('\n').map(e => `${device.id}: ${e}`));
+            console.log(data.toString().split('\n').map(e => `${device.serial}: ${e}`));
             output += data.toString().trim()
         })
         command.stderr.on('data', (data) => {
-            console.error(data.toString().split('\n').map(e => `${device.id}: ${e}`));
+            console.error(data.toString().split('\n').map(e => `${device.serial}: ${e}`));
             output += data.toString().trim()
         });
         command.on('close', (code, signal) => {
@@ -1240,7 +1240,6 @@ async function startAudioDevice(device) {
     return await new Promise(async (resolve, reject) => {
         console.log(`Setting up USB Audio Interface for "${device.name}"...`)
         async function start() {
-            const fwr = await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
             const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
             if (ins.exitCode !== 0 || !ins.exitCode)
                 return false
@@ -1258,12 +1257,7 @@ async function startAudioDevice(device) {
             return true
         }
         let run = await start();
-        let i = 0
-        while (!(await portInUse(device.audioPort)) && i < 9) {
-            run = await start();
-            i++
-        }
-        resolve((i < 9 && run))
+        resolve(run)
     })
 }
 //
