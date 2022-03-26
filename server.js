@@ -1242,17 +1242,17 @@ async function startAudioDevice(device) {
         console.log(`Setting up USB Audio Interface for "${device.name}"...`)
         async function start() {
             const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
-            if (ins.exitCode !== 0 || !ins.exitCode)
+            if (ins.exitCode !== 0 || !ins.exitCode === null)
                 return false
             const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            if (alw.exitCode !== 0 || !alw.exitCode)
+            if (alw.exitCode !== 0 || !alw.exitCode === null)
                 return false
             const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
-            if ((fwa.exitCode !== 0 || !fwa.exitCode) && fwa.log[0] !== `${device.audioPort}`)
+            if ((fwa.exitCode !== 0 || !fwa.exitCode === null) && fwa.log[0] !== `${device.audioPort}`)
                 return false
             const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
             const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-            if ((sta.exitCode !== 0 || !sta.exitCode) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {'))
+            if ((sta.exitCode !== 0 || !sta.exitCode === null) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {'))
                 return false
             const wai = await adbCommand(device.serial, ["shell", "sleep", "5"])
             return true
