@@ -1072,7 +1072,7 @@ async function extractSatelliteRecording(job) {
     const analogRecFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
         return {
             date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
-            file: e
+            file: path.resolve(path.join((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir, e))
         }
     });
     const analogRecTimes = analogRecFiles.map(e => e.date.valueOf());
