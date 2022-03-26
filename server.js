@@ -1161,7 +1161,16 @@ function adbLogStart(device) {
 async function tuneDigitalChannel(channel, time, device) {
     return new Promise(async (resolve) => {
         if (!device.audio_interface) {
+            console.log("Setting up USB Audio Interface...")
             await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
+            setTimeout(async () => {
+                await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+                await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+                await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+            }, 5000)
+            setTimeout(async () => {
+                await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
+            }, 5000)
         }
 
         setTimeout(async () => {
@@ -1187,11 +1196,6 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
         const input = await (async () => {
             if (tuner.audio_interface)
                 return tuner.audio_interface
-            console.log("Setting up USB Audio Interface...")
-            await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
-            await adbCommand(tuner.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-            await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
             return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
         })()
         if (!input) {
