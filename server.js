@@ -752,7 +752,7 @@ async function bounceEventFile(eventsToParse) {
 
             if (parseInt(eventItem.event.duration.toString()) > 0) {
                 const trueTime = moment.utc(eventItem.event.syncStart).local();
-                const eventFilename = `${eventItem.name.trim()} (Satellite) (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
+                const eventFilename = `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
 
                 let generateAnalogFile = false;
                 let generateDigitalFile = false;
@@ -1328,7 +1328,7 @@ async function recordDigitalEvent(job, tuner) {
         job.reportProgress(75);
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
-            await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
+            await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.name.trim()} (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
         } else if (fs.existsSync(completedFile)) {
             rimraf(completedFile, () => {})
         }
