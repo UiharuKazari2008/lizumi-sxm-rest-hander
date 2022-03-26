@@ -1167,14 +1167,12 @@ async function tuneDigitalChannel(channel, time, device) {
     return (tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }'))
 }
 // Stop Playback on Android Device aka Release Stream Entity
-function disconnectDigitalChannel(device) {
+async function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached) {
-        (async () => {
-            await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-            await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
-        })()
+        await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+        await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
     }
-    return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
+    return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
 function recordAudioInterfaceFFMPEG(tuner, time, event) {
