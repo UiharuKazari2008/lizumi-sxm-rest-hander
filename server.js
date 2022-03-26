@@ -1160,7 +1160,6 @@ function adbLogStart(device) {
 // Tune to Digital Channel on Android Device
 async function startAudioDevice(device) {
     console.log(`Setting up USB Audio Interface for "${device.name}"...`)
-    await adbCommand(device.serial, ["shell", "uninstall", "com.rom1v.sndcpy"])
     async function start() {
         await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
         await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
@@ -1181,7 +1180,6 @@ async function startAudioDevice(device) {
 async function stopAudioDevice(device) {
     await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
     await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-    await adbCommand(device.serial, ["shell", "uninstall", "com.rom1v.sndcpy"])
 }
 async function isDigitalTunerReady(device) {
     return (await portInUse(device.audioPort)) && (device_logs[device.id].slice(0).split('\n').reverse().filter(e => e.includes('Socket Ready!' || 'Connection Dropped, Not Ready!'))[0].includes('Socket Ready!'))
