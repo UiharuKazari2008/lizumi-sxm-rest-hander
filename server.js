@@ -1181,11 +1181,11 @@ function adbCommand(device, commandArray, expectJson) {
         });
 
         command.stdout.on('data', (data) => {
-            console.log(data.split('\n').map(e => `${device.id}: ${e}`));
+            console.log(data.toString().split('\n').map(e => `${device.id}: ${e}`));
             output += data.toString().trim()
         })
         command.stderr.on('data', (data) => {
-            console.error(data.split('\n').map(e => `${device.id}: ${e}`));
+            console.error(data.toString().split('\n').map(e => `${device.id}: ${e}`));
             output += data.toString().trim()
         });
         command.on('close', (code, signal) => {
@@ -1310,8 +1310,8 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
                 })
-                recorder.stdout.on('data', (data) => { console.log(data.split('\n').map((line) => `Record/${tuner.id}: ` + line)); })
-                recorder.stderr.on('data', (data) => { console.error(data.split('\n').map((line) => `Record/${tuner.id}: ` + line)); });
+                recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line)); })
+                recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line)); });
                 recorder.on('close', (code, signal) => {
                     console.log(`Record/${tuner.id} CLOSED!`)
                     const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
