@@ -14,6 +14,7 @@ const Queue = require('bee-queue');
 const ctrlq = new Map();
 const net = require('net');
 const rimraf = require("rimraf");
+const constants = require("constants");
 
 let metadata = {};
 let channelTimes = {
@@ -1212,7 +1213,8 @@ function recordAudioInterface(tuner, time, event) {
                         if (code !== 0)
                             console.error(`Digital recording failed: FFMPEG reported a error!`)
 
-                        resolve(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`))
+                        const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
+                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
                         locked_tuners.delete(tuner.id)
                     })
 
@@ -1244,18 +1246,22 @@ function recordAudioInterface(tuner, time, event) {
     })
 }
 // Tune, Record, Disconnect
-async function recordDigitalEvent(eventItem, tuner) {
+async function recordDigitalEvent(job, tuner) {
+    const eventItem = job.data.metadata
     adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner)) {
+        job.reportProgress(30);
         const time = (() => {
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000).split('.')[0]
             return undefined
         })()
+        job.reportProgress(50);
         const recordedEvent = await recordAudioInterface(tuner, time, eventItem)
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
+        job.reportProgress(75);
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
             await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.name.trim()} (Digital) (${moment(eventItem.event.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
@@ -1264,7 +1270,7 @@ async function recordDigitalEvent(eventItem, tuner) {
         }
         if (adblog_tuners.has(tuner.serial))
             adblog_tuners.get(tuner.serial).kill(9)
-        return recordedEvent;
+        return (fs.existsSync(completedFile));
     }
     return false
 }
@@ -1295,12 +1301,14 @@ console.log("Settings up recorder queues...")
 for (let t of listTuners()) {
     const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
     if (t.digital) {
-        mq.process(async function (job, done) {
-            console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
-            console.log(job.data)
+        mq.process(async (job, done) => {
             try {
+                console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
+                console.log(job.data)
                 const tuner = getTuner(t.id);
-                const recorded = await recordDigitalEvent(job.data.metadata, tuner)
+                job.reportProgress(25);
+                const recorded = await recordDigitalEvent(job, tuner)
+                job.reportProgress(95);
                 if (recorded) {
                     if (job.data.index) {
                         channelTimes.pending[job.data.index].inprogress = false
@@ -1315,7 +1323,9 @@ for (let t of listTuners()) {
                         channelTimes.pending[job.data.index].failedRec = true
                     }
                 }
-                return done((!recorded) ? true : null, { result: recorded});
+                console.log(recorded)
+
+                return done((!recorded) ? new Error(`Did not get a good result`) : null, (recorded) ? { result: recorded} : false);
             } catch (e) {
                 return done(e, false);
             }
