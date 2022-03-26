@@ -1159,7 +1159,7 @@ function adbLogStart(device) {
 }
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
-    if (device.audio_interface)
+    if (!device.audio_interface)
         await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
     console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
     const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
@@ -1246,30 +1246,21 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
     })
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
-function recordAudioInterfaceVLC(tuner, time, event) {
+function recordAudioInterfaceSOX(tuner, time, event) {
     return new Promise(async function (resolve) {
         let controller = null
-        const input = await (async () => {
-            if (tuner.audio_interface)
-                return `"${tuner.audio_interface}"`
-            console.log("Setting up USB Audio Interface...")
-            await adbCommand(tuner.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            await adbCommand(tuner.serial, ["forward", `tcp:${tuner.audioPort}`, "localabstract:sndcpy"])
-            await adbCommand(tuner.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-            await adbCommand(tuner.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-            return ['--demux', 'rawaud', '--network-caching=0', '--play-and-exit', `"tcp://localhost:${tuner.audioPort}"`]
-        })()
-        if (!input) {
-            console.error(`No Audio Interface is available for ${tuner.name}, Do you have sndcpy installed if your not using physical interface?`)
+        if (!tuner.audio_interface) {
+            console.error(`No Audio Interface is available for ${tuner.name}, SoX requires a physical audio interface!`)
             resolve(false)
         } else {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const vlc = ['--no-repeat', '--no-loop', '-Idummy', ...input, ...((time) ? ['--stop-time=' + time] : []), `--sout="#transcode{vcodec=none,acodec=mp3,ab=320,channels=2,samplerate=44100}:std{access=file,mux=dummy,dst='Extracted_${event.event.guid}.mp3'}"`]
-                console.log(vlc.join(' '))
+                // sox -t coreaudio "SiriusXM Tuner C" -C 320 test.mp3 trim 0 10
+                const sox = [...tuner.audio_interface, '-C', '320', `Extracted_${event.event.guid}.mp3`, ...((time) ? ['trim', '0', time] : [])]
+                console.log(sox.join(' '))
                 setTimeout(() => {
-                    const recorder = spawn((config.vlc) ? config.vlc : '/Applications/VLC.app/Contents/MacOS/VLC', vlc, {
+                    const recorder = spawn((config.sox) ? config.sox : 'sox', sox, {
                         cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                         encoding: 'utf8'
                     })
@@ -1282,7 +1273,7 @@ function recordAudioInterfaceVLC(tuner, time, event) {
                     recorder.on('close', (code, signal) => {
                         console.log('FFMPEG Closed')
                         if (code !== 0)
-                            console.error(`Digital recording failed: FFMPEG reported a error!`)
+                            console.error(`Digital recording failed: SoX reported a error!`)
 
                         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
                         resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
@@ -1298,7 +1289,7 @@ function recordAudioInterfaceVLC(tuner, time, event) {
                                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
                                 console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
                                 const stopwatch = setTimeout(() => {
-                                    recorder.kill(2)
+                                    recorder.kill()
                                     stopwatches_tuners.delete(tuner.id)
                                 }, termTime)
                                 stopwatches_tuners.set(tuner.id, stopwatch)
@@ -1323,14 +1314,14 @@ async function recordDigitalEvent(job, tuner) {
     if (await tuneDigitalChannel(eventItem.event.channelId, eventItem.event.syncStart, tuner)) {
         job.reportProgress(30);
         const time = (() => {
-            if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0 && tuner.use_vlc)
+            if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0 && tuner.audio_interface)
                 return eventItem.event.duration.toString()
             if (eventItem.event.duration && parseInt(eventItem.event.duration.toString()) > 0)
                 return msToTime(parseInt(eventItem.event.duration.toString()) * 1000).split('.')[0]
             return undefined
         })()
         job.reportProgress(50);
-        const recordedEvent = (tuner.use_vlc) ? await recordAudioInterfaceVLC(tuner, time, eventItem) : await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
+        const recordedEvent = (tuner.audio_interface) ? await recordAudioInterfaceSOX(tuner, time, eventItem) : await recordAudioInterfaceFFMPEG(tuner, time, eventItem)
         console.log(recordedEvent)
         if (tuner.record_only)
             await disconnectDigitalChannel(tuner)
