@@ -1171,6 +1171,7 @@ function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached) {
         (async () => {
             await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+            await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
         })()
     }
     return adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
