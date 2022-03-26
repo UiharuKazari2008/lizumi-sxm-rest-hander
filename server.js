@@ -1372,32 +1372,30 @@ for (let t of listTuners()) {
     const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
     if (t.digital) {
         mq.process(async (job, done) => {
-            try {
-                console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
-                console.log(job.data)
-                const tuner = getTuner(t.id);
-                job.reportProgress(25);
-                const recorded = await recordDigitalEvent(job, tuner)
-                job.reportProgress(95);
-                if (recorded) {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].inprogress = false
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = true
-                    }
-                } else {
-                    if (job.data.index) {
-                        channelTimes.pending[job.data.index].inprogress = false
-                        channelTimes.pending[job.data.index].liveRec = false
-                        channelTimes.pending[job.data.index].done = false
-                        channelTimes.pending[job.data.index].failedRec = true
-                    }
+            console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
+            console.log(job.data)
+            const tuner = getTuner(t.id);
+            job.reportProgress(25);
+            const recorded = await recordDigitalEvent(job, tuner)
+            job.reportProgress(95);
+            if (recorded) {
+                if (job.data.index) {
+                    channelTimes.pending[job.data.index].inprogress = false
+                    channelTimes.pending[job.data.index].liveRec = false
+                    channelTimes.pending[job.data.index].done = true
                 }
-                console.log(recorded)
-
-                return done((!recorded) ? new Error(`Did not get a good result`) : null, (recorded) ? { result: recorded} : false);
-            } catch (e) {
-                return done(e, false);
+            } else {
+                if (job.data.index) {
+                    channelTimes.pending[job.data.index].inprogress = false
+                    channelTimes.pending[job.data.index].liveRec = false
+                    channelTimes.pending[job.data.index].done = false
+                    channelTimes.pending[job.data.index].failedRec = true
+                }
+            }
+            if (recorded) {
+                return done(null, {result: recorded});
+            } else {
+                throw new Error(`Did not get a good result`)
             }
         });
     } else {
