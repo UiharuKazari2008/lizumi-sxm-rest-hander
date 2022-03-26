@@ -1139,54 +1139,54 @@ function adbCommand(device, commandArray) {
     })
 }
 function adbLogStart(device) {
-    device_logs[device] = [];
+    device_logs[device] = '';
     const adblaunch = ['-s', device, "logcat"]
     const logWawtcher = spawn(config.adb_command, adblaunch, {
         encoding: 'utf8'
     });
     logWawtcher.stdout.on('data', (data) => {
         if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
-            device_logs[device].push(data.toString().split('\n'))
+            device_logs[device] += data.toString()
         }
     })
     logWawtcher.stderr.on('data', (data) => {
         if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
             console.error(`${device} : ${data}`)
-            device_logs[device].push(data.toString().split('\n'))
+            device_logs[device] += data.toString()
         }
     })
     adblog_tuners.set(device, logWawtcher)
 }
 // Tune to Digital Channel on Android Device
-async function tuneDigitalChannel(channel, time, device) {
-    return new Promise(async (resolve) => {
-        if (!device.audio_interface) {
-            console.log("Setting up USB Audio Interface...")
-            await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
-            setTimeout(async () => {
-                await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-                await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
-                await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-            }, 5000)
-            setTimeout(async () => {
-                await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-                await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-            }, 5000)
-        }
+async function startAudioDevice(device) {
+    console.log(`Setting up USB Audio Interface for "${device.name}"...`)
+    await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
+    await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
+    setTimeout(async () => {
+        await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+        await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
+        await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+    }, 5000)
+    setTimeout(async () => {
+        await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
+    }, 5000)
+    return true
 
-        setTimeout(async () => {
-            console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
-            const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
-                'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-            resolve((tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
-        }, 5000)
+}
+async function tuneDigitalChannel(channel, time, device) {
+    await startAudioDevice(device)
+    return new Promise(async (resolve) => {
+        console.log(`Tuneing Device ${device.serial} to channel ${channel} @ ${time}...`);
+        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e',
+            'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+        resolve((tune.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
     })
 }
 // Stop Playback on Android Device aka Release Stream Entity
 async function disconnectDigitalChannel(device) {
     if (!device.audio_interface && !device.leave_attached) {
         await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-        await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
+
     }
     return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
@@ -1592,7 +1592,7 @@ app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner).serial
     res.status(200).json({
-        logs: device_logs[serial]
+        logs: device_logs[serial].split('\n')
     })
 })
 
