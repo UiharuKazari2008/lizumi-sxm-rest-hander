@@ -1097,7 +1097,7 @@ async function extractSatelliteRecording(job) {
                 generateAnalogFile = await new Promise(function (resolve) {
                     console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
                     const ffmpegOptions = ['-hide_banner', '-nostats', '-y', '-i', `concat:\"${analogFileList}\"`, '-ss', analogStartTime, '-t', analogEndTime, `Extracted_${eventItem.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
-                    console.log(ffmpegOptions)
+                    console.log(ffmpegOptions.join(' '))
                     const extraction = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpegOptions, {
                         cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
                         encoding: 'utf8'
