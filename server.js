@@ -1186,7 +1186,7 @@ function adbCommand(device, commandArray, expectJson) {
         })
         command.stderr.on('data', (data) => {
             console.error(data.toString().split('\n').map(e => `${device}: ${e}`).join('\n'));
-            output += data.toString().trim().trim()
+            output += data.toString().trim()
         });
         command.on('close', (code, signal) => {
             if (code !== 0)
