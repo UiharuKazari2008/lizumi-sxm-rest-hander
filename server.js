@@ -1195,49 +1195,47 @@ function recordAudioInterfaceFFMPEG(tuner, time, event) {
             console.log(`Recording Digital Event "${event.event.guid}" on Tuner ${tuner.name}...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['-hide_banner', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-v', 'debug', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
-                setTimeout(() => {
-                    const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
-                        cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
-                        encoding: 'utf8'
-                    })
-                    recorder.stdout.on('data', (data) => {
-                        console.log(`${tuner.id}: ${data}`);
-                    })
-                    recorder.stderr.on('data', (data) => {
-                        console.error(`${tuner.id}: ${data}`);
-                    });
-                    recorder.on('close', (code, signal) => {
-                        console.log('FFMPEG Closed')
-                        if (code !== 0)
-                            console.error(`Digital recording failed: FFMPEG reported a error!`)
+                const recorder = spawn('/usr/local/bin/ffmpeg', ffmpeg, {
+                    cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
+                    encoding: 'utf8'
+                })
+                recorder.stdout.on('data', (data) => {
+                    console.log(`${tuner.id}: ${data}`);
+                })
+                recorder.stderr.on('data', (data) => {
+                    console.error(`${tuner.id}: ${data}`);
+                });
+                recorder.on('close', (code, signal) => {
+                    console.log('FFMPEG Closed')
+                    if (code !== 0)
+                        console.error(`Digital recording failed: FFMPEG reported a error!`)
 
-                        const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
-                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
-                        locked_tuners.delete(tuner.id)
-                    })
+                    const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
+                    resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                    locked_tuners.delete(tuner.id)
+                })
 
-                    if (!time) {
-                        console.log("No time specified, setting up stopwatch watchdog")
-                        controller = setInterval(() => {
-                            const eventData = getEvent(event.event.channelId, event.event.guid)
-                            console.log(eventData)
-                            if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                                const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
-                                console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
-                                const stopwatch = setTimeout(() => {
-                                    recorder.stdin.write('q')
-                                    stopwatches_tuners.delete(tuner.id)
-                                }, termTime)
-                                stopwatches_tuners.set(tuner.id, stopwatch)
-                                clearInterval(controller)
-                            }
-                        }, 60000)
-                    }
+                if (!time) {
+                    console.log("No time specified, setting up stopwatch watchdog")
+                    controller = setInterval(() => {
+                        const eventData = getEvent(event.event.channelId, event.event.guid)
+                        console.log(eventData)
+                        if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                            const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
+                            console.log(`Event ${event.event.guid} concluded with duration ${eventData.duration}s, Starting Termination Timer for ${termTime}`)
+                            const stopwatch = setTimeout(() => {
+                                recorder.stdin.write('q')
+                                stopwatches_tuners.delete(tuner.id)
+                            }, termTime)
+                            stopwatches_tuners.set(tuner.id, stopwatch)
+                            clearInterval(controller)
+                        }
+                    }, 60000)
+                }
 
-                    locked_tuners.set(tuner.id, recorder)
-                }, 5000)
+                locked_tuners.set(tuner.id, recorder)
             } catch (e) {
                 console.error(e)
                 resolve(false)
