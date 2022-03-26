@@ -1353,8 +1353,6 @@ function queueDigitalRecording(jobOptions) {
         }else {
             const recorder = ctrlq.get(best_recorder)
             const job = recorder.createJob(jobOptions);
-            job.retries(3)
-            job.backoff('immediate')
             job.save();
             job.on('succeeded', (err, results) => {
                 resolve(results)
@@ -1397,6 +1395,7 @@ for (let t of listTuners()) {
             if (recorded) {
                 return done(null, {result: recorded});
             } else {
+                queueDigitalRecording(job.data)
                 return done(new Error(`Did not get a good result`));
             }
         });
