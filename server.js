@@ -1161,17 +1161,30 @@ function adbLogStart(device) {
 async function startAudioDevice(device) {
     console.log(`Setting up USB Audio Interface for "${device.name}"...`)
     await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
-    await adbCommand(device.serial, ["install", "-t", "-r", "-g", "sndcpy.apk"])
-    setTimeout(async () => {
+    async function start() {
+        await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+        await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
         await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
         await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
         await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-    }, 5000)
-    setTimeout(async () => {
         await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-    }, 5000)
-    return true
+        await adbCommand(device.serial, ["shell", "sleep", "5"])
+    }
+    let i = 0
+    while (!(await portInUse(device.audioPort)) && i < 9) {
+        await start();
+        i++
+    }
+    return (i < 9)
 
+}
+async function stopAudioDevice(device) {
+    await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+    await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+    await adbCommand(device.serial, ["uninstall", "com.rom1v.sndcpy"])
+}
+async function isDigitalTunerReady(device) {
+    return (await portInUse(device.audioPort)) && (device_logs[device.id].slice(0).split('\n').reverse().filter(e => e.includes('Socket Ready!' || 'Connection Dropped, Not Ready!'))[0].includes('Socket Ready!'))
 }
 async function tuneDigitalChannel(channel, time, device) {
     await startAudioDevice(device)
@@ -1184,10 +1197,6 @@ async function tuneDigitalChannel(channel, time, device) {
 }
 // Stop Playback on Android Device aka Release Stream Entity
 async function disconnectDigitalChannel(device) {
-    if (!device.audio_interface && !device.leave_attached) {
-        await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
-
-    }
     return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
 // Record Audio from Interface attached to a Android Recorder with a set end time
@@ -1375,29 +1384,35 @@ console.log("Settings up recorder queues...")
 for (let t of listTuners()) {
     const mq = new Queue(`${(t.digital) ? 'D-': 'A-'}${t.id}`)
     if (t.digital) {
-        mq.process(async (job, done) => {
-            console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
-            console.log(job.data)
-            const tuner = getTuner(t.id);
-            job.reportProgress(25);
-            const recorded = await recordDigitalEvent(job, tuner)
-            job.reportProgress(95);
-            if (recorded) {
-                if (job.data.index) {
-                    channelTimes.pending[job.data.index].inprogress = false
-                    channelTimes.pending[job.data.index].liveRec = false
-                    channelTimes.pending[job.data.index].done = true
+        const socketready = await startAudioDevice(t);
+        if (socketready) {
+            mq.process(async (job, done) => {
+                console.log(`Processing Job for Tuner ${t.id} ${job.id}`);
+                console.log(job.data)
+                const tuner = getTuner(t.id);
+                job.reportProgress(25);
+                const recorded = await recordDigitalEvent(job, tuner)
+                job.reportProgress(95);
+                if (recorded) {
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].inprogress = false
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = true
+                    }
+                } else {
+                    if (job.data.index) {
+                        channelTimes.pending[job.data.index].inprogress = false
+                        channelTimes.pending[job.data.index].liveRec = false
+                        channelTimes.pending[job.data.index].done = false
+                        channelTimes.pending[job.data.index].failedRec = true
+                    }
                 }
-            } else {
-                if (job.data.index) {
-                    channelTimes.pending[job.data.index].inprogress = false
-                    channelTimes.pending[job.data.index].liveRec = false
-                    channelTimes.pending[job.data.index].done = false
-                    channelTimes.pending[job.data.index].failedRec = true
-                }
-            }
-            return done(null, {result: recorded});
-        });
+                return done(null, {result: recorded});
+            });
+        } else {
+            console.error(`Tuner ${t.id} has been locked out because the audio interface did not start!`)
+            locked_tuners.set(t.id, {})
+        }
     } else {
         mq.process(async function (job, done) {
             console.log(`Not implemented for analog devices yet`);
