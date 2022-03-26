@@ -1091,8 +1091,8 @@ async function extractSatelliteRecording(job) {
             const analogFileList = analogFileItems.map(e => e.file).join('|')
 
             if (trueTime.valueOf() > analogFileItems[0].date.valueOf()) {
-                const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf()))
-                const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000)
+                const analogStartTime = msToTime(Math.abs(trueTime.valueOf() - analogFileItems[0].date.valueOf())).split('.')[0]
+                const analogEndTime = msToTime((parseInt(eventItem.event.duration.toString()) * 1000) + 10000).split('.')[0]
                 console.log(`${analogStartTime} | ${analogEndTime}`)
                 generateAnalogFile = await new Promise(function (resolve) {
                     console.log(`Ripping Analog File "${eventItem.name.trim()}"...`)
