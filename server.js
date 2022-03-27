@@ -1054,7 +1054,7 @@ async function bounceEventGUI(type, device) {
         for (let index in eventsToParse) {
             const eventItem = eventsToParse[index]
 
-            if (eventItem.digitalOnly) {
+            if (eventItem.digitalOnly || eventItem.duration === 0) {
                 queueDigitalRecording({ metadata: eventItem })
             } else {
                 queueRecordingExtraction({ metadata: eventItem })
