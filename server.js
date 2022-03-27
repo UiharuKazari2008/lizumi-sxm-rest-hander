@@ -1583,6 +1583,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
         }
+        jobQueue['extract'] = [];
 
         if (tun.filter(e => e.digital).length > 0)
             digitalAvailable = true
