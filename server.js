@@ -665,8 +665,9 @@ async function processPendingBounces() {
         console.log(channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).map(e => moment.utc(e.time).local().format("YYYY-MM-DD HHmm")))
         console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).length} Pending Events To Search`)
 
-        for (let i in channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)) {
-            let pendingEvent = channelTimes.pending[i]
+        let inp = channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)
+        for (let i in inp) {
+            let pendingEvent = inp[i]
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
                     return getEvent(pendingEvent.ch, pendingEvent.guid)
@@ -738,7 +739,8 @@ async function processPendingBounces() {
                 }
             }
         }
-        channelTimes.pending = channelTimes.pending.filter(e => e.done === false || e.inprogress === true)
+        inp.push(...channelTimes.pending.filter(e => !(e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)))
+        channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
     } catch (err) {
         console.error(err)
     }
