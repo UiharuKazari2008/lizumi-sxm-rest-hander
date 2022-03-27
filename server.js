@@ -706,7 +706,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
+            } else if ((pendingEvent.time + (thisEvent.delay * 1000)) <= Date.now() && Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
                 // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                 pendingEvent.guid = thisEvent.guid;
                 pendingEvent.liveRec = true
