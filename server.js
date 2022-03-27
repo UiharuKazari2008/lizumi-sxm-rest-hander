@@ -662,9 +662,10 @@ async function processPendingBounces() {
         return 0
     }
     try {
-        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) > Date.now())).length} Pending Events Post-Dated`)
-        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) <= Date.now())).length} Pending Events To Search`)
-        for (let i in channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) <= Date.now())).sort(sortTime)) {
+        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).length} Pending Events Post-Dated`)
+        console.log(channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).map(e => moment.utc(e.time).local().format("YYYY-MM-DD HHmm")))
+        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).length} Pending Events To Search`)
+        for (let i in channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)) {
             let pendingEvent = channelTimes.pending[i]
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
