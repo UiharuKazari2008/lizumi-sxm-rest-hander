@@ -739,7 +739,7 @@ async function processPendingBounces() {
                 }
             }
         }
-        inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now())).sort(sortTime)))
+        inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now()))).sort(sortTime))
         channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
     } catch (err) {
         console.error(err)
