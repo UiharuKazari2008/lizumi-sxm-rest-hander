@@ -1508,7 +1508,7 @@ app.get("/pend_bounce", (req, res) => {
     }
     if (req.query.ch) {
         const channelId = getChannelbyNumber(req.query.ch)
-        options.channel = (channelId) ? channelId : undefined
+        options.channel = (channelId) ? channelId.id : undefined
     }
     if (req.query.tuner) {
         const tuner = getTuner(req.query.tuner)
