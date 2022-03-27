@@ -12,7 +12,7 @@ const express = require("express");
 const app = express();
 const net = require('net');
 const rimraf = require("rimraf");
-const parseIntreq = require("express");
+const relayServer = require("node-tcp-relay");
 
 let metadata = {};
 let channelTimes = {
@@ -26,6 +26,7 @@ let locked_tuners = new Map();
 let adblog_tuners = new Map();
 let device_logs = {};
 let stopwatches_tuners = new Map();
+let tcp_relays = new Map();
 let nowPlayingGUID = {};
 let pendingBounceTimer = null;
 let digitalAvailable = false
@@ -1151,25 +1152,29 @@ async function startAudioDevice(device) {
     return await new Promise(async (resolve, reject) => {
         console.log(`Setting up USB Audio Interface for "${device.name}"...`)
         async function start() {
-            console.log(`${device.id}: (1/4) Installing USB Interface...`)
+            console.log(`${device.id}: (1/5) Installing USB Interface...`)
             const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
             if (ins.exitCode !== 0 || !ins.exitCode === null) {
                 console.error(`${device.id}: Application Failed to install, Maybe try to uninstall the application?`)
                 return false
             }
-            console.log(`${device.id}: (2/4) Enabling Audio Recording Permissions...`)
+            console.log(`${device.id}: (2/5) Enabling Audio Recording Permissions...`)
             const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
             if (alw.exitCode !== 0 || !alw.exitCode === null) {
                 console.error(`${device.id}: Failed to pre-authorize screen recording permissions, Are you useing Android 10+? you should be`)
                 return false
             }
-            console.log(`${device.id}: (3/4) Connecting Device Socket @ TCP ${device.audioPort}...`)
+            console.log(`${device.id}: (3/5) Connecting Device Socket @ TCP ${device.audioPort}...`)
             const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
             if ((fwa.exitCode !== 0 || !fwa.exitCode === null) && fwa.log[0] !== `${device.audioPort}`) {
                 console.error(`${device.id}: Failed to open the TCP socket, is something using port ${device.audioPort}?`)
                 return false
             }
-            console.log(`${device.id}: (4/4) Starting Audio Interface...`)
+            const relayPort = 40000 + (device.audioPort - 28200)
+            console.log(`${device.id}: (4/5) Attaching Relay @ ${relayPort}...`)
+            const newRelayServer = relayServer.createRelayServer(device.audioPort, relayPort);
+            tcp_relays.set(device.id, newRelayServer);
+            console.log(`${device.id}: (5/5) Starting Audio Interface...`)
             const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
             const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
             if ((sta.exitCode !== 0 || !sta.exitCode === null) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {')) {
@@ -1209,7 +1214,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
                 return tuner.audio_interface
             }
-            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
+            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${40000 + (tuner.audioPort - 28200)}`]
         })()
         if (!input) {
             console.error(`Record/${tuner.id}: No Audio Interface is available for ${tuner.id}`)

@@ -10,6 +10,7 @@
     "mysql2": "^2.3.3",
     "node-cron": "^3.0.0",
     "node-osascript": "^2.1.0",
+    "node-tcp-relay": "^0.0.18",
     "request": "^2.88.2",
     "rimraf": "^3.0.2"
   }
