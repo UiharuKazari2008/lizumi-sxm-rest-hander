@@ -1070,7 +1070,7 @@ async function bounceEventGUI(type, device) {
 async function startExtractQueue() {
     while (jobQueue['extract'].length !== 0) {
         const job = jobQueue['extract'].shift()
-        const completed = await await extractRecordedEvent(job)
+        const completed = await extractRecordedEvent(job)
         console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
         return completed
     }
