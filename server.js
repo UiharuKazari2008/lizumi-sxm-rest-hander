@@ -700,7 +700,7 @@ async function processPendingBounces() {
                             channelId: pendingEvent.ch,
                             ...thisEvent
                         },
-                        index: i
+                        index: true
                     })
                 } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
                     // If specific tuner is set, not set to require digital or has failed to extract via digital
@@ -714,7 +714,7 @@ async function processPendingBounces() {
                             ...thisEvent,
                             tuner: getTuner(pendingEvent.tunerId)
                         },
-                        index: i
+                        index: true
                     })
                 }
             } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
@@ -728,7 +728,7 @@ async function processPendingBounces() {
                         channelId: pendingEvent.ch,
                         ...thisEvent
                     },
-                    index: i
+                    index: true
                 })
             }
         }
