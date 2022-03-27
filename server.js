@@ -1223,6 +1223,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
 // Tune, Record, Disconnect
 async function recordDigitalEvent(job, tuner) {
     const eventItem = job.metadata
+    console.log(eventItem)
     adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
         const time = (() => {
@@ -1266,6 +1267,7 @@ async function recordDigitalEvent(job, tuner) {
 async function extractRecordedEvent(job) {
     try {
         const eventItem = job.metadata
+        console.log(eventItem)
         const recFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
             return {
                 date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
