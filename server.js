@@ -673,20 +673,20 @@ async function processPendingBounces() {
                     return findEvent(pendingEvent.ch, pendingEvent.time)
             })()
 
-            if ((pendingEvent.time + (thisEvent.delay * 1000)) <= Date.now())
+            thisEvent.filename = (() => {
+                if (thisEvent.filename) {
+                    return thisEvent.filename
+                } else if (thisEvent.isEpisode) {
+                    return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
+                } else if (thisEvent.isSong) {
+                    return `${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
+                } else {
+                    return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
+                }
+            })()
             // If Event has completed
             if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
-                thisEvent.filename = (() => {
-                    if (thisEvent.filename) {
-                        return thisEvent.filename
-                    } else if (thisEvent.isEpisode) {
-                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else if (thisEvent.isSong) {
-                        return `${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else {
-                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                    }
-                })()
+
 
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
