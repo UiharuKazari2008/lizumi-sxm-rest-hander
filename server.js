@@ -1075,9 +1075,8 @@ async function startExtractQueue() {
 }
 // Job creation for any digital recorder that is free
 function queueRecordingExtraction(jobOptions) {
-    const wasIdle = (jobQueue['extract'].length === 0)
     jobQueue['extract'].push(jobOptions)
-    if (wasIdle)
+    if (jobQueue['extract'].length <= 1)
         startExtractQueue()
 }
 //
@@ -1096,9 +1095,8 @@ function queueDigitalRecording(jobOptions) {
     const best_recorder = getBestDigitalTuner()
     if (!best_recorder)
         return false
-    const wasIdle = (jobQueue[best_recorder].length === 0)
     jobQueue[best_recorder].push(jobOptions)
-    if (wasIdle)
+    if (jobQueue[best_recorder].length <= 1)
         startRecQueue(best_recorder)
 }
 
