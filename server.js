@@ -30,6 +30,7 @@ let pendingBounceTimer = null;
 let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
+let activeQueue = {};
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -1065,22 +1066,25 @@ async function bounceEventGUI(type, device) {
 
 //
 async function startExtractQueue() {
+    activeQueue['extract'] = true
     while (jobQueue['extract'].length !== 0) {
         const job = jobQueue['extract'].shift()
         const completed = await extractRecordedEvent(job)
         console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
         return completed
     }
+    activeQueue['extract'] = false
     return true
 }
 // Job creation for any digital recorder that is free
 function queueRecordingExtraction(jobOptions) {
     jobQueue['extract'].push(jobOptions)
-    if (jobQueue['extract'].length <= 1)
+    if (activeQueue['extract'] === false``)
         startExtractQueue()
 }
 //
 async function startRecQueue(q) {
+    activeQueue[q] = true
     while (jobQueue[q].length !== 0) {
         const tuner = getTuner(q.slice(4))
         const job = jobQueue[q].shift()
@@ -1088,6 +1092,7 @@ async function startRecQueue(q) {
         console.log(`Q/${q.slice(4)}: Last Job Result ${(completed)} - ${jobQueue[q].length} jobs left`)
         return completed
     }
+    activeQueue[q] = false
     return true
 }
 // Job creation for any digital recorder that is free
@@ -1096,7 +1101,7 @@ function queueDigitalRecording(jobOptions) {
     if (!best_recorder)
         return false
     jobQueue[best_recorder].push(jobOptions)
-    if (jobQueue[best_recorder].length <= 1)
+    if (activeQueue[best_recorder] === false)
         startRecQueue(best_recorder)
 }
 
@@ -1107,8 +1112,10 @@ async function initDigitalRecorder(device) {
     await adbCommand(device.serial, ["wait-for-device"])
     const socketready = await startAudioDevice(device);
     if (socketready) {
-        if (!jobQueue['REC-' + device.id])
+        if (!jobQueue['REC-' + device.id]) {
             jobQueue['REC-' + device.id] = [];
+            activeQueue['REC-' + device.id] = false;
+        }
     } else {
         console.error(`Tuner ${device.id} has been locked out because the audio interface did not start!`)
         locked_tuners.set(device.id, {})
@@ -1582,6 +1589,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
                 channelTimes.timetable[t.id] = []
         }
         jobQueue['extract'] = [];
+        activeQueue['extract'] = false;
 
         if (tun.filter(e => e.digital).length > 0)
             digitalAvailable = true
