@@ -653,8 +653,15 @@ function formatEventList(events) {
 
 // Process Pending Events to Extract
 async function processPendingBounces() {
+    function sortTime(arrayItemA, arrayItemB) {
+        if (arrayItemA.time < arrayItemB.time)
+            return -1
+        if (arrayItemA.time > arrayItemB.time)
+            return 1
+        return 0
+    }
     try {
-        for (let i in channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) <= Date.now()))) {
+        for (let i in channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) <= Date.now())).sort(sortTime)) {
             let pendingEvent = channelTimes.pending[i]
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
