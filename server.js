@@ -998,17 +998,17 @@ async function bounceEventGUI(type, device) {
             }) : false
             eventsToExtract.filename = await new Promise(resolve => {
                 const dialog = [
-                    `set dialogResult to (display dialog "Set Filename" default answer "${eventItem.filename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
+                    `set dialogResult to (display dialog "Set Filename" default answer "${eventItem.name}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
                     `if the button returned of the dialogResult is "Update" then`,
                     'return text returned of dialogResult',
                     'else',
-                    `return "${eventItem.filename}"`,
+                    `return "${eventItem.name}"`,
                     'end if'
                 ].join('\n');
                 const childProcess = osascript.execute(dialog, function (err, result, raw) {
                     if (err) {
                         console.error(err)
-                        resolve(eventItem.filename);
+                        resolve(eventItem.name);
                     } else {
                         resolve(result)
                         clearTimeout(childKiller);
@@ -1017,7 +1017,7 @@ async function bounceEventGUI(type, device) {
                 const childKiller = setTimeout(function () {
                     childProcess.stdin.pause();
                     childProcess.kill();
-                    resolve(eventItem.filename);
+                    resolve(eventItem.name);
                 }, 120000)
             });
             if (!eventsToExtract.duration || eventsToExtract.duration === 0) {
