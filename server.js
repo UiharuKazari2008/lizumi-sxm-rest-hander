@@ -224,10 +224,9 @@ async function updateMetadata() {
                         metadata[id] = channel_metadata.sort((x, y) => (x.syncStart < y.syncStart) ? -1 : (y.syncStart > x.syncStart) ? 1 : 0)
                     }
                 }
-                console.log(`Pulled Metadata for ${id}`)
             } catch (e) {
                 console.error(e);
-                console.error("FAULT");
+                console.error(`Failed to pull metadata`)
             }
         }
         nowPlayingNotification();
@@ -665,6 +664,7 @@ async function processPendingBounces() {
         console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).length} Pending Events Post-Dated`)
         console.log(channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).map(e => moment.utc(e.time).local().format("YYYY-MM-DD HHmm")))
         console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).length} Pending Events To Search`)
+
         for (let i in channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)) {
             let pendingEvent = channelTimes.pending[i]
             let thisEvent = (() => {
@@ -685,17 +685,49 @@ async function processPendingBounces() {
                     return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
                 }
             })()
-            // If Event has completed
-            if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
 
+            if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && e.done === false && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
+                console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
+                pendingEvent.done = true
+                pendingEvent.inprogress = false
+            } else {
+                // If Event has completed
+                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
+                    if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
+                        // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
+                        pendingEvent.guid = thisEvent.guid;
+                        pendingEvent.liveRec = true
+                        pendingEvent.done = true
+                        pendingEvent.inprogress = true
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
-                    // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
+                        queueDigitalRecording({
+                            metadata: {
+                                channelId: pendingEvent.ch,
+                                ...thisEvent
+                            },
+                            index: true
+                        })
+                    } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
+                        // If specific tuner is set, not set to require digital or has failed to extract via digital
+                        pendingEvent.guid = thisEvent.guid;
+                        pendingEvent.done = true
+                        pendingEvent.inprogress = true
+
+                        queueRecordingExtraction({
+                            metadata: {
+                                channelId: pendingEvent.ch,
+                                ...thisEvent,
+                                tuner: getTuner(pendingEvent.tunerId)
+                            },
+                            index: true
+                        })
+                    }
+                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
+                    // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
-
                     queueDigitalRecording({
                         metadata: {
                             channelId: pendingEvent.ch,
@@ -703,37 +735,10 @@ async function processPendingBounces() {
                         },
                         index: true
                     })
-                } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
-                    // If specific tuner is set, not set to require digital or has failed to extract via digital
-                    pendingEvent.guid = thisEvent.guid;
-                    pendingEvent.done = true
-                    pendingEvent.inprogress = true
-
-                    queueRecordingExtraction({
-                        metadata: {
-                            channelId: pendingEvent.ch,
-                            ...thisEvent,
-                            tuner: getTuner(pendingEvent.tunerId)
-                        },
-                        index: true
-                    })
                 }
-            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
-                // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
-                pendingEvent.guid = thisEvent.guid;
-                pendingEvent.liveRec = true
-                pendingEvent.done = true
-                pendingEvent.inprogress = true
-                queueDigitalRecording({
-                    metadata: {
-                        channelId: pendingEvent.ch,
-                        ...thisEvent
-                    },
-                    index: true
-                })
             }
         }
-        channelTimes.pending = channelTimes.pending.filter(e => !(e.done === true && e.inprogress === false))
+        channelTimes.pending = channelTimes.pending.filter(e => e.done === false || e.inprogress === true)
     } catch (err) {
         console.error(err)
     }
