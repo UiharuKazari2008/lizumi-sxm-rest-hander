@@ -1579,7 +1579,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         console.log("Settings up recorder queues...")
         for (let t of tun) {
             if (t.digital)
-                initDigitalRecorder(t);
+                await initDigitalRecorder(t);
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
         }
