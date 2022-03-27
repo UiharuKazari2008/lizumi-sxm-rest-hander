@@ -12,6 +12,7 @@ const express = require("express");
 const app = express();
 const net = require('net');
 const rimraf = require("rimraf");
+const parseIntreq = require("express");
 
 let metadata = {};
 let channelTimes = {
@@ -1523,7 +1524,7 @@ app.get("/pend_bounce", (req, res) => {
         options.tuner = (tuner) ? tuner : undefined;
     }
     if (req.query.time)
-        options.absoluteTime = req.query.time
+        options.absoluteTime = parseInt(req.query.time)
 
     registerBounce(options);
     res.status(200).json(options);
