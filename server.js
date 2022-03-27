@@ -1079,7 +1079,7 @@ async function startExtractQueue() {
 // Job creation for any digital recorder that is free
 function queueRecordingExtraction(jobOptions) {
     jobQueue['extract'].push(jobOptions)
-    if (activeQueue['extract'] === false``)
+    if (activeQueue['extract'] === false)
         startExtractQueue()
 }
 //
