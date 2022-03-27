@@ -654,7 +654,7 @@ function formatEventList(events) {
 // Process Pending Events to Extract
 async function processPendingBounces() {
     try {
-        for (let i in channelTimes.pending.filter(e => e.done === false)) {
+        for (let i in channelTimes.pending.filter(e => e.done === false && ((e.time + (5 * 60 * 1000)) <= Date.now()))) {
             let pendingEvent = channelTimes.pending[i]
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
@@ -663,8 +663,9 @@ async function processPendingBounces() {
                     return findEvent(pendingEvent.ch, pendingEvent.time)
             })()
 
+            if ((pendingEvent.time + (thisEvent.delay * 1000)) <= Date.now())
             // If Event has completed
-            if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 5 * 60000) {
+            if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
@@ -706,7 +707,7 @@ async function processPendingBounces() {
                         index: i
                     })
                 }
-            } else if ((pendingEvent.time + (thisEvent.delay * 1000)) <= Date.now() && Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
+            } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
                 // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                 pendingEvent.guid = thisEvent.guid;
                 pendingEvent.liveRec = true
