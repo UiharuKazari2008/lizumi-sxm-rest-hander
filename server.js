@@ -983,7 +983,7 @@ async function bounceEventGUI(type, device) {
                 const childProcess = osascript.execute(dialog, function (err, result, raw) {
                     if (err) {
                         console.error(err)
-                        resolve(false);
+                        resolve(true);
                     } else {
                         console.log(result)
                         resolve(result)
@@ -993,7 +993,7 @@ async function bounceEventGUI(type, device) {
                 const childKiller = setTimeout(function () {
                     childProcess.stdin.pause();
                     childProcess.kill();
-                    resolve(false);
+                    resolve(true);
                 }, 120000)
             }) : false
             eventsToExtract.filename = await new Promise(resolve => {
@@ -1050,6 +1050,7 @@ async function bounceEventGUI(type, device) {
                     eventsToExtract.syncEnd = moment(eventItem.syncStart).add(eventsToExtract.duration, "seconds").valueOf()
                 }
             }
+
             if (eventsToExtract.digitalOnly || eventsToExtract.duration === 0) {
                 queueDigitalRecording({ metadata: eventsToExtract })
             } else {
