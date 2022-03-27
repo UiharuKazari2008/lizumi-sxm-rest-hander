@@ -1103,7 +1103,7 @@ function queueDigitalRecording(jobOptions) {
     if (!best_recorder)
         return false
     jobQueue[best_recorder].push(jobOptions)
-    console.log(`Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder.id}`)
+    console.log(`Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder}`)
     console.log(jobOptions)
     if (activeQueue[best_recorder] === false)
         startRecQueue(best_recorder)
