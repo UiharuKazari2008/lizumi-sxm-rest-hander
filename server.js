@@ -1071,7 +1071,6 @@ async function startExtractQueue() {
         const job = jobQueue['extract'].shift()
         const completed = await extractRecordedEvent(job)
         console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
-        return completed
     }
     activeQueue['extract'] = false
     return true
@@ -1092,7 +1091,6 @@ async function startRecQueue(q) {
         const job = jobQueue[q].shift()
         const completed = await recordDigitalEvent(job, tuner)
         console.log(`Q/${q.slice(4)}: Last Job Result ${(completed)} - ${jobQueue[q].length} jobs left`)
-        return completed
     }
     activeQueue[q] = false
     return true
