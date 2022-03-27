@@ -1224,6 +1224,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
 async function recordDigitalEvent(job, tuner) {
     const eventItem = job.metadata
     console.log(eventItem)
+    console.log(tuner)
     adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
         const time = (() => {
