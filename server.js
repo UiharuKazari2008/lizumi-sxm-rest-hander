@@ -1519,6 +1519,7 @@ app.get("/pend_bounce", (req, res) => {
         options.absoluteTime = req.query.time
 
     registerBounce(options);
+    res.status(200).json(options);
 })
 app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
