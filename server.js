@@ -1083,10 +1083,10 @@ function queueRecordingExtraction(jobOptions) {
 //
 async function startRecQueue(q) {
     while (jobQueue[q].length !== 0) {
-        const tuner = getTuner(q)
+        const tuner = getTuner(q.slice(4))
         const job = jobQueue[q].shift()
         const completed = await recordDigitalEvent(job, tuner)
-        console.log(`Q/${q}: Last Job Result ${(completed)} - ${jobQueue[q].length} jobs left`)
+        console.log(`Q/${q.slice(4)}: Last Job Result ${(completed)} - ${jobQueue[q].length} jobs left`)
         return completed
     }
     return true
