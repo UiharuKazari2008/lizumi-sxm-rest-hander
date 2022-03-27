@@ -640,7 +640,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - 10800000)),
+            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - 14400000)),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -685,7 +685,7 @@ async function processPendingBounces() {
                     }
                 })()
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 10800000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
