@@ -1050,14 +1050,10 @@ async function bounceEventGUI(type, device) {
                     eventsToExtract.syncEnd = moment(eventItem.syncStart).add(eventsToExtract.duration, "seconds").valueOf()
                 }
             }
-        }
-        for (let index in eventsToParse) {
-            const eventItem = eventsToParse[index]
-
-            if (eventItem.digitalOnly || eventItem.duration === 0) {
-                queueDigitalRecording({ metadata: eventItem })
+            if (eventsToExtract.digitalOnly || eventsToExtract.duration === 0) {
+                queueDigitalRecording({ metadata: eventsToExtract })
             } else {
-                queueRecordingExtraction({ metadata: eventItem })
+                queueRecordingExtraction({ metadata: eventsToExtract })
             }
         }
     } catch (e) {
