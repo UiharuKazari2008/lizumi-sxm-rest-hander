@@ -853,7 +853,7 @@ function searchEvents() {
             channelTimes.pending.push({
                 ch: e.channelId,
                 digitalOnly: (f.digitalOnly),
-                time: e.startSync + 60000,
+                time: e.startSync + 10,
                 guid: e.guid,
                 inprogress: false,
                 done: false,
