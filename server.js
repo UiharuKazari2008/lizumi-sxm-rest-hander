@@ -844,7 +844,7 @@ function registerSchedule() {
 }
 //
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, 50)
+    const events = listEventsValidated(false, undefined, 80)
     console.log(events.filter(e => e.filename.includes("UltraSXM")).map(e => `${e.filename} - ${e.duration}`))
     Object.values(config.autosearch_terms).map(f => {
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && parseInt(e.duration.toString()) > 900).map(e => {
