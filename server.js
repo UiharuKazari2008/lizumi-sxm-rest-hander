@@ -847,9 +847,7 @@ function registerSchedule() {
 //
 function searchEvents() {
     const events = listEventsValidated(false, undefined, 25).reverse()
-    console.log(events)
     Object.values(config.autosearch_terms).map(f => {
-        console.log(f)
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)) && isWantedEvent(f, e)).map(e => {
             channelTimes.completed.push(e.guid)
             registerBounce({
