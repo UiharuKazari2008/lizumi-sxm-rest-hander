@@ -724,7 +724,7 @@ async function processPendingBounces() {
                 }
             })()
 
-            if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
+            if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
                 console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
@@ -856,6 +856,7 @@ function searchEvents() {
                 tuner: undefined,
                 tunerId: e.tunerId,
                 digitalOnly: (f.digitalOnly),
+                automatic: true,
                 inprogress: false,
                 done: false,
             })
