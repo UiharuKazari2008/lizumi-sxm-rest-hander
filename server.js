@@ -851,9 +851,11 @@ function searchEvents() {
             channelTimes.completed.push(e.guid)
             channelTimes.pending.push({
                 ch: e.channelId,
-                digitalOnly: (f.digitalOnly),
-                time: e.startSync + 10,
                 guid: e.guid,
+                time: e.syncStart + 10,
+                tuner: undefined,
+                tunerId: e.tunerId,
+                digitalOnly: (f.digitalOnly),
                 inprogress: false,
                 done: false,
             })
