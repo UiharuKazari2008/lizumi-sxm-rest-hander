@@ -1820,7 +1820,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         if (tun.filter(e => !e.digital).length > 0)
             satelliteAvailable = true
 
-        let prevJobs = channelTimes.pending.filter(e => e.done === true && e.inprogress === true).map(e => {
+        /*let prevJobs = channelTimes.pending.filter(e => e.done === true && e.inprogress === true).map(e => {
             return {
                 ...e,
                 liveRec: undefined,
@@ -1829,7 +1829,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             }
         })
         prevJobs.push(...channelTimes.pending.filter(e => e.done === false || e.inprogress === false))
-        channelTimes.pending = prevJobs
+        channelTimes.pending = prevJobs*/
 
         await updateMetadata();
 
