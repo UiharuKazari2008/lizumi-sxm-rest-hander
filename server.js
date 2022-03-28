@@ -32,6 +32,7 @@ let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
 let activeQueue = {};
+const sxmMaxRewind = 14400000;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -644,6 +645,44 @@ function listEventsValidated(songs, device, count) {
                     })
                 })
     })
+
+    const dt = listTuners(true)
+    if (dt) {
+        const guidMap = events.map(g => g.guid)
+        Object.keys(metadata).map(k => {
+            metadata[k].filter(f =>
+                // If not already attached to a tuner
+                guidMap.indexOf(f.guid) === -1 &&
+                // Has duration aka is completed
+                (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
+                // If Event is less then 4 Hours old
+                (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
+            ).map((f, i, a) => {
+                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                    f.syncEnd = a[i + 1].syncStart - 1
+                    f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                }
+                if (!f.filename) {
+                    f.filename = (() => {
+                        if (f.isEpisode) {
+                            return `${cleanText(f.title)}`
+                        } else if (f.isSong) {
+                            return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                        } else {
+                            return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                        }
+                    })()
+                }
+                events.push({
+                    ...f,
+                    channelId: k,
+                    tunerId: dt.id
+                })
+            })
+        })
+    }
+
+
     events = events
         .filter(f =>
             (parseInt(f.duration.toString()) === 0 ||
@@ -677,7 +716,7 @@ function formatEventList(events) {
             tunerId: tun.id,
             tuner: tun,
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
-            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - 14400000)),
+            isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             exists: ex,
@@ -731,7 +770,7 @@ async function processPendingBounces() {
             } else {
                 // If Event has completed
                 if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
-                    if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
+                    if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.liveRec = true
