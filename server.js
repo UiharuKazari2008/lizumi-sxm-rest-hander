@@ -629,7 +629,7 @@ function listEventsValidated(songs, device, count) {
                             f.filename = (() => {
                                 if (f.isEpisode) {
                                     return `${cleanText(f.title)}`
-                                } else if (e.isSong) {
+                                } else if (f.isSong) {
                                     return `${cleanText(f.artist)} - ${cleanText(f.title)}`
                                 } else {
                                     return `${cleanText(f.title)} - ${cleanText(f.artist)}`
