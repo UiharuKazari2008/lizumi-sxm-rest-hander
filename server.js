@@ -846,10 +846,8 @@ function registerSchedule() {
 function searchEvents() {
     const events = listEventsValidated(false, undefined, 25)
     Object.values(config.autosearch_terms).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && e.duration > 90 && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
             console.log(`Found Event ${e.filename} - ${e.duration}`)
-            console.log(f.duration)
-            console.log(e.duration)
             channelTimes.completed.push(e.guid)
             channelTimes.pending.push({
                 ch: e.channelId,
@@ -1738,10 +1736,10 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             registerSchedule();
             searchEvents();
         });
-        setTimeout(() => {
-            searchEvents();
-            processPendingBounces();
-        }, 30000)
+
+        updateMetadata();
+        searchEvents();
+        processPendingBounces();
         console.log(tun)
         console.log(jobQueue)
     }
