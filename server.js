@@ -501,7 +501,7 @@ function listTuners(digitalOnly) {
         return 0
     }
     return [
-        ...((digitalOnly === true) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map((e, i) => {
+        ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
@@ -518,7 +518,7 @@ function listTuners(digitalOnly) {
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
         }) : []),
-        ...((digitalOnly === false) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
+        ...((digitalOnly === true) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
