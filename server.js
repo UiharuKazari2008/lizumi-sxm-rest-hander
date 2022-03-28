@@ -848,7 +848,8 @@ function searchEvents() {
     console.log(events.map(e => e.filename))
     Object.values(config.autosearch_terms).map(f => {
         console.log(f.search)
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration))).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1).map(e => {
+            console.log(e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)))
             console.log(e.filename.toLowerCase().includes(f.search.toLowerCase()))
             if (e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())) {
                 channelTimes.completed.push(e.guid)
