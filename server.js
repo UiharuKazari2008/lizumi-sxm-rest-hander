@@ -844,17 +844,21 @@ function registerSchedule() {
 }
 //
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, 25).reverse()
+    const events = listEventsValidated(false, undefined, 25)
     console.log(events.map(e => e.filename))
     Object.values(config.autosearch_terms).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)) && e.filename.toLowerCase().includes(f.search.toLowerCase())).map(e => {
-            channelTimes.completed.push(e.guid)
-            registerBounce({
-                channel: e.channelId,
-                tuner: undefined,
-                digitalOnly: (f.digitalOnly) ? f.digitalOnly : undefined,
-                addTime: 0
-            })
+        console.log(f.search)
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration))).map(e => {
+            console.log(e.filename.toLowerCase().includes(f.search.toLowerCase()))
+            if (e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())) {
+                channelTimes.completed.push(e.guid)
+                registerBounce({
+                    channel: e.channelId,
+                    tuner: undefined,
+                    digitalOnly: (f.digitalOnly) ? f.digitalOnly : undefined,
+                    addTime: 0
+                })
+            }
         })
     })
 
