@@ -1732,6 +1732,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         });
         setTimeout(() => {
             processPendingBounces();
+            searchEvents();
         }, 30000)
         console.log(tun)
         console.log(jobQueue)
