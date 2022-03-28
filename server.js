@@ -27,7 +27,6 @@ let scheduled_tasks = new Map();
 let device_logs = {};
 let stopwatches_tuners = new Map();
 let nowPlayingGUID = {};
-let pendingBounceTimer = null;
 let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
@@ -110,6 +109,8 @@ if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
 if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
 }
+
+// Metadata Retrieval and Parsing
 
 // Update Metadata for Channels
 // All Channels will be updated every minute unless "updateOnTune: true" is set
@@ -248,6 +249,8 @@ async function updateMetadata() {
             }
         }
         nowPlayingNotification();
+        await searchEvents();
+        await processPendingBounces();
     } catch (e) {
         console.error(e);
         console.error("FAULT");
@@ -325,7 +328,6 @@ async function nowPlayingNotification(forceUpdate) {
             })
             publishMetaIcecast(t, eventText, (ch.name) ? ch.name : "SiriusXM");
             publishMetadataFile(t, n, (ch.name) ? ch.name : "SiriusXM");
-            searchForEvents(t, eventTextm (ch.name) ? ch.name : "SiriusXM");
         }
     }
 }
@@ -361,6 +363,8 @@ async function publishMetadataFile(tuner, nowPlaying, channelName) {
         })
     }
 }
+
+// Support Functions
 
 // Async Web Request as Promise
 function webRequest(url) {
@@ -450,6 +454,8 @@ function adbLogStart(device) {
     adblog_tuners.set(device, logWawtcher)
 }
 
+// Channel Searching and Retrieval
+
 // List All Channels, Numbers, and IDs
 // numbers and ids are indexed to channels for lookups
 // channels has number added to reference the channel numbers
@@ -480,6 +486,9 @@ function getChannelbyId(id) {
     const index = channels.ids.indexOf(id)
     return (index !== -1) ? channels.channels[index] : false
 }
+
+// Tuner Searching and Retrieval
+
 // List all tuners
 // digital indicates if a tuner is an Android device
 // tuner object and active channel is injected
@@ -584,6 +593,9 @@ function getBestDigitalTuner() {
         }
     }).sort(sortcb)[0].id
 }
+
+// Event Searching and Formatting
+
 // List all events for a channel that are after start time
 function listEvents(channel, time) {
     return metadata[channel].filter(e => !e.isSong && e.syncStart < time)
@@ -727,6 +739,8 @@ function formatEventList(events) {
     })
 }
 
+// Automated Event Extraction and Recording
+
 // Process Pending Events to Extract
 async function processPendingBounces() {
     function sortTime(arrayItemA, arrayItemB) {
@@ -782,6 +796,8 @@ async function processPendingBounces() {
                                 channelId: pendingEvent.ch,
                                 ...thisEvent
                             },
+                            post_directorys: pendingEvent.post_directorys,
+                            switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : true,
                             index: true
                         })
                     } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
@@ -796,6 +812,7 @@ async function processPendingBounces() {
                                 ...thisEvent,
                                 tuner: getTuner(pendingEvent.tunerId)
                             },
+                            post_directorys: pendingEvent.post_directorys,
                             index: true
                         })
                     }
@@ -810,6 +827,8 @@ async function processPendingBounces() {
                             channelId: pendingEvent.ch,
                             ...thisEvent
                         },
+                        post_directorys: pendingEvent.post_directorys,
+                        switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : true,
                         index: true
                     })
                 }
@@ -820,30 +839,8 @@ async function processPendingBounces() {
     } catch (err) {
         console.error(err)
     }
-    pendingBounceTimer = setTimeout(() => { processPendingBounces() }, 5 * 60000)
 }
-// Search for Events to Auto-Bounce
-async function searchForEvents() {
-
-    if (config.auto_extract) {
-        config.auto_extract.forEach(lookup => {
-            for (let k of Object.keys(metadata)) {
-                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && isWantedEvent(lookup, e) && channelTimes.completed.indexOf(e.guid) !== -1 && (!e.isEpisode || (lookup.allow_episodes && e.isEpisode))).forEach(e => {
-                    channelTimes.pending.push({
-                        ch: k,
-                        lookup: lookup,
-                        tunerId: (lookup.tuner) ? lookup.tuner : undefined,
-                        guid: e.guid,
-                        inprogress: false,
-                        done: false
-                    })
-                    channelTimes.completed.push(e.guid)
-                })
-            }
-        })
-    }
-}
-//
+// Generate Cron Schedules for events
 function registerSchedule() {
     const configSch = Object.keys(config.schedule)
     const exsistSch = Array.from(scheduled_tasks.keys())
@@ -869,7 +866,9 @@ function registerSchedule() {
                         tuner: (e.tuner) ? getTuner(e.tuner) : undefined,
                         digitalOnly: (e.digitalOnly) ? e.digitalOnly : undefined,
                         addTime: 0,
-                        restrict: (e.restrict) ? e.restrict : undefined
+                        restrict: (e.restrict) ? e.restrict : undefined,
+                        post_directorys: (e.post_directorys) ? e.post_directorys : undefined,
+                        switch_source: (e.switch_source) ? e.switch_source : undefined
                     })
                 })
                 scheduled_tasks.set(k, sch)
@@ -881,7 +880,7 @@ function registerSchedule() {
         }
     })
 }
-//
+// Keyword Search for Events
 function searchEvents() {
     const events = listEventsValidated(true, undefined, 8)
     config.autosearch_terms.map(f => {
@@ -895,6 +894,8 @@ function searchEvents() {
                 tuner: undefined,
                 tunerId: e.tunerId,
                 digitalOnly: (f.digitalOnly),
+                post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
+                switch_source: (f.switch_source) ? f.switch_source : undefined,
                 automatic: true,
                 inprogress: false,
                 done: false,
@@ -932,6 +933,8 @@ function registerBounce(options) {
             digitalOnly: (options.digitalOnly),
             restrict: (options.restrict) ? options.restrict : undefined,
             time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : moment().valueOf() + (options.addTime * 60000),
+            post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
+            switch_source: (options.switch_source) ? options.switch_source : undefined,
             inprogress: false,
             done: false,
         }
@@ -948,6 +951,8 @@ function registerBounce(options) {
 }
 
 // macOS GUI - TO BE DEPRECATED AND REPLACED BY A REAL WEB UI
+
+// Edit Metadata - Needs to be updated
 async function modifyMetadataGUI(type) {
     try {
         let eventsMeta = [];
@@ -1205,8 +1210,26 @@ async function bounceEventGUI(type, device) {
         console.error(e);
     }
 }
+// Set AirFoil Interface
+async function setAirOutput(input) {
+    return await new Promise(resolve => {
+        const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
+        const childProcess = osascript.execute(list, function (err, result, raw) {
+            if (err)
+                console.error(err)
+            clearTimeout(childKiller);
+            resolve(!(err));
+        });
+        const childKiller = setTimeout(function () {
+            childProcess.stdin.pause();
+            childProcess.kill();
+            resolve(null);
+        }, 5000)
+    })
+}
 
-// ** Job Queue System **
+// Job Queues
+
 // Queue a recorded event extraction and start the processor if inactive
 function queueRecordingExtraction(jobOptions) {
     jobQueue['extract'].push(jobOptions)
@@ -1250,7 +1273,8 @@ async function startRecQueue(q) {
     return true
 }
 
-// ** MobileApp Digital Dubbing System **
+// Digital Tuner Controls and Recorders
+
 // Wait for device to connect and prepare device
 async function initDigitalRecorder(device) {
     console.log(`Searching for digital tuner "${device.name}":${device.serial}...`)
@@ -1387,7 +1411,9 @@ function recordDigitalAudioInterface(tuner, time, event) {
     })
 }
 
-// Tune, Record, Disconnect
+// Job Workers
+
+// Record an event on a digital tuner
 async function recordDigitalEvent(job, tuner) {
     console.log(`Record/${tuner.id}: Preparing for digital dubbing...`)
     const eventItem = job.metadata
@@ -1395,6 +1421,9 @@ async function recordDigitalEvent(job, tuner) {
     console.log(tuner)
     adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
+        const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
+        if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
+            setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
                 return eventItem.duration.toString()
@@ -1406,9 +1435,11 @@ async function recordDigitalEvent(job, tuner) {
         if (tuner.record_only) {
             await releaseDigitalTuner(tuner)
         }
+        if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
+            setAirOutput(tuner.airfoil_source.return_source)
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
-            await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`)
+            await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.post_directorys)
         } else if (fs.existsSync(completedFile)) {
             rimraf(completedFile, () => {})
         }
@@ -1495,7 +1526,7 @@ async function extractRecordedEvent(job) {
 
             if (trimEventFile && fs.existsSync(trimEventFile.toString())) {
                 console.log(`Extract: Extraction complete for ${eventFilename.trim()}!`)
-                await postExtraction(trimEventFile, eventFilename);
+                await postExtraction(trimEventFile, eventFilename, job.post_directorys);
                 if (job.index) {
                     const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                     channelTimes.pending[index].inprogress = false
@@ -1523,29 +1554,32 @@ async function extractRecordedEvent(job) {
     }
 }
 // Move extracted files to the upload and backup folder
-async function postExtraction(extractedFile, eventFilename) {
+async function postExtraction(extractedFile, eventFilename, overrides) {
+    const upload_dir = (overrides && overrides.upload_dir) ? overrides.upload_dir : config.upload_dir
+    const backup_dir = (overrides && overrides.backup_dir) ? overrides.backup_dir : config.backup_dir
+
     try {
-        if (config.backup_dir) {
+        if (backup_dir) {
             await new Promise(resolve => {
                 console.log(`Copying Backup File ... "${eventFilename}"`)
-                exec(`cp "${extractedFile.toString()}" "${path.join(config.backup_dir, eventFilename).toString()}"`, (err, result) => {
+                exec(`cp "${extractedFile.toString()}" "${path.join(backup_dir, eventFilename).toString()}"`, (err, result) => {
                     if (err)
                         console.error(err)
                     resolve((err))
                 })
             })
         }
-        if (config.upload_dir) {
+        if (upload_dir) {
             console.log(`Copying File for Upload ... "${eventFilename}"`)
             await new Promise(resolve => {
-                exec(`cp "${extractedFile.toString()}" "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
+                exec(`cp "${extractedFile.toString()}" "${path.join(upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
                     if (err)
                         console.error(err)
                     resolve((err))
                 })
             })
             await new Promise(resolve => {
-                exec(`mv "${path.join(config.upload_dir, 'HOLD-' + eventFilename).toString()}" "${path.join(config.upload_dir, eventFilename).toString()}"`, (err, result) => {
+                exec(`mv "${path.join(upload_dir, 'HOLD-' + eventFilename).toString()}" "${path.join(upload_dir, eventFilename).toString()}"`, (err, result) => {
                     if (err)
                         console.error(err)
                     resolve((err))
@@ -1572,7 +1606,6 @@ async function postExtraction(extractedFile, eventFilename) {
     }
 }
 
-
 // Tune to a channel
 // channelNum or channelId: Channel Number or ID to tune to
 // tuner: Tuner ID to tune too
@@ -1586,6 +1619,8 @@ app.get("/tune/:channelNum", async (req, res, next) => {
         let pcb = { ok: true}
         if (ptn.post_tune_url !== undefined && ptn.post_tune_url && !(req.query.no_post && req.query.no_post === 'false'))
             await webRequest(t.tuner.post_tune_url)
+        if (ptn.airfoil_source !== undefined && ptn.airfoil_source && !(req.query.no_post && req.query.no_source_switch === 'false') && ptn.airfoil_source.conditions.indexOf('tune'))
+            await setAirOutput(ptn.airfoil_source.name)
 
         if (tcb.ok) {
             channelTimes.timetable[ptn.id].push({
@@ -1645,6 +1680,7 @@ app.get("/pend_bounce", (req, res) => {
         options.absoluteTime = parseInt(req.query.time)
 
     registerBounce(options);
+    processPendingBounces();
     res.status(200).json(options);
 })
 app.get("/search_extract/:action", (req, res) => {
@@ -1773,12 +1809,9 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
             registerSchedule();
-            searchEvents();
         });
 
         await updateMetadata();
-        searchEvents();
-        processPendingBounces();
         console.log(tun)
         console.log(jobQueue)
     }
