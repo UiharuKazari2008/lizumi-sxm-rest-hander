@@ -86,8 +86,6 @@ function portInUse(port) {
     })
 }
 function isWantedEvent(l, m) {
-    console.log(l)
-    console.log(l.search)
     if (m.title && l.search && m.title.toLowerCase().includes(l.search.toLowerCase()))
         return true
     if (m.artist && l.search && m.artist.toLowerCase().includes(l.search.toLowerCase()))
