@@ -625,6 +625,17 @@ function listEventsValidated(songs, device, count) {
                             f.syncEnd = a[i + 1].syncStart - 1
                             f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
                         }
+                        if (!f.filename) {
+                            f.filename = (() => {
+                                if (f.isEpisode) {
+                                    return `${cleanText(f.title)}`
+                                } else if (e.isSong) {
+                                    return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                } else {
+                                    return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                }
+                            })()
+                        }
                         events.push({
                             ...f,
                             channelId: tc.ch,
@@ -654,17 +665,6 @@ function formatEventList(events) {
                 (f.title && e.title && f.title.toLowerCase() === e.title.toLowerCase()) &&
                 ((f.artist && e.artist && f.artist.toLowerCase() === e.artist.toLowerCase()) || (!f.artist && !e.artist))
             )).length > 1)
-        if (!e.filename) {
-            e.filename = (() => {
-                if (e.isEpisode) {
-                    return `${cleanText(e.title)}`
-                } else if (e.isSong) {
-                    return `${cleanText(e.artist)} - ${cleanText(e.title)}`
-                } else {
-                    return `${cleanText(e.title)} - ${cleanText(e.artist)}`
-                }
-            })()
-        }
         const ex = (() => {
             try {
                 return fs.existsSync(path.join((tun.record_dir) ? tun.record_dir : config.record_dir, `Extracted_${e.guid}.mp3`))
@@ -845,8 +845,9 @@ function registerSchedule() {
 //
 function searchEvents() {
     const events = listEventsValidated(false, undefined, 25).reverse()
+    console.log(events.map(e => e.filename))
     Object.values(config.autosearch_terms).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)) && isWantedEvent(f, e)).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)) && e.filename.toLowerCase().includes(f.search.toLowerCase())).map(e => {
             channelTimes.completed.push(e.guid)
             registerBounce({
                 channel: e.channelId,
