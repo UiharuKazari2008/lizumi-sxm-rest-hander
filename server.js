@@ -1737,7 +1737,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             searchEvents();
         });
 
-        updateMetadata();
+        await updateMetadata();
         searchEvents();
         processPendingBounces();
         console.log(tun)
