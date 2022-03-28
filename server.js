@@ -12,6 +12,7 @@ const express = require("express");
 const app = express();
 const net = require('net');
 const rimraf = require("rimraf");
+const events = require("events");
 
 let metadata = {};
 let channelTimes = {
@@ -1539,6 +1540,8 @@ async function extractRecordedEvent(job) {
             if (trimEventFile && fs.existsSync(trimEventFile.toString())) {
                 console.log(`Extract: Extraction complete for ${eventFilename.trim()}!`)
                 await postExtraction(trimEventFile, eventFilename, job.post_directorys);
+                if (channelTimes.complete.indexOf(eventItem.guid) === -1)
+                    channelTimes.complete.push(eventItem.guid)
                 if (job.index) {
                     const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                     channelTimes.pending[index].inprogress = false
