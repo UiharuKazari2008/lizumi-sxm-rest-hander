@@ -1663,6 +1663,15 @@ app.get("/tune/:channelNum", async (req, res, next) => {
         res.status(404).send('Channel not found')
     }
 });
+app.get("/airSource/:tuner", async (req, res, next) => {
+    const t = getTuner(req.params.tuner)
+    if (t && t.airfoil_source && t.airfoil_source.name) {
+        await setAirOutput(t.airfoil_source.name)
+        res.status(200).send("OK")
+    } else {
+        res.status(404).send("Tuner not found")
+    }
+})
 app.get("/pend_bounce", (req, res) => {
     let options = {
         addTime: (req.query.add_time) ? parseInt(req.query.add_time) : 0,
