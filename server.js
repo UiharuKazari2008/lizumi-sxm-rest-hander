@@ -844,9 +844,9 @@ function registerSchedule() {
 }
 //
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, 25)
+    const events = listEventsValidated(false, undefined, 25).reverse()
     config.autosearch_terms.map(e => e.search).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && (e.duration > 60 && f.duration && e.duration >= f.duration) && isWantedEvent({ search: f.search }, e)).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.duration > 60 && (!f.duration || (f.duration && e.duration >= f.duration)) && isWantedEvent({ search: f.search }, e)).map(e => {
             channelTimes.completed.push(e.guid)
             registerBounce({
                 channel: e.channelId,
