@@ -853,13 +853,6 @@ function searchEvents() {
             console.log(e.filename.toLowerCase().includes(f.search.toLowerCase()))
             if (e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())) {
                 channelTimes.completed.push(e.guid)
-                const t = (() => {
-                    if (f.digitalOnly)
-                        return undefined
-                    if (f.channel)
-                        return findActiveRadio(options.channel)
-                    return undefined
-                })()
                 channelTimes.pending.push({
                     ch: e.channelId,
                     digitalOnly: (f.digitalOnly),
