@@ -842,6 +842,22 @@ function registerSchedule() {
         }
     })
 }
+//
+function searchEvents() {
+    const events = listEventsValidated(false, undefined, 25)
+    config.autosearch_terms.map(e => e.search).map(f => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && (e.duration > 60 && f.duration && e.duration >= f.duration) && isWantedEvent({ search: f.search })).map(e => {
+            channelTimes.completed.push(e.guid)
+            registerBounce({
+                channel: e.channelId,
+                tuner: undefined,
+                digitalOnly: (f.digitalOnly) ? f.digitalOnly : undefined,
+                addTime: 0
+            })
+        })
+    })
+
+}
 // Register a event to extract
 function registerBounce(options) {
     // Get Passed Tuner or Find one that is using that channel number
@@ -1586,6 +1602,43 @@ app.get("/pend_bounce", (req, res) => {
     registerBounce(options);
     res.status(200).json(options);
 })
+app.get("/search_extract/:action", (req, res) => {
+    switch (req.params.action) {
+        case 'add':
+            if (req.query.search) {
+                if (!config.autosearch_terms)
+                    config.autosearch_terms = []
+                config.autosearch_terms.push({
+                    search: req.query.search.trim(),
+                    duration: (req.query.duration) ? parseInt(req.query.duration) : undefined
+                })
+                fs.writeFileSync('./config.json', JSON.stringify(config))
+                res.status(200).send("OK")
+            } else {
+                res.status(400).send("Missing search")
+            }
+            break;
+        case 'remove':
+            if (req.query.search) {
+                if (!config.autosearch_terms) {
+                    res.status(500).send("Not Ready")
+                } else {
+                    config.autosearch_terms = config.autosearch_terms.filter(e => !e.search !== req.query.search)
+                    res.status(200).send("OK")
+                }
+                fs.writeFileSync('./config.json', JSON.stringify(config))
+            } else {
+                res.status(400).send("Missing search")
+            }
+            break;
+        case 'list':
+            res.status(200).json(config.autosearch_terms)
+            break;
+        default:
+            res.status(400).send("Action Not Available")
+            break;
+    }
+})
 app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
@@ -1675,6 +1728,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
             registerSchedule();
+            searchEvents();
         });
         setTimeout(() => {
             processPendingBounces();
