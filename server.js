@@ -846,8 +846,10 @@ function registerSchedule() {
 function searchEvents() {
     const events = listEventsValidated(false, undefined, 25)
     Object.values(config.autosearch_terms).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && e.duration > 90 && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())).map(e => {
             console.log(`Found Event ${e.filename} - ${e.duration}`)
+            console.log(f.duration)
+            console.log(e.duration)
             channelTimes.completed.push(e.guid)
             channelTimes.pending.push({
                 ch: e.channelId,
