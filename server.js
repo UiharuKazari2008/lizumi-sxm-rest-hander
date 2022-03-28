@@ -1266,8 +1266,20 @@ async function startRecQueue(q) {
     while (jobQueue[q].length !== 0) {
         const tuner = getTuner(q.slice(4))
         const job = jobQueue[q].shift()
-        const completed = await recordDigitalEvent(job, tuner)
-        console.log(`Q/${q.slice(4)}: Last Job Result ${(completed)} - ${jobQueue[q].length} jobs left`)
+        if (moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
+            const completed = await recordDigitalEvent(job, tuner)
+            console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
+        } else {
+            if (job.index) {
+                console.error(`Record/${q.slice(4)}: Failed job should be picked up by the recording extractor (if available)`)
+                const index = channelTimes.pending.map(e => e.guid).indexOf(job.metadata.guid)
+                channelTimes.pending[index].inprogress = false
+                channelTimes.pending[index].liveRec = false
+                channelTimes.pending[index].done = false
+                channelTimes.pending[index].failedRec = true
+            }
+            console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
+        }
     }
     activeQueue[q] = false
     return true
