@@ -853,11 +853,20 @@ function searchEvents() {
             console.log(e.filename.toLowerCase().includes(f.search.toLowerCase()))
             if (e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())) {
                 channelTimes.completed.push(e.guid)
-                registerBounce({
-                    channel: e.channelId,
-                    tuner: undefined,
-                    digitalOnly: (f.digitalOnly) ? f.digitalOnly : undefined,
-                    addTime: 0
+                const t = (() => {
+                    if (f.digitalOnly)
+                        return undefined
+                    if (f.channel)
+                        return findActiveRadio(options.channel)
+                    return undefined
+                })()
+                channelTimes.pending.push({
+                    ch: e.channelId,
+                    digitalOnly: (f.digitalOnly),
+                    time: e.startSync + 60000,
+                    guid: e.guid,
+                    inprogress: false,
+                    done: false,
                 })
             }
         })
