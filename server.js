@@ -23,6 +23,7 @@ let channelTimes = {
 };
 let locked_tuners = new Map();
 let adblog_tuners = new Map();
+let scheduled_tasks = new Map();
 let device_logs = {};
 let stopwatches_tuners = new Map();
 let nowPlayingGUID = {};
@@ -83,6 +84,23 @@ function portInUse(port) {
 
         server.listen(port, '127.0.0.1');
     })
+}
+function isWantedEvent(l, m) {
+    if (m.title && l.search && m.title.toLowerCase().includes(l.search.toLowerCase()))
+        return true
+    if (m.artist && l.search && m.artist.toLowerCase().includes(l.search.toLowerCase()))
+        return true
+    if (m.album && l.search && m.album.toLowerCase().includes(l.search.toLowerCase()))
+        return true
+
+    if (m.title && l.title && m.title.toLowerCase() === l.title.toLowerCase())
+        return true
+    if (m.artist && l.artist && m.artist.toLowerCase() === l.artist.toLowerCase())
+        return true
+    if (m.album && l.album && m.album.toLowerCase() === l.album.toLowerCase())
+        return true
+
+    return false
 }
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
@@ -487,7 +505,7 @@ function listTuners(digitalOnly) {
                 ...config.digital_radios[e],
                 digital: true,
                 activeCh: (a && m) ? { m, ...a} : null,
-                locked: locked_tuners.has(e)
+                locked: (activeQueue.has(`REC-${e}`))
             }
         }) : []),
         ...((digitalOnly === false) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
@@ -526,8 +544,28 @@ function findActiveRadioTune(channel) {
 }
 // Return list if tuners that are available for tuning
 // Tuners that are locked due to recordings or manual lockout are omitted obviously
-function availableTuners() {
-    return listTuners().filter(e => !(e.tuner.lock_on_events && e.locked) && !e.tuner.record_only)
+function availableTuners(channel, preferDigital) {
+    const ch = getChannelbyId(channel)
+    function sortPriority(arrayItemA, arrayItemB) {
+        if (arrayItemA.priority < arrayItemB.priority)
+            return -1
+        if (arrayItemA.priority > arrayItemB.priority)
+            return 1
+        return 0
+    }
+    return listTuners()
+        .map(e => {
+            return {
+                ...e,
+                priority: ((!e.digital && preferDigital) || (e.digital && !preferDigital)) ? e.priority + 1000 : e.priority
+            }
+        })
+        .sort(sortPriority)
+        .filter(e =>
+            !e.locked &&
+            (e.digital || (!e.digital && ch && ch.tuneUrl[e.id])) &&
+            !e.tuner.record_only
+        )
 }
 // Get the best available digital tuner to queue a job
 function getBestDigitalTuner() {
@@ -692,7 +730,7 @@ async function processPendingBounces() {
                 pendingEvent.inprogress = false
             } else {
                 // If Event has completed
-                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
+                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (pendingEvent.restrict && isWantedEvent(thisEvent, pendingEvent.restrict))) {
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                         pendingEvent.guid = thisEvent.guid;
@@ -722,7 +760,7 @@ async function processPendingBounces() {
                             index: true
                         })
                     }
-                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract)) {
+                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract) && (pendingEvent.restrict && isWantedEvent(thisEvent, pendingEvent.restrict))) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
@@ -747,25 +785,11 @@ async function processPendingBounces() {
 }
 // Search for Events to Auto-Bounce
 async function searchForEvents() {
-    function search(l, m) {
-        if (m.title && l.search && m.title.toLowerCase() === l.search.toLowerCase())
-            return true
-        if (m.artist && l.search && m.artist.toLowerCase() === l.search.toLowerCase())
-            return true
-        if (m.album && l.search && m.album.toLowerCase() === l.search.toLowerCase())
-            return true
-        if (m.title && l.title && m.title.toLowerCase() === l.title.toLowerCase())
-            return true
-        if (m.artist && l.artist && m.artist.toLowerCase() === l.artist.toLowerCase())
-            return true
-        if (m.album && l.album && m.album.toLowerCase() === l.album.toLowerCase())
-            return true
-        return false
-    }
+
     if (config.auto_extract) {
         config.auto_extract.forEach(lookup => {
             for (let k of Object.keys(metadata)) {
-                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && search(lookup, e) && channelTimes.completed.indexOf(e.guid) !== -1 && (!e.isEpisode || (lookup.allow_episodes && e.isEpisode))).forEach(e => {
+                metadata[k].slice(-10).filter(e => !e.isSong && e.duration && isWantedEvent(lookup, e) && channelTimes.completed.indexOf(e.guid) !== -1 && (!e.isEpisode || (lookup.allow_episodes && e.isEpisode))).forEach(e => {
                     channelTimes.pending.push({
                         ch: k,
                         lookup: lookup,
@@ -779,6 +803,44 @@ async function searchForEvents() {
             }
         })
     }
+}
+//
+function registerSchedule() {
+    const configSch = Object.keys(config.schedule)
+    const exsistSch = Array.from(scheduled_tasks.keys())
+
+    exsistSch.filter(e => configSch.indexOf(e) === -1).forEach(e => {
+        console.log(`Schedule ${e} was removed!`)
+        const sch = scheduled_tasks.get(e)
+        sch.destroy()
+        scheduled_tasks.delete(e)
+    })
+    configSch.filter(e => exsistSch.indexOf(e) === -1).forEach(k => {
+        const e = config.schedule[k]
+        if (e.cron) {
+            if (cron.validate(e.cron)) {
+                let channelId = (e.channelId) ? e.channelId : undefined
+                if (e.ch)
+                    channelId = getChannelbyNumber(e.ch)
+
+                console.log(`Schedule ${k} @ ${e.cron} was created! `)
+                const sch = cron.schedule(e.cron, () => {
+                    registerBounce({
+                        channel: channelId,
+                        tuner: (e.tuner) ? getTuner(e.tuner) : undefined,
+                        digitalOnly: (e.digitalOnly) ? e.digitalOnly : undefined,
+                        addTime: 0,
+                        restrict: (e.restrict) ? e.restrict : undefined
+                    })
+                })
+                scheduled_tasks.set(k, sch)
+            } else {
+                console.error(`${e.cron} is not a valid cron string`)
+            }
+        } else {
+            console.error(`Scheduled Task Requires a "cron" schedule`)
+        }
+    })
 }
 // Register a event to extract
 function registerBounce(options) {
@@ -807,6 +869,7 @@ function registerBounce(options) {
             tuner: (options.tuner && (!options.digitalOnly || (options.digitalOnly && options.tuner.digital))) ? t : undefined,
             tunerId: t.id,
             digitalOnly: (options.digitalOnly),
+            restrict: (options.restrict) ? options.restrict : undefined,
             time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : moment().valueOf() + (options.addTime * 60000),
             inprogress: false,
             done: false,
@@ -1453,98 +1516,51 @@ async function postExtraction(extractedFile, eventFilename) {
 // channelNum or channelId: Channel Number or ID to tune to
 // tuner: Tuner ID to tune too
 app.get("/tune/:channelNum", async (req, res, next) => {
-    // Find Channel object
-    const channel = (() => {
-        const channels = listChannels()
-        let i = -1
-        if (req.params.channelId) {
-            i = channels.ids.indexOf(req.params.channelId)
-        } else if (req.params.channelNum) {
-            i = channels.numbers.indexOf(req.params.channelNum)
+    const channels = listChannels()
+    const channelIndex = channels.numbers.indexOf(req.params.channelNum)
+    const channel = channels.channels[channelIndex]
+
+    async function tuneToChannel(ptn, isAlreadyTuned) {
+        const tcb = (!(isAlreadyTuned && !ptn.always_retune)) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
+        let pcb = { ok: true}
+        if (ptn.post_tune_url !== undefined && ptn.post_tune_url && !(req.query.no_post && req.query.no_post === 'false'))
+            await webRequest(t.tuner.post_tune_url)
+
+        if (tcb.ok) {
+            channelTimes.timetable[ptn.id].push({
+                time: moment().valueOf(),
+                ch: channel.id,
+            })
+            if (channel.updateOnTune)
+                updateMetadata()
+            res.status(200).send((isAlreadyTuned && !ptn.always_retune) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${ptn.id} was tuned to ${channel.name}`)
+        } else {
+            res.status(500).send(`ERROR - Tuner ${ptn.id} failed to tune to ${channel.name} due to a url request error (Tune: ${tcb.ok} Post: ${pcb})`)
         }
-        if (i !== -1)
-            return channels.channels[i]
-        return null
-    })()
+    }
+
     if (channel) {
         // Get Active Tuner
-        const ca = findActiveRadioTune(channel.id)
-        if (ca && !req.query.tuner) {
-            console.log(`Tune any available radio to channel ${channel.name}`)
-            // If channel is active and did not request a specifc Tuner
-            const t = getTuner(ca.id)
-            if (t) {
-                if (t.always_retune &&
-                    ((!ca.digital && channel.tuneUrl[ca.id]) || ca.digital)
-                ) {
-                    const tcb = (ca.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[ca.id])
-                    let pcb = {ok: true}
-                    if (t.post_tune_url !== undefined && t.post_tune_url && !req.params.no_event) {
-                        pcb = await webRequest(t.post_tune_url)
-                    }
-                    if (((ca.digital && tcb) || (!ca.digital && tcb.ok)) && pcb.ok) {
-                        channelTimes.timetable[t.id].push({
-                            time: moment().valueOf(),
-                            ch: channel.id,
-                        })
-                        if (channel.updateOnTune)
-                            updateMetadata()
-                        res.status(200).send(`OK - Tuner ${ca.tuner} was already on that channel, tuned again`)
-                    } else {
-                        res.status(500).send(`ERROR - Tuner ${ca.tuner} failed to tune due to a url request error (Tune: ${tcb.ok} Post: ${pcb.ok})`)
-                    }
-                } else {
-                    res.status(200).send(`OK - Tuner ${ca.tuner} is already on that channel`)
-                }
-            } else {
-                res.status(500).send('Internal Error when referencing tuner config')
+        const tn = ((t,ca) => {
+            if (req.query.tuner) {
+                const _t = getTuner(t)
+                if (_t)
+                    return [_t, false]
             }
-        } else if (req.query.tuner) {
-            console.log(`Tune ${req.query.tuner} to channel ${channel.name}`)
-            const ft = getTuner(req.query.tuner)
-            console.log(ft)
-            if (ft) {
-                const t = ft
-                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t.tuner) : (channel.tuneUrl[t.id]) ? await webRequest(channel.tuneUrl[t.id]) : {ok: true, manual: true}
-                let pcb = {ok: true}
-                if (t.tuner.post_tune_url !== undefined && t.tuner.post_tune_url && !req.params.no_event) {
-                    pcb = await webRequest(t.tuner.post_tune_url)
-                }
-                if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
-                    channelTimes.timetable[t.id].push({
-                        time: moment().valueOf(),
-                        ch: channel.id
-                    })
-                    if (channel.updateOnTune)
-                        updateMetadata()
-                    res.status(200).send(`OK - Tuner ${t.id} was tuned to ${channel.name}${(tcb.manual) ? ", WARNING: THIS IS A MANUAL TUNER":""}`)
-                } else {
-                    res.status(500).send(`ERROR - Tuner ${t.id} failed to tune to ${channel.name} due to a url request error (Tune: ${tcb.ok} Post: ${pcb.ok})`)
-                }
-            } else {
-                res.status(500).send(`ERROR - No tuner is available at this time. It could be disabled or actively recording`)
-            }
+            if (ca)
+                return [ca, true]
+            return [false, false]
+        })(req.query.tuner, findActiveRadioTune(channel.id))
+
+        if (tn[0]) {
+            console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
+            await tuneToChannel(tn[0], tn[1])
         } else {
-            const ft = availableTuners().filter(e => (!e.digital && channel.tuneUrl[e.id]) || e.digital)
-            if (ft.length > 0) {
-                const t = ft.slice(-1).pop()
-                const tcb = (t.digital) ? await tuneDigitalChannel(channel.id, 0, t) : await webRequest(channel.tuneUrl[t.id])
-                let pcb = { ok: true }
-                if (t.tuner.post_tune_url !== undefined && t.tuner.post_tune_url && !req.params.no_event)
-                    pcb = await webRequest(t.tuner.post_tune_url)
-                if (((t.digital && tcb) || (!t.digital && tcb.ok)) && pcb.ok) {
-                    channelTimes.timetable[t.id].push({
-                        time: moment().valueOf(),
-                        ch: channel.id,
-                    })
-                    if (channel.updateOnTune)
-                        updateMetadata()
-                    res.status(200).send(`OK - Tuner ${t.id} was tuned to ${channel.name}`)
-                } else {
-                    res.status(500).send(`ERROR - Tuner ${t.id} failed to tune to ${channel.name} due to a url request error (Tune: ${tcb.ok} Post: ${pcb.ok})`)
-                }
+            const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
+            if (_ptn && _ptn.length > 0) {
+                await tuneToChannel(_ptn[0], false)
             } else {
-                res.status(500).send(`ERROR - There are no available radios at this time. They could be disabled, actively recording, or missing a tuneing url (aka manual tuner)`)
+                res.status(404).send(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
             }
         }
     } else {
@@ -1658,6 +1674,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         cron.schedule("*/5 * * * *", async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
+            registerSchedule();
         });
         setTimeout(() => {
             processPendingBounces();
