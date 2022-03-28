@@ -1438,9 +1438,9 @@ async function recordDigitalEvent(job, tuner) {
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
-                return eventItem.duration.toString()
+                return eventItem.duration.toString() + 10000
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
-                return msToTime(parseInt(eventItem.duration.toString()) * 1000).split('.')[0]
+                return msToTime(parseInt(eventItem.duration.toString() + 10000) * 1000).split('.')[0]
             return undefined
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
