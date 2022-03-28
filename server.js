@@ -730,7 +730,7 @@ async function processPendingBounces() {
                 pendingEvent.inprogress = false
             } else {
                 // If Event has completed
-                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (pendingEvent.restrict && isWantedEvent(thisEvent, pendingEvent.restrict))) {
+                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent))) {
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - 14400000)) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                         pendingEvent.guid = thisEvent.guid;
@@ -760,7 +760,7 @@ async function processPendingBounces() {
                             index: true
                         })
                     }
-                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract) && (pendingEvent.restrict && isWantedEvent(thisEvent, pendingEvent.restrict))) {
+                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract) && (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent))) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
@@ -846,7 +846,7 @@ function registerSchedule() {
 function searchEvents() {
     const events = listEventsValidated(false, undefined, 25)
     config.autosearch_terms.map(e => e.search).map(f => {
-        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && (e.duration > 60 && f.duration && e.duration >= f.duration) && isWantedEvent({ search: f.search })).map(e => {
+        events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && (e.duration > 60 && f.duration && e.duration >= f.duration) && isWantedEvent({ search: f.search }, e)).map(e => {
             channelTimes.completed.push(e.guid)
             registerBounce({
                 channel: e.channelId,
