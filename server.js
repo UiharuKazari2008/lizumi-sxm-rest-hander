@@ -505,7 +505,7 @@ function listTuners(digitalOnly) {
                 ...config.digital_radios[e],
                 digital: true,
                 activeCh: (a && m) ? { m, ...a} : null,
-                locked: (Object.keys(activeCh).indexOf(`REC-${e}`) !== -1)
+                locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
         }) : []),
         ...((digitalOnly === false) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
