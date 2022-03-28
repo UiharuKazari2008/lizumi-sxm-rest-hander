@@ -849,6 +849,7 @@ function searchEvents() {
     Object.values(config.autosearch_terms).map(f => {
         console.log(f.search)
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase())).map(e => {
+            console.log(`Found Event ${e.filename}`)
             channelTimes.completed.push(e.guid)
             channelTimes.pending.push({
                 ch: e.channelId,
