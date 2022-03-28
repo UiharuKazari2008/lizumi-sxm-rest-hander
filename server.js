@@ -688,7 +688,7 @@ function listEventsValidated(songs, device, count) {
                 events.push({
                     ...f,
                     channelId: k,
-                    tunerId: dt.id
+                    tunerId: dt[0].id
                 })
             })
         })
