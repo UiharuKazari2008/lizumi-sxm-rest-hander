@@ -1118,7 +1118,7 @@ async function bounceEventGUI(type, device) {
                     `[${(e.tuner.digital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
                     `[📅${e.date}]`,
                     e.name,
-                    `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.exists) ? '💾' : (e.isExtractedDigitally) ? '⏱' : ''}${(e.queued) ? '⏳' : ''}${(e.active) ? '⚙' : ''}${(e.time === "00:00:00") ? '🔴' : ''}]`,
+                    `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.isExtractedDigitally) ? '⏱' : ''}${(e.exists) ? '💾' : ''}${(e.queued) ? '⏳' : ''}${(e.active) ? '⚙' : ''}${(e.time === "00:00:00") ? '🔴' : ''}]`,
                     `${(e.time !== "00:00:00") ? '(' + e.time + ')' : ''}`,
                     '"'
                 ].join(' ')
