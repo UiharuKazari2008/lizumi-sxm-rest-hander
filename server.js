@@ -1393,6 +1393,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
             try {
                 const startTime = Date.now()
                 const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
+                console.log(ffmpeg)
                 const recorder = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
