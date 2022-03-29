@@ -1886,17 +1886,14 @@ app.get("/pending/:action", (req, res) => {
         case "print":
             const activeJobs = Object.keys(activeQueue).map(k => {
                 if (activeQueue[k].guid) {
-                    const activeJob = activeQueue[k]
-                    if (activeJob.guid && activeJob.guid === req.query.guid) {
-                        return {
-                            queue: k,
-                            guid: activeQueue[k].metadata.guid,
-                            start: activeQueue[k].metadata.syncStart,
-                            name: activeQueue[k].metadata.filename,
-                            active: !(activeQueue[k].closed),
-                            liveRec: (activeQueue[k].controller),
-                            isLive: !(activeQueue[k].stopwatch),
-                        }
+                    return {
+                        queue: k,
+                        guid: activeQueue[k].metadata.guid,
+                        start: activeQueue[k].metadata.syncStart,
+                        name: activeQueue[k].metadata.filename,
+                        active: !(activeQueue[k].closed),
+                        liveRec: (activeQueue[k].controller),
+                        isLive: !(activeQueue[k].stopwatch),
                     }
                 }
                 return false
