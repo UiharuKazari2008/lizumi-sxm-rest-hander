@@ -607,11 +607,11 @@ function getBestDigitalTuner() {
 
 // List all events for a channel that are after start time
 function listEvents(channel, time) {
-    return metadata[channel].filter(e => !e.isSong && e.syncStart < time)
+    return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && e.syncStart < time)
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
-    return metadata[channel].filter(e => e.guid === guid)[0]
+    return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time) {
@@ -707,8 +707,8 @@ function listEventsValidated(songs, device, count) {
     events = events
         .filter(f =>
             (parseInt(f.duration.toString()) === 0 ||
-            (!songs && parseInt(f.duration.toString()) < 15 * 60) ||
-            (songs && parseInt(f.duration.toString()) > 15 * 60))
+            ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+            ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60))
         )
         .sort(sortEvents)
     if (count)
@@ -866,7 +866,7 @@ function registerSchedule() {
             if (cron.validate(e.cron)) {
                 let channelId = (e.channelId) ? e.channelId : undefined
                 if (e.ch)
-                    channelId = getChannelbyNumber(e.ch)
+                    channelId = getChannelbyNumber(e.ch).id
 
                 console.log(`Schedule ${k} @ ${e.cron} was created! `)
                 const sch = cron.schedule(e.cron, () => {
@@ -891,7 +891,7 @@ function registerSchedule() {
 }
 // Keyword Search for Events
 function searchEvents() {
-    const events = listEventsValidated(true, undefined, 8)
+    const events = listEventsValidated(false, undefined, 8)
     config.autosearch_terms.map(f => {
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
             console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
@@ -1756,11 +1756,11 @@ app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
             case 'select_bounce_event':
-                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'select_bounce_song':
-                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
