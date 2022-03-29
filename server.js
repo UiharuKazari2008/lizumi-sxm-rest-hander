@@ -1888,9 +1888,7 @@ app.get("/pending/:action", (req, res) => {
                 if (activeQueue[k].guid) {
                     return {
                         queue: k,
-                        guid: activeQueue[k].metadata.guid,
-                        start: activeQueue[k].metadata.syncStart,
-                        name: activeQueue[k].metadata.filename,
+                        guid: activeQueue[k].guid,
                         active: !(activeQueue[k].closed),
                         liveRec: (activeQueue[k].controller),
                         isLive: !(activeQueue[k].stopwatch),
