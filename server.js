@@ -1907,8 +1907,7 @@ app.get("/pending/:action", (req, res) => {
                 return false
             }).filter(e => e !== false)
             const pendingJobs = Object.keys(jobQueue).map(k => {
-                const pendingJob = jobQueue[k]
-                if (pendingJob.length > 0) {
+                return jobQueue[k].map(pendingJob => {
                     return {
                         channelId: pendingJob.metadata.channelId,
                         guid: pendingJob.metadata.guid,
@@ -1918,9 +1917,8 @@ app.get("/pending/:action", (req, res) => {
                         switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
                         isRequested: pendingJob.index
                     }
-                }
-                return false
-            }).filter(e => e !== false)
+                })
+            })
             res.status(200).json({
                 active: activeJobs,
                 pendingJobs: pendingJobs,
