@@ -1252,6 +1252,24 @@ async function setAirOutput(input) {
         }, 5000)
     })
 }
+// Get AirFoil Interface
+async function getAirOutput() {
+    return await new Promise(resolve => {
+        const list = `tell application "Airfoil" to name of current audio source`
+        const childProcess = osascript.execute(list, function (err, result, raw) {
+            if (err)
+                console.error(err)
+            console.log(`airOutput: ${result}`)
+            clearTimeout(childKiller);
+            resolve(result);
+        });
+        const childKiller = setTimeout(function () {
+            childProcess.stdin.pause();
+            childProcess.kill();
+            resolve(null);
+        }, 5000)
+    })
+}
 
 // Job Queues
 
@@ -1500,7 +1518,7 @@ async function recordDigitalEvent(job, tuner) {
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
         if (tuner.record_only) {
-            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record')) || (await getAirOutput()) === tuner.airfoil_source) )
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
         }
