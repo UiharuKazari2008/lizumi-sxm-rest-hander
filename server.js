@@ -635,35 +635,37 @@ function listEventsValidated(songs, device, count) {
             return channelTimes.timetable[d]
                 .slice(0)
                 .map((tc, i, a) => {
-                    return metadata[tc.ch].filter(f =>
-                        // Has duration aka is completed
-                        (parseInt(f.duration.toString()) > 60  || parseInt(f.duration.toString()) === 0)  &&
-                        // First Item or Was Tuned after event start
-                        (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
-                        // Is Last Item or Look ahead and see if this has not occured after the next channel change
-                        (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
-                    ).map((f, i, a) => {
-                        if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                            f.syncEnd = a[i + 1].syncStart - 1
-                            f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
-                        }
-                        if (!f.filename) {
-                            f.filename = (() => {
-                                if (f.isEpisode) {
-                                    return `${cleanText(f.title)}`
-                                } else if (f.isSong) {
-                                    return `${cleanText(f.artist)} - ${cleanText(f.title)}`
-                                } else {
-                                    return `${cleanText(f.title)} - ${cleanText(f.artist)}`
-                                }
-                            })()
-                        }
-                        events.push({
-                            ...f,
-                            channelId: tc.ch,
-                            tunerId: d
+                    return metadata[tc.ch]
+                        .slice(0)
+                        .filter(f =>
+                            // Has duration aka is completed
+                            (parseInt(f.duration.toString()) > 60  || parseInt(f.duration.toString()) === 0)  &&
+                            // First Item or Was Tuned after event start
+                            (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
+                            // Is Last Item or Look ahead and see if this has not occured after the next channel change
+                            (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
+                        ).map((f, i, a) => {
+                            if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                                f.syncEnd = a[i + 1].syncStart - 1
+                                f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                            }
+                            if (!f.filename) {
+                                f.filename = (() => {
+                                    if (f.isEpisode) {
+                                        return `${cleanText(f.title)}`
+                                    } else if (f.isSong) {
+                                        return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                    } else {
+                                        return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                    }
+                                })()
+                            }
+                            events.push({
+                                ...f,
+                                channelId: tc.ch,
+                                tunerId: d
+                            })
                         })
-                    })
                 })
     })
 
@@ -671,35 +673,37 @@ function listEventsValidated(songs, device, count) {
     if (dt) {
         const guidMap = events.map(g => g.guid)
         Object.keys(metadata).map(k => {
-            metadata[k].filter(f =>
-                // If not already attached to a tuner
-                guidMap.indexOf(f.guid) === -1 &&
-                // Has duration aka is completed
-                (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
-                // If Event is less then 4 Hours old
-                (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
-            ).map((f, i, a) => {
-                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                    f.syncEnd = a[i + 1].syncStart - 1
-                    f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
-                }
-                if (!f.filename) {
-                    f.filename = (() => {
-                        if (f.isEpisode) {
-                            return `${cleanText(f.title)}`
-                        } else if (f.isSong) {
-                            return `${cleanText(f.artist)} - ${cleanText(f.title)}`
-                        } else {
-                            return `${cleanText(f.title)} - ${cleanText(f.artist)}`
-                        }
-                    })()
-                }
-                events.push({
-                    ...f,
-                    channelId: k,
-                    tunerId: dt[0].id
+            metadata[k]
+                .slice(0)
+                    .filter(f =>
+                    // If not already attached to a tuner
+                    guidMap.indexOf(f.guid) === -1 &&
+                    // Has duration aka is completed
+                    (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
+                    // If Event is less then 4 Hours old
+                    (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
+                ).map((f, i, a) => {
+                    if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                        f.syncEnd = a[i + 1].syncStart - 1
+                        f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                    }
+                    if (!f.filename) {
+                        f.filename = (() => {
+                            if (f.isEpisode) {
+                                return `${cleanText(f.title)}`
+                            } else if (f.isSong) {
+                                return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                            } else {
+                                return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                            }
+                        })()
+                    }
+                    events.push({
+                        ...f,
+                        channelId: k,
+                        tunerId: dt[0].id
+                    })
                 })
-            })
         })
     }
 
