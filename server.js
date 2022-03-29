@@ -775,9 +775,8 @@ async function processPendingBounces() {
         console.log(channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).map(e => moment.utc(e.time).local().format("YYYY-MM-DD HHmm")))
         console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).length} Pending Events To Search`)
 
-        let inp = channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime)
-        for (let i in inp) {
-            let pendingEvent = inp[i]
+        let inp = channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime).map(item => {
+            let pendingEvent = item
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
                     return getEvent(pendingEvent.ch, pendingEvent.guid)
@@ -853,7 +852,8 @@ async function processPendingBounces() {
                     })
                 }
             }
-        }
+            return pendingEvent
+        })
         inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now()))).sort(sortTime))
         channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
     } catch (err) {
@@ -1266,7 +1266,7 @@ async function startExtractQueue() {
         const completed = await extractRecordedEvent(job)
         console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
     }
-    activeQueue['extract'] = false
+    delete activeQueue['extract']
     return true
 }
 // Queue a digital recording on the best available tuner and start the processor if inactive
@@ -1275,9 +1275,9 @@ function queueDigitalRecording(jobOptions) {
     if (!best_recorder)
         return false
     jobQueue[best_recorder].push(jobOptions)
-    console.log(`Record Job #${jobQueue[best_recorder].length + ((activeQueue[best_recorder] === false) ? 0 : 1)} Queued for ${best_recorder}`)
+    console.log(`Record Job #${jobQueue[best_recorder].length + ((!activeQueue[best_recorder]) ? 0 : 1)} Queued for ${best_recorder}`)
     console.log(jobOptions)
-    if (activeQueue[best_recorder] === false)
+    if (!activeQueue[best_recorder])
         startRecQueue(best_recorder)
 }
 // Process all pending digital recordings as FIFO
@@ -1301,7 +1301,7 @@ async function startRecQueue(q) {
             console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
         }
     }
-    activeQueue[q] = false
+    delete activeQueue[q]
     return true
 }
 
@@ -1318,7 +1318,6 @@ async function initDigitalRecorder(device) {
         console.log(`Tuner "${device.name}":${device.serial} is now ready!`)
         if (!jobQueue['REC-' + device.id]) {
             jobQueue['REC-' + device.id] = [];
-            activeQueue['REC-' + device.id] = false;
         }
     } else {
         console.error(`Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
@@ -1813,7 +1812,7 @@ app.get("/pending/:action", (req, res) => {
         case "remove":
             if (req.query.guid) {
                 const closeJobs = Object.keys(activeQueue).map(k => {
-                    if (activeQueue[k] && activeQueue[k] !== true) {
+                    if (activeQueue[k] && activeQueue[k].guid) {
                         const activeJob = activeQueue[k]
                         if (activeJob.guid && activeJob.guid === req.query.guid) {
                             console.log(`${req.query.guid} job is currently active and will be cancelled`)
@@ -1859,7 +1858,7 @@ app.get("/pending/:action", (req, res) => {
             break;
         case "print":
             const activeJobs = Object.keys(activeQueue).map(k => {
-                if (activeQueue[k] && activeQueue[k] !== true) {
+                if (activeQueue[k] && activeQueue[k].guid) {
                     const activeJob = activeQueue[k]
                     if (activeJob.guid && activeJob.guid === req.query.guid) {
                         return {
@@ -1871,6 +1870,11 @@ app.get("/pending/:action", (req, res) => {
                             liveRec: (activeQueue[k].controller),
                             isLive: !(activeQueue[k].stopwatch),
                         }
+                    }
+                } else if (activeQueue[k] && !activeQueue[k].guid) {
+                    return {
+                        queue: k,
+                        error: `Job has no GUID`
                     }
                 }
                 return false
@@ -2024,7 +2028,6 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             }
         } else {
             jobQueue['extract'] = [];
-            activeQueue['extract'] = false;
         }
         channelTimes.queues = [];
 
