@@ -1889,9 +1889,9 @@ app.get("/pending/:action", (req, res) => {
                     return {
                         queue: k,
                         guid: activeQueue[k].guid,
-                        active: !(activeQueue[k].closed),
-                        liveRec: (activeQueue[k].controller),
-                        isLive: !(activeQueue[k].stopwatch),
+                        active: !(activeQueue[k].hasOwnProperty("closed")),
+                        liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                        isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
                     }
                 }
                 return false
