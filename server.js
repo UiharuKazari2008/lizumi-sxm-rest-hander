@@ -1760,9 +1760,9 @@ app.get("/tune/:channelNum", async (req, res, next) => {
     }
 });
 app.get("/detune/:tuner", async (req, res, next) => {
-    const tuner = getTuner(req.query.tuner);
+    const tuner = getTuner(req.params.tuner);
     if (tuner) {
-        if (!activeQueue[`REC-${req.query.tuner}`] && !locked_tuners.has(tuner.id)) {
+        if (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id)) {
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
