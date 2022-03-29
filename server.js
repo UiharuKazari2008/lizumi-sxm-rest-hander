@@ -12,7 +12,7 @@ const express = require("express");
 const app = express();
 const net = require('net');
 const rimraf = require("rimraf");
-const events = require("events");
+const NodeID3 = require('node-id3')
 
 let metadata = {};
 let channelTimes = {
@@ -1464,6 +1464,23 @@ async function recordDigitalEvent(job, tuner) {
             setAirOutput(tuner.airfoil_source.return_source)
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
+            try {
+                let tags = {
+                    title: eventItem.title,
+                    performerInfo: "SiriusXM"
+                }
+                if (eventItem.artist)
+                    tags.artist = eventItem.artist
+                tags.album = (eventItem.album) ? eventItem.album : getChannelbyId(eventItem.channelId).name
+                tags.comment = {
+                    language: "eng",
+                    text: "SiriusXM"
+                }
+                const tagsWritten = NodeID3.write(tags, completedFile)
+            } catch (e) {
+                console.error(`Failed to write tags`)
+                console.error(e)
+            }
             await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.post_directorys)
         } else if (fs.existsSync(completedFile)) {
             rimraf(completedFile, () => {})
@@ -1551,6 +1568,23 @@ async function extractRecordedEvent(job) {
 
             if (trimEventFile && fs.existsSync(trimEventFile.toString())) {
                 console.log(`Extract: Extraction complete for ${eventFilename.trim()}!`)
+                try {
+                    let tags = {
+                        title: eventItem.title,
+                        performerInfo: "SiriusXM"
+                    }
+                    if (eventItem.artist)
+                        tags.artist = eventItem.artist
+                    tags.album = (eventItem.album) ? eventItem.album : getChannelbyId(eventItem.channelId).name
+                    tags.comment = {
+                        language: "eng",
+                        text: "SiriusXM"
+                    }
+                    const tagsWritten = NodeID3.write(tags, trimEventFile)
+                } catch (e) {
+                    console.error(`Failed to write tags`)
+                    console.error(e)
+                }
                 await postExtraction(trimEventFile, eventFilename, job.post_directorys);
                 if (channelTimes.complete.indexOf(eventItem.guid) === -1)
                     channelTimes.complete.push(eventItem.guid)
