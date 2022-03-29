@@ -1441,7 +1441,9 @@ function recordDigitalAudioInterface(tuner, time, event) {
 // Record an event on a digital tuner
 async function recordDigitalEvent(job, tuner) {
     console.log(`Record/${tuner.id}: Preparing for digital dubbing...`)
-    const eventItem = job.metadata
+    let eventItem = getEvent(job.metadata.channelId, job.metadata.guid)
+    if (!eventItem)
+        eventItem = job.metadata.channelId
     console.log(eventItem)
     console.log(tuner)
     adbLogStart(tuner.serial)
