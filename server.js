@@ -726,7 +726,8 @@ function listEventsValidated(songs, device, count) {
 // Format List of Events Data
 function formatEventList(events) {
     const channel = listChannels()
-    const activeJobs = Object.keys(jobQueue).map(k => {return { q: k, ids: jobQueue[k].map(e => e.metadata.guid) }})
+    const pendingJobs = Object.keys(jobQueue).map(k => {return { q: k, ids: jobQueue[k].map(e => e.metadata.guid) }})
+    const activeJob = Object.keys(activeQueue).map(k => {return { q: k, id: activeQueue[k].guid }})
     return events.map(e => {
         const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
         const dyp = (events.filter(f =>
@@ -742,7 +743,8 @@ function formatEventList(events) {
             }
             return false
         })()
-        const queued = activeJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
+        const queued = pendingJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
+        const active = activeJob.filter(q => (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
         return {
             tunerId: tun.id,
             tuner: tun,
@@ -751,6 +753,7 @@ function formatEventList(events) {
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             queued,
+            active,
             exists: ex,
             duplicate: dyp,
             name: e.filename,
@@ -771,11 +774,7 @@ async function processPendingBounces() {
         return 0
     }
     try {
-        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).length} Pending Events Post-Dated`)
-        console.log(channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) > Date.now())).map(e => moment.utc(e.time).local().format("YYYY-MM-DD HHmm")))
-        console.log(`${channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).length} Pending Events To Search`)
-
-        let inp = channelTimes.pending.filter(e => e.done === false && (e.time + 6000) <= Date.now()).sort(sortTime).map(item => {
+        let inp = channelTimes.pending.filter(e => e.done === false && ((e.time + 6000) <= Date.now())).sort(sortTime).map(item => {
             let pendingEvent = item
             let thisEvent = (() => {
                 if (pendingEvent.ch && pendingEvent.guid)
@@ -810,6 +809,7 @@ async function processPendingBounces() {
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
 
+                        console.log(`Digital Recording Found! "${thisEvent.filename}"`)
                         queueDigitalRecording({
                             metadata: {
                                 channelId: pendingEvent.ch,
@@ -825,6 +825,7 @@ async function processPendingBounces() {
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
 
+                        console.log(`Extractable Event Found! "${thisEvent.filename}"`)
                         queueRecordingExtraction({
                             metadata: {
                                 channelId: pendingEvent.ch,
@@ -841,6 +842,9 @@ async function processPendingBounces() {
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
+
+                    console.log(`Live Digital Recording Found! "${thisEvent.filename}"`)
+
                     queueDigitalRecording({
                         metadata: {
                             channelId: pendingEvent.ch,
@@ -854,7 +858,7 @@ async function processPendingBounces() {
             }
             return pendingEvent
         })
-        inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now()))).sort(sortTime))
+        inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now()))))
         channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
     } catch (err) {
         console.error(err)
@@ -1111,10 +1115,11 @@ async function bounceEventGUI(type, device) {
             const listmeta = eventsMeta.reverse().map(e =>
                 [
                     '"',
-                    `[${(e.tuner.isDigital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
+                    `[${(e.tuner.digital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
                     `[📅${e.date}]`,
                     e.name,
-                    `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.exists) ? '💾' : (e.isExtractedDigitally) ? '⏱' : ''}${(e.queued) ? '⏳' : ''}${(e.time !== "00:00:00") ? '(' + e.time + ')' : '🔴'}]`,
+                    `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.exists) ? '💾' : (e.isExtractedDigitally) ? '⏱' : ''}${(e.queued) ? '⏳' : ''}${(e.active) ? '⚙' : ''}${(e.time === "00:00:00") ? '🔴' : ''}]`,
+                    `${(e.time !== "00:00:00") ? '(' + e.time + ')' : ''}`,
                     '"'
                 ].join(' ')
             )
@@ -1253,7 +1258,7 @@ async function setAirOutput(input) {
 // Queue a recorded event extraction and start the processor if inactive
 function queueRecordingExtraction(jobOptions) {
     jobQueue['extract'].push(jobOptions)
-    console.log(`Extraction Job #${jobQueue['extract'].length + ((activeQueue['extract'] === false) ? 0 : 1)} Queued`)
+    console.log(`Extraction Job #${jobQueue['extract'].length} Queued`)
     console.log(jobOptions)
     if (activeQueue['extract'] === false)
         startExtractQueue()
@@ -1262,8 +1267,9 @@ function queueRecordingExtraction(jobOptions) {
 async function startExtractQueue() {
     activeQueue['extract'] = true
     while (jobQueue['extract'].length !== 0) {
-        const job = jobQueue['extract'].shift()
+        const job = jobQueue['extract'][0]
         const completed = await extractRecordedEvent(job)
+        jobQueue['extract'].shift()
         console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
     }
     delete activeQueue['extract']
@@ -1275,7 +1281,7 @@ function queueDigitalRecording(jobOptions) {
     if (!best_recorder)
         return false
     jobQueue[best_recorder].push(jobOptions)
-    console.log(`Record Job #${jobQueue[best_recorder].length + ((!activeQueue[best_recorder]) ? 0 : 1)} Queued for ${best_recorder}`)
+    console.log(`Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder}`)
     console.log(jobOptions)
     if (!activeQueue[best_recorder])
         startRecQueue(best_recorder)
@@ -1285,9 +1291,10 @@ async function startRecQueue(q) {
     activeQueue[q] = true
     while (jobQueue[q].length !== 0) {
         const tuner = getTuner(q.slice(4))
-        const job = jobQueue[q].shift()
+        const job = jobQueue[q][0]
         if (moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
             const completed = await recordDigitalEvent(job, tuner)
+            jobQueue[q].shift()
             console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
         } else {
             if (job.index) {
@@ -1298,6 +1305,7 @@ async function startRecQueue(q) {
                 channelTimes.pending[index].done = false
                 channelTimes.pending[index].failedRec = true
             }
+            jobQueue[q].shift()
             console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
         }
     }
