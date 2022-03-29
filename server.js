@@ -12,7 +12,8 @@ const express = require("express");
 const app = express();
 const net = require('net');
 const rimraf = require("rimraf");
-const NodeID3 = require('node-id3')
+const NodeID3 = require('node-id3');
+const stream = require('stream');
 
 let metadata = {};
 let channelTimes = {
@@ -27,7 +28,7 @@ let locked_tuners = new Map();
 let adblog_tuners = new Map();
 let scheduled_tasks = new Map();
 let device_logs = {};
-let stopwatches_tuners = new Map();
+let audio_servers = new Map();
 let nowPlayingGUID = {};
 let digitalAvailable = false
 let satelliteAvailable = false
@@ -520,7 +521,8 @@ function listTuners(digitalOnly) {
             })()
             return {
                 id: e,
-                audioPort: 28200 + i,
+                localAudioPort: 28200 + i,
+                audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
                 activeCh: (a && m) ? { m, ...a} : null,
@@ -1342,7 +1344,9 @@ async function initDigitalRecorder(device) {
     const socketready = await startAudioDevice(device);
     if (socketready) {
         console.log(`Tuner "${device.name}":${device.serial} is now ready!`)
-        if (!jobQueue['REC-' + device.id]) {
+        await createAudioServer(device);
+        const clientOk = await startAudioClient(device);
+        if (!jobQueue['REC-' + device.id] && clientOk) {
             jobQueue['REC-' + device.id] = [];
         }
     } else {
@@ -1350,30 +1354,96 @@ async function initDigitalRecorder(device) {
         locked_tuners.set(device.id, {})
     }
 }
+// Start TCP Audio Server and Pipeline
+async function startAudioClient(device) {
+    console.log(`${device.id}: (6/6) Starting Audio Pipeline TCP ${device.localAudioPort} => TCP ${device.audioPort}...`)
+    const audioServer = audio_servers.get(device.id)
+    if (audioServer.hasOwnProperty("passTrough")) {
+        const passTrough = audioServer.passTrough
+        let player = new net.Socket()
+        async function connectDevice(port) {
+            player = net.connect(port, "127.0.0.1", function () {
+                console.log(`Connected to device audio tcp://127.0.0.1:${port}`)
+            });
+            player.on("data", (data) => passTrough.push(data));
+            player.on('close', function () {
+                console.log('Device Audio Disconnect.');
+                setTimeout(() => {
+                    connectDevice(port, true)
+                }, 5000)
+            });
+            player.on('error', function (err) {
+                console.error(JSON.stringify(err));
+            });
+        }
+        connectDevice(device.audioPort)
+        return true
+    } else {
+        console.error('No Audio Server is running!')
+        return false
+    }
+}
+// Connect Device to TCP Audio Server Pipeline
+async function createAudioServer(device) {
+    return new Promise((resolve => {
+        console.log(`${device.id}: (5/6) Starting Audio Relay @ TCP ${device.audioPort}...`)
+        const passTrough = new stream.PassThrough();
+        const audioServer = net.createServer(function (client) {
+            console.log(`TAS/${device.id}: Audio Client Connected ${client.localAddress} => ${client.remotePort}`);
+            passTrough.pipe(client)
+            client.on('error', function (err) {
+                if (err.message === 'read ECONNRESET') {
+                    audioServer.getConnections(function (err, count) {
+                        if (!err) {
+                            console.log(`TAS/${device.id}: Audio Client Disconnected - There are ${count} connections now.`);
+                        } else {
+                            console.error(JSON.stringify(err))
+                        }
+                    });
+                } else {
+                    console.error(`TAS/${device.id}: Audio Server Error: ${err.message}`);
+                }
+            })
+        });
+        audioServer.listen(device.audioPort, function () {
+            const serverInfo = audioServer.address();
+            const serverInfoJson = JSON.stringify(serverInfo);
+            console.log(`TCP server listen on port : ${serverInfoJson.port}`);
+            audioServer.on('close', function () {
+                console.log('TCP Audio Socket Closed');
+            });
+            audioServer.on('error', function (error) {
+                console.error(JSON.stringify(error));
+            });
+        });
+        audio_servers.set(device.id, {audioServer, passTrough})
+        resolve(true)
+    }))
+}
 // Start the USB Audio Interface
 async function startAudioDevice(device) {
     return await new Promise(async (resolve, reject) => {
         console.log(`Setting up USB Audio Interface for "${device.name}"...`)
         async function start() {
-            console.log(`${device.id}: (1/4) Installing USB Interface...`)
+            console.log(`${device.id}: (1/6) Installing USB Interface...`)
             const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
             if (ins.exitCode !== 0 || !ins.exitCode === null) {
                 console.error(`${device.id}: Application Failed to install, Maybe try to uninstall the application?`)
                 return false
             }
-            console.log(`${device.id}: (2/4) Enabling Audio Recording Permissions...`)
+            console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
             const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
             if (alw.exitCode !== 0 || !alw.exitCode === null) {
                 console.error(`${device.id}: Failed to pre-authorize screen recording permissions, Are you useing Android 10+? you should be`)
                 return false
             }
-            console.log(`${device.id}: (3/4) Connecting Device Socket @ TCP ${device.audioPort}...`)
-            const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy"])
-            if ((fwa.exitCode !== 0 || !fwa.exitCode === null) && fwa.log[0] !== `${device.audioPort}`) {
-                console.error(`${device.id}: Failed to open the TCP socket, is something using port ${device.audioPort}?`)
+            console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
+            const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
+            if ((fwa.exitCode !== 0 || !fwa.exitCode === null) && fwa.log[0] !== `${device.localAudioPort}`) {
+                console.error(`${device.id}: Failed to open the TCP socket, is something using port ${device.localAudioPort}?`)
                 return false
             }
-            console.log(`${device.id}: (4/4) Starting Audio Interface...`)
+            console.log(`${device.id}: (4/6) Starting Audio Interface...`)
             const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
             const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
             if ((sta.exitCode !== 0 || !sta.exitCode === null) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {')) {
@@ -1388,7 +1458,7 @@ async function startAudioDevice(device) {
 }
 // Stop the USB Audio Interface
 async function stopAudioDevice(device) {
-    await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.audioPort}`])
+    await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.localAudioPort}`])
     await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
 }
 // Tune to Digital Channel on Android Device
@@ -1424,7 +1494,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
             try {
                 const startTime = Date.now()
                 const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
-                console.log(ffmpeg)
+                console.log(ffmpeg.join(' '))
                 const recorder = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                     encoding: 'utf8'
@@ -1517,8 +1587,8 @@ async function recordDigitalEvent(job, tuner) {
             return undefined
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
-        if (tuner.record_only) {
-            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record')) || (await getAirOutput()) === tuner.airfoil_source) )
+        if (tuner.record_only || tuner.stop_after_record) {
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record')) || (await getAirOutput()) === tuner.airfoil_source.name) )
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
         }
