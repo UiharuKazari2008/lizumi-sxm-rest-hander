@@ -1549,11 +1549,11 @@ async function recordDigitalEvent(job, tuner) {
             adblog_tuners.get(tuner.serial).kill(9)
         if (job.index) {
             const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
-            if (fs.existsSync(completedFile)) {
+            if (fs.existsSync(completedFile) && channelTimes.pending[index].hasOwnProperty("inprogress")) {
                 channelTimes.pending[index].inprogress = false
                 channelTimes.pending[index].liveRec = false
                 channelTimes.pending[index].done = true
-            } else {
+            } else if (channelTimes.pending[index].hasOwnProperty("inprogress")) {
                 console.error(`Record/${tuner.id}: Failed job should be picked up by the recording extractor (if available)`)
                 channelTimes.pending[index].inprogress = false
                 channelTimes.pending[index].liveRec = false
@@ -1889,7 +1889,7 @@ app.get("/pending/:action", (req, res) => {
                     return {
                         queue: k,
                         guid: activeQueue[k].guid,
-                        active: !(activeQueue[k].hasOwnProperty("closed")),
+                        active: !(activeQueue[k].closed),
                         liveRec: (activeQueue[k].hasOwnProperty("controller")),
                         isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
                     }
