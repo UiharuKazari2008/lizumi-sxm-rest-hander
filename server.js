@@ -1885,6 +1885,7 @@ app.get("/pending/:action", (req, res) => {
             break;
         case "print":
             const activeJobs = Object.keys(activeQueue).map(k => {
+                console.log(activeQueue[k])
                 if (activeQueue[k] && activeQueue[k].guid) {
                     const activeJob = activeQueue[k]
                     if (activeJob.guid && activeJob.guid === req.query.guid) {
