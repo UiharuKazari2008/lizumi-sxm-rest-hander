@@ -1885,8 +1885,7 @@ app.get("/pending/:action", (req, res) => {
             break;
         case "print":
             const activeJobs = Object.keys(activeQueue).map(k => {
-                console.log(activeQueue[k])
-                if (activeQueue[k] && activeQueue[k].guid) {
+                if (activeQueue[k].guid) {
                     const activeJob = activeQueue[k]
                     if (activeJob.guid && activeJob.guid === req.query.guid) {
                         return {
@@ -1898,11 +1897,6 @@ app.get("/pending/:action", (req, res) => {
                             liveRec: (activeQueue[k].controller),
                             isLive: !(activeQueue[k].stopwatch),
                         }
-                    }
-                } else if (activeQueue[k] && !activeQueue[k].guid) {
-                    return {
-                        queue: k,
-                        error: `Job has no GUID`
                     }
                 }
                 return false
