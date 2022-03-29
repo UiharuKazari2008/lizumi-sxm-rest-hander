@@ -1849,8 +1849,9 @@ app.get("/pending/:action", (req, res) => {
                     const clearedPending = channelTimes.pending.filter(e => !e.guid || (e.guid && e.guid !== req.query.guid))
                     if (clearedPending.length !== channelTimes.pending.length) {
                         console.log(`Cleared ${channelTimes.pending.length - clearedPending.length} Jobs from Pending Queue`)
+                        const length = channelTimes.pending.length - clearedPending.length
                         channelTimes.pending = clearedPending
-                        return (channelTimes.pending.length - clearedPending.length)
+                        return (length)
                     }
                     return 0
                 })()
