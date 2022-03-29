@@ -20,7 +20,8 @@ let channelTimes = {
 
     },
     pending: [],
-    completed: []
+    completed: [],
+    queues:[]
 };
 let locked_tuners = new Map();
 let adblog_tuners = new Map();
@@ -277,6 +278,12 @@ async function saveMetadata() {
         }
         resolve(null);
     })
+    channelTimes.queues = [];
+    Object.keys(jobQueue).map(k => {
+        const q = jobQueue[k]
+        if (q && q.length > 0)
+            channelTimes.queues.push({ k, q })
+    })
     await new Promise(resolve => {
         fs.writeFile(
             path.join(config.record_dir, `metadata.json`),
@@ -289,6 +296,7 @@ async function saveMetadata() {
             JSON.stringify(channelTimes),
             () => { resolve(null) })
     })
+    channelTimes.queues = [];
     return true;
 }
 // Get active tuners and send now playing notifications
@@ -1815,8 +1823,21 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
         }
-        jobQueue['extract'] = [];
-        activeQueue['extract'] = false;
+        if (channelTimes.queues && channelTimes.queues.length > 0) {
+            for (const a of channelTimes.queues) {
+                console.log(`Recovering Queue "${a.k}"...`)
+                jobQueue[a.k] = a.q
+                if (a.k.startsWith("REC-") && a.q.length > 0) {
+                    startRecQueue(a.k)
+                } else if (a.q.length > 0) {
+                    startExtractQueue()
+                }
+            }
+        } else {
+            jobQueue['extract'] = [];
+            activeQueue['extract'] = false;
+        }
+        channelTimes.queues = [];
 
         if (tun.filter(e => e.digital).length > 0)
             digitalAvailable = true
