@@ -321,7 +321,7 @@ async function nowPlayingNotification(forceUpdate) {
                 }
             })()
             const ch = channels.channels[channels.ids.indexOf(t.activeCh.ch)]
-            console.log(`Now Playing: ${t.tuner.name}:${t.activeCh.ch} - ${eventText}`)
+            console.log(`Now Playing: ${t.name}:${t.activeCh.ch} - ${eventText}`)
             await new Promise(resolve => {
                 const list = `display notification "${(n.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(n.syncStart).format("HH:mm:ss")}" with title "📻 ${(ch.name) ? ch.name : "SiriusXM"}"`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
