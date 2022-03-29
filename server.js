@@ -816,7 +816,7 @@ async function processPendingBounces() {
                                 ...thisEvent
                             },
                             post_directorys: pendingEvent.post_directorys,
-                            switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : true,
+                            switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                             index: true
                         })
                     } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
@@ -851,7 +851,7 @@ async function processPendingBounces() {
                             ...thisEvent
                         },
                         post_directorys: pendingEvent.post_directorys,
-                        switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : true,
+                        switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
                 }
@@ -892,7 +892,7 @@ function registerSchedule() {
                         addTime: 0,
                         restrict: (e.restrict) ? e.restrict : undefined,
                         post_directorys: (e.post_directorys) ? e.post_directorys : undefined,
-                        switch_source: (e.switch_source) ? e.switch_source : undefined
+                        switch_source: (e.switch_source) ? e.switch_source : false
                     })
                 })
                 scheduled_tasks.set(k, sch)
@@ -919,7 +919,7 @@ function searchEvents() {
                 tunerId: e.tunerId,
                 digitalOnly: (f.digitalOnly),
                 post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
-                switch_source: (f.switch_source) ? f.switch_source : undefined,
+                switch_source: (f.switch_source) ? f.switch_source : false,
                 automatic: true,
                 inprogress: false,
                 done: false,
@@ -958,7 +958,7 @@ function registerBounce(options) {
             restrict: (options.restrict) ? options.restrict : undefined,
             time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : moment().valueOf() + (options.addTime * 60000),
             post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
-            switch_source: (options.switch_source) ? options.switch_source : undefined,
+            switch_source: (options.switch_source) ? options.switch_source : false,
             inprogress: false,
             done: false,
         }
@@ -1825,6 +1825,8 @@ app.get("/pending/:action", (req, res) => {
             }
             if (req.query.time)
                 options.absoluteTime = parseInt(req.query.time)
+            if (req.query.play)
+                options.switch_source = (req.query.play)
 
             const results = registerBounce(options);
             processPendingBounces();
