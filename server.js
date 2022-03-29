@@ -514,7 +514,7 @@ function listTuners(digitalOnly) {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
-                if (a && a.length > 0)
+                if (a)
                     return metadata[a.ch].slice(-1).pop()
                 return null
             })()
@@ -531,7 +531,7 @@ function listTuners(digitalOnly) {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             const m = (() => {
-                if (a && a.length > 0)
+                if (a)
                     return metadata[a.ch].slice(-1).pop()
                 return null
             })()
