@@ -722,6 +722,7 @@ function listEventsValidated(songs, device, count) {
 // Format List of Events Data
 function formatEventList(events) {
     const channel = listChannels()
+    const activeJobs = Object.keys(jobQueue).map(k => {return { q: k, ids: jobQueue[k].map(e => e.metadata.guid) }})
     return events.map(e => {
         const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
         const dyp = (events.filter(f =>
@@ -737,6 +738,7 @@ function formatEventList(events) {
             }
             return false
         })()
+        const queued = activeJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
         return {
             tunerId: tun.id,
             tuner: tun,
@@ -744,6 +746,7 @@ function formatEventList(events) {
             isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
+            queued,
             exists: ex,
             duplicate: dyp,
             name: e.filename,
@@ -1104,11 +1107,10 @@ async function bounceEventGUI(type, device) {
             const listmeta = eventsMeta.reverse().map(e =>
                 [
                     '"',
-                    `[${(e.tuner.isDigital) ? '💿' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
+                    `[${(e.tuner.isDigital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
                     `[📅${e.date}]`,
-                    `${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.exists) ? '🟩' : (e.isExtractedDigitally) ? '🟪' : ''}`,
                     e.name,
-                    `${(e.time !== "00:00:00") ? '(' + e.time + ')' : '🔴'}`,
+                    `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.exists) ? '💾' : (e.isExtractedDigitally) ? '⏱' : ''}${(e.queued) ? '⏳' : ''}${(e.time !== "00:00:00") ? '(' + e.time + ')' : '🔴'}]`,
                     '"'
                 ].join(' ')
             )
@@ -1411,7 +1413,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 })
 
                 if (!time) {
-                    console.log("Record/${tuner.id}: This is a live event and has no duration, watching for closure")
+                    console.log(`Record/${tuner.id}: This is a live event and has no duration, watching for closure`)
                     controller = setInterval(() => {
                         const eventData = getEvent(event.channelId, event.guid)
                         if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
@@ -1453,9 +1455,9 @@ async function recordDigitalEvent(job, tuner) {
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
-                return eventItem.duration.toString() + 10000
+                return eventItem.duration.toString() + 10
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
-                return msToTime(parseInt(eventItem.duration.toString() + 10000) * 1000).split('.')[0]
+                return msToTime(parseInt(eventItem.duration.toString() + 10) * 1000).split('.')[0]
             return undefined
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
