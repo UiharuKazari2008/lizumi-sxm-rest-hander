@@ -959,11 +959,11 @@ function registerBounce(options) {
             done: false,
         }
         channelTimes.pending.push(pendEvent)
-        console.log(`Pending Bounce registred!`)
+        console.log(`Pending Bounce registered!`)
         console.log(pendEvent)
         // Add new notification service
         saveMetadata();
-        return true
+        return pendEvent
     } else {
         console.error("Missing Required data to register a pending Extraction")
         return false
@@ -1236,6 +1236,7 @@ async function setAirOutput(input) {
         const childProcess = osascript.execute(list, function (err, result, raw) {
             if (err)
                 console.error(err)
+            console.log(`airOutput: ${result}`)
             clearTimeout(childKiller);
             resolve(!(err));
         });
@@ -1382,6 +1383,7 @@ async function releaseDigitalTuner(device) {
 function recordDigitalAudioInterface(tuner, time, event) {
     return new Promise(async function (resolve) {
         let controller = null
+        let stopwatch = null
         const input = await (async () => {
             if (tuner.audio_interface) {
                 console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
@@ -1403,6 +1405,12 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     encoding: 'utf8'
                 })
 
+                activeQueue[`REC-${tuner.id}`] = {
+                    recorder,
+                    closed: false,
+                    guid: event.guid
+                }
+
                 recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) })
                 recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) });
                 recorder.on('close', (code, signal) => {
@@ -1412,8 +1420,13 @@ function recordDigitalAudioInterface(tuner, time, event) {
                         resolve(false)
                     } else {
                         console.log(`Record/${tuner.id}: Completed!`)
-                        resolve(fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                        if (stopwatch)
+                            clearTimeout(stopwatch)
+                        if (controller)
+                            clearInterval(controller)
+                        resolve((!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) ? false : fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
                     }
+
                     locked_tuners.delete(tuner.id)
                 })
 
@@ -1421,17 +1434,30 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     console.log(`Record/${tuner.id}: This is a live event and has no duration, watching for closure`)
                     controller = setInterval(() => {
                         const eventData = getEvent(event.channelId, event.guid)
-                        if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                        if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) {
+                            clearInterval(controller)
+                        } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
                             const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
                             console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
-                            const stopwatch = setTimeout(() => {
+                            stopwatch = setTimeout(() => {
                                 recorder.stdin.write('q')
-                                stopwatches_tuners.delete(tuner.id)
                             }, termTime)
-                            stopwatches_tuners.set(tuner.id, stopwatch)
+                            activeQueue[`REC-${tuner.id}`] = {
+                                recorder,
+                                stopwatch,
+                                closed: false,
+                                guid: event.guid
+                            }
                             clearInterval(controller)
+                            controller = null
                         }
                     }, 60000)
+                    activeQueue[`REC-${tuner.id}`] = {
+                        recorder,
+                        controller,
+                        closed: false,
+                        guid: event.guid
+                    }
                 }
 
                 locked_tuners.set(tuner.id, recorder)
@@ -1467,10 +1493,10 @@ async function recordDigitalEvent(job, tuner) {
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
         if (tuner.record_only) {
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
+                setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
         }
-        if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
-            setAirOutput(tuner.airfoil_source.return_source)
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
             try {
@@ -1733,7 +1759,22 @@ app.get("/tune/:channelNum", async (req, res, next) => {
         res.status(404).send('Channel not found')
     }
 });
-app.get("/airSource/:tuner", async (req, res, next) => {
+app.get("/detune/:tuner", async (req, res, next) => {
+    const tuner = getTuner(req.query.tuner);
+    if (tuner) {
+        if (!activeQueue[`REC-${req.query.tuner}`] && !locked_tuners.has(tuner.id)) {
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
+                setAirOutput(tuner.airfoil_source.return_source)
+            await releaseDigitalTuner(tuner)
+            res.status(200).send('OK')
+        } else {
+            res.status(401).send('Tuner Locked')
+        }
+    } else {
+        res.status(404).send('Tuner not found')
+    }
+});
+app.get("/source/:tuner", async (req, res, next) => {
     const t = getTuner(req.params.tuner)
     if (t && t.airfoil_source && t.airfoil_source.name) {
         await setAirOutput(t.airfoil_source.name)
@@ -1742,25 +1783,126 @@ app.get("/airSource/:tuner", async (req, res, next) => {
         res.status(404).send("Tuner not found")
     }
 })
-app.get("/pend_bounce", (req, res) => {
-    let options = {
-        addTime: (req.query.add_time) ? parseInt(req.query.add_time) : 0,
-        digitalOnly: (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined
-    }
-    if (req.query.ch) {
-        const channelId = getChannelbyNumber(req.query.ch)
-        options.channel = (channelId) ? channelId.id : undefined
-    }
-    if (req.query.tuner) {
-        const tuner = getTuner(req.query.tuner)
-        options.tuner = (tuner) ? tuner : undefined;
-    }
-    if (req.query.time)
-        options.absoluteTime = parseInt(req.query.time)
+app.get("/pending/:action", (req, res) => {
+    switch (req.params.action) {
+        case "add":
+            let options = {
+                addTime: (req.query.add_time) ? parseInt(req.query.add_time) : 0,
+                digitalOnly: (req.query.digitalOnly && req.query.digitalOnly === "true") ? true : undefined
+            }
+            if (req.query.ch) {
+                const channelId = getChannelbyNumber(req.query.ch)
+                options.channel = (channelId) ? channelId.id : undefined
+            }
+            if (req.query.tuner) {
+                const tuner = getTuner(req.query.tuner)
+                options.tuner = (tuner) ? tuner : undefined;
+            }
+            if (req.query.time)
+                options.absoluteTime = parseInt(req.query.time)
 
-    registerBounce(options);
-    processPendingBounces();
-    res.status(200).json(options);
+            const results = registerBounce(options);
+            processPendingBounces();
+
+            if (results) {
+                res.status(200).json(results);
+            } else {
+                res.status(500).send("Failed");
+            }
+            break;
+        case "remove":
+            if (req.query.guid) {
+                const closeJobs = Object.keys(activeQueue).map(k => {
+                    if (activeQueue[k] && activeQueue[k] !== true) {
+                        const activeJob = activeQueue[k]
+                        if (activeJob.guid && activeJob.guid === req.query.guid) {
+                            console.log(`${req.query.guid} job is currently active and will be cancelled`)
+                            activeQueue[k].closed = true
+                            if (activeQueue[k].stopwatch)
+                                clearTimeout(activeQueue[k].stopwatch)
+                            if (activeQueue[k].controller)
+                                clearInterval(activeQueue[k].controller)
+                            if (activeQueue[k].recorder)
+                                activeQueue[k].recorder.kill(9)
+                            return true
+                        }
+                    }
+                    return false
+                }).filter(e => e === true).length
+                const clearJobs = Object.keys(jobQueue).map(k => {
+                    const clearedPendJobs = jobQueue[k].filter(e => e.metadata.guid !== req.query.guid)
+                    if (clearedPendJobs.length !== jobQueue[k].length) {
+                        console.log(`Cleared ${jobQueue[k].length - clearedPendJobs.length} Jobs from Pending Jobs`)
+                        jobQueue[k] = clearedPendJobs
+                        return true
+                    }
+                    return false
+                }).filter(e => e === true).length
+                const clearPending = (() => {
+                    const clearedPending = channelTimes.pending.filter(e => !e.guid || (e.guid && e.guid !== req.query.guid))
+                    if (clearedPending.length !== channelTimes.pending.length) {
+                        console.log(`Cleared ${channelTimes.pending.length - clearedPending.length} Jobs from Pending Queue`)
+                        channelTimes.pending = clearedPending
+                        return (channelTimes.pending.length - clearedPending.length)
+                    }
+                    return 0
+                })()
+                let response = []
+                if (closeJobs > 0)
+                    response.push(`Closed ${closeJobs} active jobs`)
+                if (clearJobs > 0)
+                    response.push(`Cleared ${closeJobs} pending jobs`)
+                if (clearPending > 0)
+                    response.push(`Cleared ${clearPending} pending requests`)
+                res.status(200).send(response.join('\n'))
+            }
+            break;
+        case "print":
+            const activeJobs = Object.keys(activeQueue).map(k => {
+                if (activeQueue[k] && activeQueue[k] !== true) {
+                    const activeJob = activeQueue[k]
+                    if (activeJob.guid && activeJob.guid === req.query.guid) {
+                        return {
+                            queue: k,
+                            guid: activeQueue[k].metadata.guid,
+                            start: activeQueue[k].metadata.syncStart,
+                            name: activeQueue[k].metadata.filename,
+                            active: !(activeQueue[k].closed),
+                            liveRec: (activeQueue[k].controller),
+                            isLive: !(activeQueue[k].stopwatch),
+                        }
+                    }
+                }
+                return false
+            }).filter(e => e !== false)
+            const pendingJobs = Object.keys(jobQueue).map(k => {
+                const pendingJob = jobQueue[k]
+                if (pendingJob.length > 0) {
+                    return {
+                        channelId: pendingJob.metadata.channelId,
+                        guid: pendingJob.metadata.guid,
+                        start: pendingJob.metadata.syncStart,
+                        name: pendingJob.metadata.filename,
+                        post_directorys: pendingJob.post_directorys,
+                        switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
+                        isRequested: pendingJob.index
+                    }
+                }
+                return false
+            }).filter(e => e !== false)
+            res.status(200).json({
+                active: activeJobs,
+                pendingJobs: pendingJobs,
+                requests: channelTimes.pending
+            })
+            break;
+        case "activeRecording":
+        case "activeLiveRecording":
+        default:
+            res.status(400).send(`Unknown Action: ${action}`);
+            break;
+    }
+
 })
 app.get("/search_extract/:action", (req, res) => {
     switch (req.params.action) {
