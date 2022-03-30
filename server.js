@@ -1913,7 +1913,7 @@ async function postExtraction(extractedFile, eventFilename, overrides) {
 // tuner: Tuner ID to tune too
 app.get("/tune/:channelNum", async (req, res, next) => {
     await tuneToChannel({
-        channel: res.params.channel,
+        channel: res.params.channelNum,
         tuner: (res.query.tuner) ? res.query.tuner : undefined
     })
 });
