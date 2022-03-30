@@ -303,7 +303,7 @@ async function saveMetadata() {
 }
 // Get active tuners and send now playing notifications
 async function nowPlayingNotification(forceUpdate) {
-    const activeTuners = listTuners().filter(e => e.activeCh)
+    const activeTuners = listTuners().filter(e => e.activeCh && !e.activeCh.hasOwnProperty("end"))
     const channels = listChannels()
     for (const t of activeTuners) {
         const _n = metadata[t.activeCh.ch]
@@ -515,34 +515,24 @@ function listTuners(digitalOnly) {
         ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
-            const m = (() => {
-                if (a && metadata[a.ch])
-                    return metadata[a.ch].slice(-1).pop()
-                return null
-            })()
             return {
                 id: e,
                 localAudioPort: 28200 + i,
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                activeCh: (a && m) ? { m, ...a} : null,
+                activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
         }) : []),
         ...((digitalOnly === true) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
-            const m = (() => {
-                if (a && metadata[a.ch])
-                    return metadata[a.ch].slice(-1).pop()
-                return null
-            })()
             return {
                 id: e,
                 ...config.satellite_radios[e],
                 digital: false,
-                activeCh: (a && m) ? { m, ...a} : null,
+                activeCh: (a) ? a : null,
                 locked: locked_tuners.has(e)
             }
         }) : [])
