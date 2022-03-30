@@ -461,8 +461,8 @@ function adbLogStart(device) {
     adblog_tuners.set(device, logWawtcher)
 }
 // Player Status
-function checkPlayStatus(device) {
-    return new Promise(resolve => {
+async function checkPlayStatus(device) {
+    return await new Promise(resolve => {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
             encoding: 'utf8',
@@ -556,7 +556,7 @@ function listTuners(digitalOnly) {
         return 0
     }
     return [
-        ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map(async (e, i) => {
+        ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map((e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             return {
@@ -565,7 +565,7 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                state: (await checkPlayStatus(config.digital_radios[e])['com.sirius']),
+                state: (checkPlayStatus(config.digital_radios[e])['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
@@ -1587,8 +1587,8 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     locked_tuners.delete(tuner.id)
                 })
 
-                watchdog = setInterval(async () => {
-                    const state = await checkPlayStatus(tuner)['com.sirius']
+                watchdog = setInterval(() => {
+                    const state = checkPlayStatus(tuner)['com.sirius']
                     if (state !== 'playing') {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
@@ -1780,8 +1780,8 @@ async function tuneDigitalChannel(channel, time, device) {
             let ready = true;
             let i = -1;
             while (await new Promise(ok => {
-                setTimeout(async () => {
-                    const state = await checkPlayStatus(device)['com.sirius']
+                setTimeout(() => {
+                    const state = checkPlayStatus(device)['com.sirius']
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -1807,8 +1807,8 @@ async function releaseDigitalTuner(device) {
 }
 //
 async function digitalTunerWatcher(device) {
-    watchdog_tuners[device.id] = setInterval(async () => {
-        const state = await checkPlayStatus(device)['com.sirius']
+    watchdog_tuners[device.id] = setInterval(() => {
+        const state = checkPlayStatus(device)['com.sirius']
         if (state !== 'playing') {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
@@ -2324,7 +2324,7 @@ app.use("/debug", (req, res) => {
         pendingJobs: pendingJobs,
         requestedJobs: channelTimes.pending,
         tuners: tuners,
-        player_status: tuners.filter(e => e.digital).map(async (t) => await checkPlayStatus(t))
+        player_status: tuners.filter(e => e.digital).map(t => checkPlayStatus(t))
     })
 })
 
