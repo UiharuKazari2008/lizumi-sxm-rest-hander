@@ -500,7 +500,7 @@ async function checkPlayStatus(device) {
                             })()
                         }
                     })
-                    .filter(e => e.x === 'com.sirius')[0].map(e => e.y))
+                    .filter(e => e.x === 'com.sirius').map(e => e.y)[0])
             }
         });
     })
