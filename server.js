@@ -402,7 +402,7 @@ function webRequest(url) {
 // ADB Command Runner
 function adbCommand(device, commandArray) {
     return new Promise(function (resolve) {
-        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, ...commandArray]''
+        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, ...commandArray]
         exec(adblaunch.join(' '), {
             cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
             encoding: 'utf8',
