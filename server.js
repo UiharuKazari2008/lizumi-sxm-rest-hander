@@ -563,7 +563,7 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                state: (checkPlayStatus(e)['com.sirius']),
+                state: (checkPlayStatus(config.digital_radios[e])['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
