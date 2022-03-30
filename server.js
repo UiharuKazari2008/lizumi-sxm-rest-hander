@@ -1707,7 +1707,7 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
     if (ptn.locked) {
         return false
     }
-    const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
+    const tcb = (!(isAlreadyTuned && !ptn.always_retune) && !(!ptn.digital && !channel.tuneUrl[ptn.id])) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
     if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
         await webRequest(ptn.post_tune_url)
     if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
