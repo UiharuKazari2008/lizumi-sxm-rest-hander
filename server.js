@@ -479,9 +479,9 @@ function checkPlayStatus(device) {
                     .map(e => e.split(' package=')[1])
                 console.log(services)
                 console.log(log.slice(sessionStackIndex)
-                    .filter(e => e.trim().includes('state=PlaybackState')))
+                    .filter(e => e.includes('state=PlaybackState')))
                 const status = log.slice(sessionStackIndex)
-                    .filter(e => e.trim().includes('state=PlaybackState'))
+                    .filter(e => e.includes('state=PlaybackState'))
                     .map((e,i) => {
                         let x = {}
                         x[services[i]] = (() => {
@@ -564,7 +564,7 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                state: (checkPlayStatus(config.digital_radios[e])['com.sirius']),
+                state: (await checkPlayStatus(config.digital_radios[e])['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
@@ -1779,8 +1779,8 @@ async function tuneDigitalChannel(channel, time, device) {
             let ready = true;
             let i = -1;
             while (await new Promise(ok => {
-                setTimeout(() => {
-                    const state = checkPlayStatus(device)['com.sirius']
+                setTimeout(async () => {
+                    const state = await checkPlayStatus(device)['com.sirius']
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -2323,7 +2323,7 @@ app.use("/debug", (req, res) => {
         pendingJobs: pendingJobs,
         requestedJobs: channelTimes.pending,
         tuners: tuners,
-        player_status: tuners.filter(e => e.digital).map(t => checkPlayStatus(t))
+        player_status: tuners.filter(e => e.digital).map(async (t) => await checkPlayStatus(t))
     })
 })
 
