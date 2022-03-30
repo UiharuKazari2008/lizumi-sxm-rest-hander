@@ -1337,8 +1337,14 @@ async function initDigitalRecorder(device) {
     const socketready = await startAudioDevice(device);
     if (socketready) {
         console.log(`Tuner "${device.name}":${device.serial} is now ready!`)
-        await createAudioServer(device);
-        const clientOk = await startAudioClient(device);
+        const clientOk = await (async () => {
+            if (device.hasOwnProperty("relay_audio") && device.relay_audio) {
+                await createAudioServer(device);
+                return await startAudioClient(device);
+            } else {
+                return true
+            }
+        })()
         if (!jobQueue['REC-' + device.id] && clientOk) {
             jobQueue['REC-' + device.id] = [];
         }
@@ -1479,7 +1485,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
                 return tuner.audio_interface
             }
-            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.audioPort}`]
+            return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${(tuner.hasOwnProperty("relay_audio") && tuner.relay_audio) ? tuner.audioPort : tuner.localAudioPort}`]
         })()
         if (!input) {
             console.error(`Record/${tuner.id}: No Audio Interface is available for ${tuner.id}`)
