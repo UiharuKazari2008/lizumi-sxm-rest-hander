@@ -1584,7 +1584,7 @@ async function tuneToChannel(options) {
                 if (_t)
                     return [_t, false]
             }
-            if (ca)
+            if (ca && !ca.hasOwnProperty("end"))
                 return [ca, true]
             return [false, false]
         })(options.tuner, findActiveRadioTune(channel.id))
