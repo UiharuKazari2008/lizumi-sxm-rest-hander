@@ -1781,7 +1781,8 @@ async function tuneDigitalChannel(channel, time, device) {
                     setTimeout(async () => {
                         const state = await checkPlayStatus(device)
                         console.log(state)
-                        ok((state === 'playing'))
+                        console.log(state === 'playing')
+                        ok(state === 'playing')
                     }, 1000)
                 })
                 if (!ready)
