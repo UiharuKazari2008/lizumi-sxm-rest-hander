@@ -27,6 +27,7 @@ let channelTimes = {
 let locked_tuners = new Map();
 let adblog_tuners = new Map();
 let scheduled_tasks = new Map();
+let scheduled_tunes = new Map();
 let device_logs = {};
 let audio_servers = new Map();
 let nowPlayingGUID = {};
@@ -610,7 +611,14 @@ function listEventsValidated(songs, device, count) {
     let events = []
     Object.keys(channelTimes.timetable)
         .slice(0)
-        .filter(e => !device || (device && e === device))
+        .filter(e => {
+            if (!device || (device && e === device)) {
+                const device = getTuner(e)
+                if (device && device.record_prefix)
+                    return true
+            }
+            return false
+        })
         .map(d => {
             return channelTimes.timetable[d]
                 .slice(0)
@@ -845,46 +853,60 @@ async function processPendingBounces() {
 }
 // Generate Cron Schedules for events
 function registerSchedule() {
-    const configSch = Object.keys(config.schedule)
-    const exsistSch = Array.from(scheduled_tasks.keys())
-
-    exsistSch.filter(e => configSch.indexOf(e) === -1).forEach(e => {
-        console.log(`Schedule ${e} was removed!`)
-        const sch = scheduled_tasks.get(e)
-        sch.destroy()
-        scheduled_tasks.delete(e)
-    })
-    configSch.filter(e => exsistSch.indexOf(e) === -1).forEach(k => {
+    Object.keys(config.schedule).forEach(k => {
         const e = config.schedule[k]
-        if (e.cron) {
-            if (cron.validate(e.cron)) {
+        if (e.record_cron) {
+            if (cron.validate(e.record_cron)) {
                 let channelId = (e.channelId) ? e.channelId : undefined
                 if (e.ch)
                     channelId = getChannelbyNumber(e.ch).id
 
-                console.log(`Schedule ${k} @ ${e.cron} was created! `)
-                const sch = cron.schedule(e.cron, () => {
-                    if (e.tune_on_start) {
-                        tuneToChannel({
-                            channelId: channelId
-                        })
-                    }
+                console.log(`Record Schedule ${k} @ ${e.record_cron} was created! `)
+                const sch = cron.schedule(e.record_cron, () => {
                     registerBounce({
                         channel: channelId,
-                        tuner: (e.tuner) ? getTuner(e.tuner) : undefined,
+                        tuner: (e.rec_tuner) ? getTuner(e.rec_tuner) : undefined,
                         digitalOnly: (e.digitalOnly) ? e.digitalOnly : undefined,
                         addTime: 0,
                         restrict: (e.restrict) ? e.restrict : undefined,
                         post_directorys: (e.post_directorys) ? e.post_directorys : undefined,
-                        switch_source: (e.switch_source) ? e.switch_source : false
+                        switch_source: (e.hasOwnProperty("switch_source")) ? e.switch_source : false
                     })
                 })
                 scheduled_tasks.set(k, sch)
             } else {
-                console.error(`${e.cron} is not a valid cron string`)
+                console.error(`${e.record_cron} is not a valid cron string`)
             }
-        } else {
-            console.error(`Scheduled Task Requires a "cron" schedule`)
+        }
+        if (e.tune_cron) {
+            if (cron.validate(e.tune_cron)) {
+                let channelId = (e.channelId) ? e.channelId : undefined
+                if (e.ch)
+                    channelId = getChannelbyNumber(e.ch).id
+
+                console.log(`Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
+                const sch = cron.schedule(e.tune_cron, () => {
+                    let i = -1
+                    function search() {
+                        i++
+                        if (!e.restrict || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
+                            tuneToChannel({
+                                channelId: channelId,
+                                tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
+                            })
+                        } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 5) && e.tune_search) {
+                            console.log(`Event ${k} has not started, trying again in a minute...`)
+                            setTimeout(search, 60000)
+                        } else {
+                            console.log(`Event ${k} was not found, giving up!`)
+                        }
+                    }
+                    search()
+                })
+                scheduled_tunes.set(k, sch)
+            } else {
+                console.error(`${e.tune_cron} is not a valid cron string`)
+            }
         }
     })
 }
@@ -1435,19 +1457,6 @@ async function stopAudioDevice(device) {
     await adbCommand(device.serial, ["forward", "--remove", `tcp:${device.localAudioPort}`])
     await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
 }
-// Tune to Digital Channel on Android Device
-async function tuneDigitalChannel(channel, time, device) {
-    return new Promise(async (resolve) => {
-        console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
-        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-        resolve((tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
-    })
-}
-// Stop Playback on Android Device aka Release Stream Entity
-async function releaseDigitalTuner(device) {
-    console.log(`Releasing Device ${device.serial}...`);
-    return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
-}
 // Record Audio from Interface attached to a Android Recorder with a set end time
 function recordDigitalAudioInterface(tuner, time, event) {
     return new Promise(async function (resolve) {
@@ -1538,9 +1547,9 @@ function recordDigitalAudioInterface(tuner, time, event) {
     })
 }
 
-//
+// Channel Tuning Functions
 
-//
+// Tune to Channel on specific Tuner or the best avalible onw
 async function tuneToChannel(options) {
     const channel = (() => {
         if (options.channelId) {
@@ -1608,7 +1617,7 @@ async function tuneToChannel(options) {
         return false
     }
 }
-//
+// Does the actual tuning
 async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
     const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
     if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
@@ -1633,7 +1642,19 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
         return false
     }
 }
-
+// Tune to Digital Channel on Android Device
+async function tuneDigitalChannel(channel, time, device) {
+    return new Promise(async (resolve) => {
+        console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
+        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+        resolve((tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
+    })
+}
+// Stop Playback on Android Device aka Release Stream Entity
+async function releaseDigitalTuner(device) {
+    console.log(`Releasing Device ${device.serial}...`);
+    return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
+}
 
 // Job Workers
 
@@ -2175,7 +2196,6 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         cron.schedule("*/5 * * * *", async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
-            registerSchedule();
         });
 
         console.log(tun)
