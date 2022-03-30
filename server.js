@@ -1775,7 +1775,7 @@ async function tuneDigitalChannel(channel, time, device) {
         if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
             let ready = false;
             let i = -1;
-            while (ready) {
+            while (!ready) {
                 i++
                 ready = await new Promise(ok => {
                     setTimeout(async () => {
