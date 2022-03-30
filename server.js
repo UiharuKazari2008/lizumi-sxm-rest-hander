@@ -400,48 +400,31 @@ function webRequest(url) {
     })
 }
 // ADB Command Runner
-function adbCommand(device, commandArray, expectJson) {
+function adbCommand(device, commandArray) {
     return new Promise(function (resolve) {
-        const adblaunch = ['-s', device, ...commandArray]
-        let output = ''
-        const command = spawn((config.adb_command) ? config.adb_command : 'adb', adblaunch, {
+        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, ...commandArray]''
+        exec(adblaunch.join(' '), {
+            cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
             encoding: 'utf8',
             timeout: 10000
-        });
-
-        command.stdout.on('data', (data) => {
-            console.log(data.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'));
-            output += data.toString().trim()
-        })
-        command.stderr.on('data', (data) => {
-            console.error(data.toString().split('\n').map(e => `${device}: ${e}`).join('\n'));
-            output += data.toString().trim()
-        });
-        command.on('close', (code, signal) => {
-            if (code !== 0)
-                console.error(`Command Failed: ${code}`)
-            if (expectJson) {
-                let log = output.split('\n').filter(e => e.length > 0 && e !== '')
-                try {
-                    resolve({
-                        log: JSON.parse(log.join('\n')),
-                        isValid: true,
-                        exitCode: code
-                    })
-                } catch (e) {
-                    resolve({
-                        log: log,
-                        isValid: false,
-                        exitCode: code
-                    })
-                }
-            } else {
+        }, (err, stdout, stderr) => {
+            if (err) {
+                console.error(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
+                console.error(err)
                 resolve({
-                    log: output.split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== ''),
-                    exitCode: code
+                    log: stdout.toString().split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== '').join('\n'),
+                    error: true
+                })
+            } else {
+                if (stderr.toString().length > 1)
+                    console.error(stderr.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
+                console.log(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
+                resolve({
+                    log: stdout.toString().split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== '').join('\n'),
+                    error: false
                 })
             }
-        })
+        });
     })
 }
 // Start the Logcat
@@ -1428,26 +1411,26 @@ async function startAudioDevice(device) {
         async function start() {
             console.log(`${device.id}: (1/6) Installing USB Interface...`)
             const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
-            if (ins.exitCode !== 0 || !ins.exitCode === null) {
+            if (ins.error) {
                 console.error(`${device.id}: Application Failed to install, Maybe try to uninstall the application?`)
                 return false
             }
             console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
             const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-            if (alw.exitCode !== 0 || !alw.exitCode === null) {
+            if (alw.error) {
                 console.error(`${device.id}: Failed to pre-authorize screen recording permissions, Are you useing Android 10+? you should be`)
                 return false
             }
             console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
             const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
-            if ((fwa.exitCode !== 0 || !fwa.exitCode === null) && fwa.log[0] !== `${device.localAudioPort}`) {
+            if (fwa.error || !fwa.log.includes(`${device.localAudioPort}`)) {
                 console.error(`${device.id}: Failed to open the TCP socket, is something using port ${device.localAudioPort}?`)
                 return false
             }
             console.log(`${device.id}: (4/6) Starting Audio Interface...`)
             const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
             const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-            if ((sta.exitCode !== 0 || !sta.exitCode === null) && sta.log.length > 1 && sta.log[1].startsWith('Starting: Intent {')) {
+            if (sta.error || sta.log.length <= 1 || !sta.log.includes('Starting: Intent {')) {
                 console.error(`${device.id}: Application failed to start!`)
                 return false
             }
@@ -1466,8 +1449,8 @@ async function stopAudioDevice(device) {
 async function tuneDigitalChannel(channel, time, device) {
     return new Promise(async (resolve) => {
         console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
-        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'Api:tune:liveAudio:${channel}::${time}'`])
-        resolve((tune.log.join('\n').includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
+        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+        resolve((tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
     })
 }
 // Stop Playback on Android Device aka Release Stream Entity
