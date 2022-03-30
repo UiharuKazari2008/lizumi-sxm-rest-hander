@@ -25,6 +25,7 @@ let channelTimes = {
     queues:[]
 };
 let locked_tuners = new Map();
+let watchdog_tuners = {}
 let adblog_tuners = new Map();
 let scheduled_list = new Map();
 let scheduled_tasks = new Map();
@@ -111,6 +112,12 @@ function isWantedEvent(l, m) {
     if (m.album && l.albumExactMatch && m.album.toLowerCase() === l.albumExactMatch.toLowerCase())
         return true
     return false
+}
+function searchStringInArray (str, strArray) {
+    for (let j=0; j<strArray.length; j++) {
+        if (strArray[j].match(str)) return j;
+    }
+    return -1;
 }
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
@@ -453,6 +460,52 @@ function adbLogStart(device) {
     })
     adblog_tuners.set(device, logWawtcher)
 }
+// Player Status
+function checkPlayStatus(device) {
+    return new Promise(resolve => {
+        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, 'shell', 'dumpsys', 'media_session']
+        exec(adblaunch.join(' '), {
+            encoding: 'utf8',
+            timeout: 2000
+        }, (err, stdout, stderr) => {
+            if (err) {
+                console.error(`${device} : ${err.message}`)
+            } else {
+                const log = stdout.toString().split('\r').join('').split('\n')
+                const sessionStackIndex = searchStringInArray('  Sessions Stack', log)
+                if (sessionStackIndex > -1) {
+                    const services = log.slice(sessionStackIndex)
+                        .filter(e => e.includes('package='))
+                        .map(s => log.slice(searchStringInArray(s, log)
+                            .filter(e => e.trim().includes('state=PlaybackState'))
+                            .map(e => {
+                                let x = {}
+                                x[s.split(' package=')[1]] = (() => {
+                                    const serviceState = e.split('state=PlaybackState').pop().trim().slice(1, -1)
+                                        .split(', ')
+                                    switch (parseInt(serviceState.filter(e => e.startsWith('state='))[0].split('=')[1])) {
+                                        case 0: // none
+                                            return "none"
+                                        case 1: // stop
+                                            return "stopped"
+                                        case 2: // pause
+                                            return "paused"
+                                        case 3: // play
+                                            return "playing"
+                                        default: // everything i dont care about
+                                            return "unknown"
+                                    }
+                                })()
+                                return x
+                            })))
+                    resolve(services)
+                } else {
+                    resolve(false)
+                }
+            }
+        });
+    })
+}
 
 // Channel Searching and Retrieval
 
@@ -510,6 +563,7 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
+                state: (checkPlayStatus(e.serial)['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
@@ -1332,12 +1386,13 @@ function queueDigitalRecording(jobOptions) {
 // Process all pending digital recordings as FIFO
 async function startRecQueue(q) {
     activeQueue[q] = true
+    const tuner = getTuner(q.slice(4))
     while (jobQueue[q].length !== 0) {
-        const tuner = getTuner(q.slice(4))
         const job = jobQueue[q][0]
         if (moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
             const completed = await recordDigitalEvent(job, tuner)
-            jobQueue[q].shift()
+            if (completed)
+                await jobQueue[q].shift()
             console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
         } else {
             if (job.index) {
@@ -1348,11 +1403,14 @@ async function startRecQueue(q) {
                 channelTimes.pending[index].done = false
                 channelTimes.pending[index].failedRec = true
             }
-            jobQueue[q].shift()
+            await jobQueue[q].shift()
             console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
         }
     }
     delete activeQueue[q]
+    if (tuner.hasOwnProperty('retune_after_jobs') && tuner.retune_after_jobs) {
+        reTuneTuner(tuner)
+    }
     return true
 }
 
@@ -1480,7 +1538,9 @@ async function stopAudioDevice(device) {
 function recordDigitalAudioInterface(tuner, time, event) {
     return new Promise(async function (resolve) {
         let controller = null
+        let watchdog = null
         let stopwatch = null
+        let fault = false
         const input = await (async () => {
             if (tuner.audio_interface) {
                 console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
@@ -1495,7 +1555,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
             console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
             try {
                 const startTime = Date.now()
-                const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, '-ss', '00:00:02', ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
+                const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
                 console.log(ffmpeg.join(' '))
                 const recorder = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpeg, {
                     cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
@@ -1517,16 +1577,24 @@ function recordDigitalAudioInterface(tuner, time, event) {
                         resolve(false)
                     } else {
                         console.log(`Record/${tuner.id}: Completed!`)
-                        if (stopwatch)
-                            clearTimeout(stopwatch)
-                        if (controller)
-                            clearInterval(controller)
-                        resolve((!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) ? false : fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
+                        clearTimeout(stopwatch)
+                        clearInterval(controller)
+                        clearInterval(watchdog)
+                        resolve((!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed || fault) ? false : fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
                     }
-
                     locked_tuners.delete(tuner.id)
                 })
 
+                watchdog = setInterval(async () => {
+                    const state = await checkPlayStatus(tuner.serial)['com.sirius']
+                    if (state !== 'playing') {
+                        console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
+                        fault = true
+                        clearTimeout(stopwatch)
+                        clearInterval(controller)
+                        recorder.stdin.write('q')
+                    }
+                }, 5000)
                 if (!time) {
                     console.log(`Record/${tuner.id}: This is a live event and has no duration, watching for closure`)
                     controller = setInterval(() => {
@@ -1638,6 +1706,9 @@ async function tuneToChannel(options) {
 }
 // Does the actual tuning
 async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
+    if (ptn.locked) {
+        return false
+    }
     const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
     if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
         await webRequest(ptn.post_tune_url)
@@ -1654,6 +1725,8 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
             time: moment().valueOf(),
             ch: channel.id,
         })
+        if (ptn.digital)
+            digitalTunerWatcher()
         if (channel.updateOnTune)
             updateMetadata()
         return true
@@ -1661,18 +1734,84 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
         return false
     }
 }
+//
+async function deTuneTuner(tuner, force) {
+    if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
+        if (tuner.digital)
+            clearInterval(watchdog_tuners[tuner.id])
+        if (!force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
+            setAirOutput(tuner.airfoil_source.return_source)
+        if (tuner.digital)
+            await releaseDigitalTuner(tuner)
+        if (channelTimes.timetable[tuner.id].length > 0) {
+            let lastTune = channelTimes.timetable[tuner.id].pop()
+            if (!lastTune.hasOwnProperty('end'))
+                lastTune.end = moment().valueOf()
+            channelTimes.timetable[tuner.id].push(lastTune)
+        }
+        if (tuner.digital)
+            delete watchdog_tuners[tuner.id]
+        return true
+    } else {
+        return false
+    }
+}
+//
+function reTuneTuner(tuner) {
+    if (channelTimes.timetable[tuner.id].length > 0) {
+        let lastTune = channelTimes.timetable[tuner.id].slice(-1).pop()
+        if (lastTune.hasOwnProperty('end')) {
+            tuneToChannel({
+                channelId: lastTune.ch,
+                tuner: tuner.id
+            })
+        }
+    }
+}
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
     return new Promise(async (resolve) => {
+        await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
         console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
         const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-        resolve((tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')))
+        if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
+            let ready = true;
+            let i = -1;
+            while (await new Promise(ok => {
+                setTimeout(() => {
+                    const state = checkPlayStatus(device.serial)['com.sirius']
+                    console.log(state)
+                    ok(state === 'playing')
+                }, 1000)
+            })) {
+                i++
+                if (i > 60) {
+                    console.log('player timeout')
+                    ready = false
+                    return false
+                }
+                console.log('player not ready')
+            }
+            resolve(ready)
+        } else {
+            resolve(false)
+        }
     })
 }
 // Stop Playback on Android Device aka Release Stream Entity
 async function releaseDigitalTuner(device) {
     console.log(`Releasing Device ${device.serial}...`);
     return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
+}
+//
+async function digitalTunerWatcher(device) {
+    watchdog_tuners[device.id] = setInterval(async () => {
+        const state = await checkPlayStatus(device.serial)['com.sirius']
+        if (state !== 'playing') {
+            console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
+            deTuneTuner(device)
+        }
+    }, 60000)
 }
 
 // Job Workers
@@ -1686,6 +1825,7 @@ async function recordDigitalEvent(job, tuner) {
     console.log(eventItem)
     console.log(tuner)
     adbLogStart(tuner.serial)
+    await deTuneTuner(tuner, true)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
         const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
         if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
@@ -1697,14 +1837,14 @@ async function recordDigitalEvent(job, tuner) {
                 return msToTime((parseInt(eventItem.duration.toString()) + 10) * 1000).split('.')[0]
             return undefined
         })()
-        await recordDigitalAudioInterface(tuner, time, eventItem)
+        const recording = await recordDigitalAudioInterface(tuner, time, eventItem)
         if (tuner.record_only || tuner.stop_after_record) {
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1) || (await getAirOutput()) === tuner.airfoil_source.name) )
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
         }
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
-        if (fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
+        if (recording && fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
             try {
                 let tags = {
                     title: eventItem.title,
@@ -1742,7 +1882,7 @@ async function recordDigitalEvent(job, tuner) {
                 channelTimes.pending[index].failedRec = true
             }
         }
-        return (fs.existsSync(completedFile));
+        return recording;
     } else {
         console.error(`Record/${tuner.id}: Failed to tune to channel, Canceled!`)
         if (job.index) {
@@ -1921,20 +2061,10 @@ app.get("/tune/:channelNum", async (req, res, next) => {
 app.get("/detune/:tuner", async (req, res, next) => {
     const tuner = getTuner(req.params.tuner);
     if (tuner) {
-        if (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id)) {
-            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
-                setAirOutput(tuner.airfoil_source.return_source)
-            if (tuner.digital) {
-                await releaseDigitalTuner(tuner)
-            }
-            if (channelTimes.timetable[tuner.id].length > 0) {
-                let lastTune = channelTimes.timetable[tuner.id].pop()
-                lastTune.end = moment().valueOf()
-                channelTimes.timetable[tuner.id].push(lastTune)
-            }
+        if (await deTuneTuner(tuner)) {
             res.status(200).send('OK')
         } else {
-            res.status(401).send('Tuner Locked')
+            res.status(401).send('Tuner Locked or Error')
         }
     } else {
         res.status(404).send('Tuner not found')
