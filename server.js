@@ -1786,7 +1786,7 @@ async function tuneDigitalChannel(channel, time, device) {
                     }, 1000)
                 })
                 if (i >= 60)
-                    return false
+                    break
                 if (!ready)
                     console.log('player not ready')
             }
