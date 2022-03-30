@@ -561,7 +561,7 @@ function findActiveRadio(channel, all) {
 // Return a tuner that is tuned to a channel else false
 function findActiveRadioTune(channel) {
     const e = findActiveRadio(channel)
-    return (e) ? (!(e.digital && e.tuner.record_only)) ? e : false : false
+    return (e) ? (!(e.digital && e.record_only)) ? e : false : false
 }
 // Return list if tuners that are available for tuning
 // Tuners that are locked due to recordings or manual lockout are omitted obviously
