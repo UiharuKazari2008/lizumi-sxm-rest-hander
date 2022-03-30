@@ -1724,7 +1724,7 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
             ch: channel.id,
         })
         if (ptn.digital)
-            digitalTunerWatcher()
+            digitalTunerWatcher(ptn)
         if (channel.updateOnTune)
             updateMetadata()
         return true
