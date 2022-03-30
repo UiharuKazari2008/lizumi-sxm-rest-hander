@@ -1775,20 +1775,17 @@ async function tuneDigitalChannel(channel, time, device) {
         if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
             let ready = true;
             let i = -1;
-            while (await new Promise(ok => {
-                setTimeout(async () => {
-                    const state = await checkPlayStatus(device)
-                    console.log(state)
-                    ok(state === 'playing')
-                }, 1000)
-            })) {
+            while (i <= 60) {
                 i++
-                if (i > 60) {
-                    console.log('player timeout')
-                    ready = false
-                    return false
-                }
-                console.log('player not ready')
+                ready = await new Promise(ok => {
+                    setTimeout(async () => {
+                        const state = await checkPlayStatus(device)
+                        console.log(state)
+                        ok((state === 'playing'))
+                    }, 1000)
+                })
+                if (!ready)
+                    console.log('player not ready')
             }
             resolve(ready)
         } else {
