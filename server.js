@@ -474,13 +474,9 @@ async function checkPlayStatus(device) {
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
                 const sessionStackIndex = searchStringInArray('Sessions Stack', log)
-                console.log(sessionStackIndex)
                 const services = log.slice(sessionStackIndex)
                     .filter(e => e.includes('package='))
                     .map(e => e.split(' package=')[1])
-                console.log(services)
-                console.log(log.slice(sessionStackIndex)
-                    .filter(e => e.includes('state=PlaybackState')))
                 const status = log.slice(sessionStackIndex)
                     .filter(e => e.includes('state=PlaybackState'))
                     .map((e,i) => {
@@ -503,6 +499,7 @@ async function checkPlayStatus(device) {
                         })()
                         return x
                     })
+                console.log(status)
                 resolve(status)
             }
         });
@@ -565,7 +562,6 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                state: (checkPlayStatus(config.digital_radios[e])['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
