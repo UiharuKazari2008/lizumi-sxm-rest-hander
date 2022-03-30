@@ -465,8 +465,7 @@ function checkPlayStatus(device) {
     return new Promise(resolve => {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
-            encoding: 'utf8',
-            timeout: 2000
+            encoding: 'utf8'
         }, (err, stdout, stderr) => {
             if (err) {
                 console.error(`${device.serial} : ${err.message}`)
@@ -474,10 +473,10 @@ function checkPlayStatus(device) {
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
                 const sessionStackIndex = searchStringInArray('Sessions Stack', log)
-                const services = log.slice(searchStringInArray('  Sessions Stack', log))
+                const services = log.slice(sessionStackIndex)
                     .filter(e => e.includes('package='))
                     .map(e => e.split(' package=')[1])
-                const status = log.slice(searchStringInArray('  Sessions Stack', log))
+                const status = log.slice(sessionStackIndex)
                     .filter(e => e.trim().includes('state=PlaybackState'))
                     .map((e,i) => {
                         let x = {}
