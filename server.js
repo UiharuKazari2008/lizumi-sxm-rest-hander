@@ -1583,8 +1583,8 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     locked_tuners.delete(tuner.id)
                 })
 
-                watchdog = setInterval(() => {
-                    const state = checkPlayStatus(tuner)
+                watchdog = setInterval(async () => {
+                    const state = await checkPlayStatus(tuner)
                     if (state !== 'playing') {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
@@ -1776,8 +1776,8 @@ async function tuneDigitalChannel(channel, time, device) {
             let ready = true;
             let i = -1;
             while (await new Promise(ok => {
-                setTimeout(() => {
-                    const state = checkPlayStatus(device)
+                setTimeout(async () => {
+                    const state = await checkPlayStatus(device)
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -1803,8 +1803,8 @@ async function releaseDigitalTuner(device) {
 }
 //
 async function digitalTunerWatcher(device) {
-    watchdog_tuners[device.id] = setInterval(() => {
-        const state = checkPlayStatus(device)
+    watchdog_tuners[device.id] = setInterval(async () => {
+        const state = await checkPlayStatus(device)
         if (state !== 'playing') {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
@@ -2315,13 +2315,17 @@ app.use("/debug", (req, res) => {
         })
     })
     const tuners = listTuners()
-    res.status(200).json({
+    const statuses = tuners.filter(e => e.serial).map(async (t) => {
+        return await checkPlayStatus(t)
+    })
+    const results = {
         activeJob: activeJobs,
         pendingJobs: pendingJobs,
         requestedJobs: channelTimes.pending,
         tuners: tuners,
-        player_status: tuners.filter(e => e.serial).map(t => checkPlayStatus(t))
-    })
+        player_status: statuses
+    }
+    res.status(200).json(results)
 })
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
