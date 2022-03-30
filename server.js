@@ -175,8 +175,8 @@ async function updateMetadata() {
                 return false;
             }
         }
-        const activeChannels = [...new Set(listTuners().filter(e => e.activeCh && !e.activeCh.end).map(e => e.activeCh.ch))]
-        const channelsToUpdate = listChannels().channels.filter(e => (!e.updateOnTune || (e.updateOnTune && e.id && activeChannels.indexOf(e.id) !== -1)))
+        const activeChannels = [...new Set(listTuners().filter(e => e.activeCh))]
+        const channelsToUpdate = listChannels().channels.filter(e => (!e.updateOnTune || (e.updateOnTune && e.id && activeChannels.filter(f => f.activeCh.ch === e.id && !f.activeCh.hasOwnProperty("end")).length > 0)))
 
         for (const channelInfo of channelsToUpdate) {
             try {
@@ -823,7 +823,7 @@ async function processPendingBounces() {
                             switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                             index: true
                         })
-                    } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec))) {
+                    } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
                         // If specific tuner is set, not set to require digital or has failed to extract via digital
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.done = true
@@ -1229,7 +1229,7 @@ async function bounceEventGUI(type, device) {
 
             if (eventsToExtract.digitalOnly || eventsToExtract.duration === 0) {
                 queueDigitalRecording({ metadata: eventsToExtract })
-            } else {
+            } else if (eventsToExtract.tuner.hasOwnProperty("record_prefix")) {
                 queueRecordingExtraction({ metadata: eventsToExtract })
             }
         }
