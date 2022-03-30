@@ -476,7 +476,7 @@ function checkPlayStatus(device) {
                 if (sessionStackIndex > -1) {
                     const services = log.slice(sessionStackIndex)
                         .filter(e => e.includes('package='))
-                        .map(s => log.slice(searchStringInArray(s, log)
+                        .map(s => log.slice(searchStringInArray(s, log))
                             .filter(e => e.trim().includes('state=PlaybackState'))
                             .map(e => {
                                 let x = {}
@@ -497,7 +497,7 @@ function checkPlayStatus(device) {
                                     }
                                 })()
                                 return x
-                            })))
+                            }))
                     resolve(services)
                 } else {
                     resolve(false)
