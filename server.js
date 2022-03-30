@@ -461,7 +461,7 @@ function adbLogStart(device) {
     adblog_tuners.set(device, logWawtcher)
 }
 // Player Status
-async function checkPlayStatus(device, name) {
+async function checkPlayStatus(device) {
     return await new Promise(resolve => {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
@@ -500,7 +500,7 @@ async function checkPlayStatus(device, name) {
                             })()
                         }
                     })
-                    .filter(e => !name || e.x === name))
+                    .filter(e => e.x === 'com.sirius')[0].map(e => e.y))
             }
         });
     })
@@ -1584,7 +1584,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 })
 
                 watchdog = setInterval(() => {
-                    const state = checkPlayStatus(tuner, 'com.sirius')[0]
+                    const state = checkPlayStatus(tuner)
                     if (state !== 'playing') {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
@@ -1777,7 +1777,7 @@ async function tuneDigitalChannel(channel, time, device) {
             let i = -1;
             while (await new Promise(ok => {
                 setTimeout(() => {
-                    const state = checkPlayStatus(device, 'com.sirius')[0]
+                    const state = checkPlayStatus(device)
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -1804,7 +1804,7 @@ async function releaseDigitalTuner(device) {
 //
 async function digitalTunerWatcher(device) {
     watchdog_tuners[device.id] = setInterval(() => {
-        const state = checkPlayStatus(device, 'com.sirius')[0]
+        const state = checkPlayStatus(device)
         if (state !== 'playing') {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
