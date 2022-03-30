@@ -1789,7 +1789,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
     const channel = channels.channels[channelIndex]
 
     async function tuneToChannel(ptn, isAlreadyTuned) {
-        const tcb = (!(isAlreadyTuned && !ptn.always_retune)) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
+        const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
         let pcb = { ok: true}
         if (ptn.post_tune_url !== undefined && ptn.post_tune_url && !req.query.no_post)
             await webRequest(t.tuner.post_tune_url)
