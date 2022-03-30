@@ -477,7 +477,7 @@ async function checkPlayStatus(device, name) {
                 const services = log.slice(sessionStackIndex)
                     .filter(e => e.includes('package='))
                     .map(e => e.split(' package=')[1])
-                const status = log.slice(sessionStackIndex)
+                resolve(log.slice(sessionStackIndex)
                     .filter(e => e.includes('state=PlaybackState'))
                     .map((e,i) => {
                         return {
@@ -500,8 +500,7 @@ async function checkPlayStatus(device, name) {
                             })()
                         }
                     })
-                    .filter(e => !name || e.x === name)
-                resolve(status)
+                    .filter(e => !name || e.x === name))
             }
         });
     })
@@ -2321,7 +2320,7 @@ app.use("/debug", (req, res) => {
         pendingJobs: pendingJobs,
         requestedJobs: channelTimes.pending,
         tuners: tuners,
-        player_status: tuners.filter(e => e.digital).map(t => checkPlayStatus(t))
+        player_status: tuners.filter(e => e.serial).map(t => checkPlayStatus(t))
     })
 })
 
