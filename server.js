@@ -1793,7 +1793,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
         let pcb = { ok: true}
         if (ptn.post_tune_url !== undefined && ptn.post_tune_url && !(req.query.no_post && req.query.no_post === 'false'))
             await webRequest(t.tuner.post_tune_url)
-        if (ptn.airfoil_source !== undefined && ptn.airfoil_source && !(req.query.no_post && req.query.no_source_switch === 'false') && ptn.airfoil_source.conditions.indexOf('tune'))
+        if (ptn.hasOwnProperty("airfoil_source") && ptn.airfoil_source.hasOwnProperty("name") && !(req.query.no_source_switch && req.query.no_source_switch === 'false') && ptn.airfoil_source.conditions.indexOf('tune'))
             await setAirOutput(ptn.airfoil_source.name)
 
         if (tcb.ok) {
