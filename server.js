@@ -864,6 +864,11 @@ function registerSchedule() {
 
                 console.log(`Schedule ${k} @ ${e.cron} was created! `)
                 const sch = cron.schedule(e.cron, () => {
+                    if (e.tune_on_start) {
+                        tuneToChannel({
+                            channelId: channelId
+                        })
+                    }
                     registerBounce({
                         channel: channelId,
                         tuner: (e.tuner) ? getTuner(e.tuner) : undefined,
@@ -1533,6 +1538,103 @@ function recordDigitalAudioInterface(tuner, time, event) {
     })
 }
 
+//
+
+//
+async function tuneToChannel(options) {
+    const channel = (() => {
+        if (options.channelId) {
+            return getChannelbyId(options.channelId)
+        } else {
+            return getChannelbyNumber(options.channel)
+        }
+    })()
+    if (channel) {
+        const tn = ((t,ca) => {
+            if (t) {
+                const _t = getTuner(t)
+                if (_t)
+                    return [_t, false]
+            }
+            if (ca)
+                return [ca, true]
+            return [false, false]
+        })(options.tuner, findActiveRadioTune(channel.id))
+
+        if (tn[0]) {
+            console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
+            if (await _tuneToChannel(tn[0], channel, tn[1])) {
+                if (options.res) {
+                    options.res.status(200).send((!(tn[1] && !tn[0].always_retune)) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${tn[0].id} was tuned to ${channel.name}`)
+                }
+                console.log((!(tn[1] && !tn[0].always_retune)) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${tn[0].id} was tuned to ${channel.name}`)
+                return true
+            } else {
+                if (options.res) {
+                    options.res.status(500).send(`ERROR - Tuner ${tn[0].id} failed to tune to ${channel.name} due to a url request error`)
+                }
+                console.error(`ERROR - Tuner ${tn[0].id} failed to tune to ${channel.name} due to a url request error`)
+                return false
+            }
+        } else {
+            const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
+            if (_ptn && _ptn.length > 0) {
+                if (await _tuneToChannel(_ptn[0], channel, false)) {
+                    if (options.res) {
+                        options.res.status(200).send(`OK - Tuner ${_ptn[0].id} was tuned to ${channel.name}`)
+                    }
+                    console.log(`OK - Tuner ${_ptn[0].id} was tuned to ${channel.name}`)
+                    return true
+                } else {
+                    if (options.res) {
+                        res.status(500).send(`ERROR - Tuner ${_ptn[0].id} failed to tune to ${channel.name} due to a url request error`)
+                    }
+                    console.error(`ERROR - Tuner ${_ptn[0].id} failed to tune to ${channel.name} due to a url request error`)
+                    return false
+                }
+            } else {
+                if (options.res) {
+                    options.res.status(404).send(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
+                }
+                console.error(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
+                return false
+            }
+        }
+    } else {
+        if (options.res) {
+            options.res.status(404).send('Channel not found')
+        }
+        console.error("Channel not found")
+        return false
+    }
+}
+//
+async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
+    const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
+    if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
+        await webRequest(ptn.post_tune_url)
+    if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
+        await setAirOutput(ptn.airfoil_source.name)
+
+    if (tcb.ok) {
+        if (channelTimes.timetable[ptn.id].length > 0) {
+            let lastTune = channelTimes.timetable[ptn.id].pop()
+            lastTune.end = moment().valueOf()
+            channelTimes.timetable[ptn.id].push(lastTune)
+        }
+        channelTimes.timetable[ptn.id].push({
+            time: moment().valueOf(),
+            ch: channel.id,
+        })
+        if (channel.updateOnTune)
+            updateMetadata()
+        return true
+    } else {
+        return false
+    }
+}
+
+
 // Job Workers
 
 // Record an event on a digital tuner
@@ -1546,7 +1648,7 @@ async function recordDigitalEvent(job, tuner) {
     adbLogStart(tuner.serial)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
         const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
-        if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record'))
+        if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
@@ -1557,7 +1659,7 @@ async function recordDigitalEvent(job, tuner) {
         })()
         await recordDigitalAudioInterface(tuner, time, eventItem)
         if (tuner.record_only || tuner.stop_after_record) {
-            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record')) || (await getAirOutput()) === tuner.airfoil_source.name) )
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1) || (await getAirOutput()) === tuner.airfoil_source.name) )
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
         }
@@ -1770,63 +1872,10 @@ async function postExtraction(extractedFile, eventFilename, overrides) {
 // channelNum or channelId: Channel Number or ID to tune to
 // tuner: Tuner ID to tune too
 app.get("/tune/:channelNum", async (req, res, next) => {
-    const channels = listChannels()
-    const channelIndex = channels.numbers.indexOf(req.params.channelNum)
-    const channel = channels.channels[channelIndex]
-
-    async function tuneToChannel(ptn, isAlreadyTuned) {
-        const tcb = (!(isAlreadyTuned && !ptn.always_retune) && channel.tuneUrl[ptn.id]) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
-        let pcb = { ok: true}
-        if (ptn.post_tune_url !== undefined && ptn.post_tune_url && !req.query.no_post)
-            await webRequest(t.tuner.post_tune_url)
-        if (ptn.airfoil_source !== undefined && ptn.airfoil_source && !req.query.no_source_switch && ptn.airfoil_source.conditions.indexOf('tune'))
-            await setAirOutput(ptn.airfoil_source.name)
-
-        if (tcb.ok) {
-            if (channelTimes.timetable[ptn.id].length > 0) {
-                let lastTune = channelTimes.timetable[ptn.id].pop()
-                lastTune.end = moment().valueOf()
-                channelTimes.timetable[ptn.id].push(lastTune)
-            }
-            channelTimes.timetable[ptn.id].push({
-                time: moment().valueOf(),
-                ch: channel.id,
-            })
-            if (channel.updateOnTune)
-                updateMetadata()
-            res.status(200).send((isAlreadyTuned && !ptn.always_retune) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${ptn.id} was tuned to ${channel.name}`)
-        } else {
-            res.status(500).send(`ERROR - Tuner ${ptn.id} failed to tune to ${channel.name} due to a url request error (Tune: ${tcb.ok} Post: ${pcb})`)
-        }
-    }
-
-    if (channel) {
-        // Get Active Tuner
-        const tn = ((t,ca) => {
-            if (req.query.tuner) {
-                const _t = getTuner(t)
-                if (_t)
-                    return [_t, false]
-            }
-            if (ca)
-                return [ca, true]
-            return [false, false]
-        })(req.query.tuner, findActiveRadioTune(channel.id))
-
-        if (tn[0]) {
-            console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
-            await tuneToChannel(tn[0], tn[1])
-        } else {
-            const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
-            if (_ptn && _ptn.length > 0) {
-                await tuneToChannel(_ptn[0], false)
-            } else {
-                res.status(404).send(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
-            }
-        }
-    } else {
-        res.status(404).send('Channel not found')
-    }
+    await tuneToChannel({
+        channel: res.params.channel,
+        tuner: (res.query.tuner) ? res.query.tuner : undefined
+    })
 });
 app.get("/detune/:tuner", async (req, res, next) => {
     const tuner = getTuner(req.params.tuner);
