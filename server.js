@@ -1773,9 +1773,9 @@ async function tuneDigitalChannel(channel, time, device) {
         console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
         const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
         if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
-            let ready = true;
+            let ready = false;
             let i = -1;
-            while (i <= 60) {
+            while (i <= 60 || ready) {
                 i++
                 ready = await new Promise(ok => {
                     setTimeout(async () => {
