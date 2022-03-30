@@ -465,7 +465,8 @@ function checkPlayStatus(device) {
     return new Promise(resolve => {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
-            encoding: 'utf8'
+            encoding: 'utf8',
+            timeout: 1000
         }, (err, stdout, stderr) => {
             if (err) {
                 console.error(`${device.serial} : ${err.message}`)
@@ -555,7 +556,7 @@ function listTuners(digitalOnly) {
         return 0
     }
     return [
-        ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map((e, i) => {
+        ...((digitalOnly === false) ? [] : (config.digital_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.digital_radios).map(async (e, i) => {
             const _a = channelTimes.timetable[e]
             const a = (_a && _a.length > 0) ? _a.slice(-1).pop() : null
             return {
