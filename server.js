@@ -175,7 +175,7 @@ async function updateMetadata() {
                 return false;
             }
         }
-        const activeChannels = [...new Set(listTuners().filter(e => e.activeCh).map(e => e.activeCh.ch))]
+        const activeChannels = [...new Set(listTuners().filter(e => e.activeCh && !e.activeCh.end).map(e => e.activeCh.ch))]
         const channelsToUpdate = listChannels().channels.filter(e => (!e.updateOnTune || (e.updateOnTune && e.id && activeChannels.indexOf(e.id) !== -1)))
 
         for (const channelInfo of channelsToUpdate) {
@@ -645,6 +645,8 @@ function listEventsValidated(songs, device, count) {
                                 (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
                                 // First Item or Was Tuned after event start
                                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
+                                //
+                                (!tc.end || (tc.end && f.syncEnd <= tc.end)) &&
                                 // Is Last Item or Look ahead and see if this has not occured after the next channel change
                                 (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
                             ).map((f, i, a) => {
@@ -1816,6 +1818,11 @@ app.get("/tune/:channelNum", async (req, res, next) => {
             await setAirOutput(ptn.airfoil_source.name)
 
         if (tcb.ok) {
+            if (channelTimes.timetable[ptn.id].length > 0) {
+                let lastTune = channelTimes.timetable[ptn.id].pop()
+                lastTune.end = moment().valueOf()
+                channelTimes.timetable[ptn.id].push(lastTune)
+            }
             channelTimes.timetable[ptn.id].push({
                 time: moment().valueOf(),
                 ch: channel.id,
@@ -1862,7 +1869,14 @@ app.get("/detune/:tuner", async (req, res, next) => {
         if (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id)) {
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
                 setAirOutput(tuner.airfoil_source.return_source)
-            await releaseDigitalTuner(tuner)
+            if (tuner.digital) {
+                await releaseDigitalTuner(tuner)
+            }
+            if (channelTimes.timetable[tuner.id].length > 0) {
+                let lastTune = channelTimes.timetable[tuner.id].pop()
+                lastTune.end = moment().valueOf()
+                channelTimes.timetable[tuner.id].push(lastTune)
+            }
             res.status(200).send('OK')
         } else {
             res.status(401).send('Tuner Locked')
