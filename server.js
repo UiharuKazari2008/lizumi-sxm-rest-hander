@@ -95,14 +95,19 @@ function isWantedEvent(l, m) {
         return true
     if (m.album && l.search && m.album.toLowerCase().includes(l.search.toLowerCase()))
         return true
+    if (m.title && l.title && m.title.toLowerCase().includes(l.title.toLowerCase()))
+        return true
+    if (m.artist && l.artist && m.artist.toLowerCase().includes(l.artist.toLowerCase()))
+        return true
+    if (m.album && l.album && m.album.toLowerCase().includes(l.album.toLowerCase()))
+        return true
 
-    if (m.title && l.title && m.title.toLowerCase() === l.title.toLowerCase())
+    if (m.title && l.titleExactMatch && m.title.toLowerCase() === l.titleExactMatch.toLowerCase())
         return true
-    if (m.artist && l.artist && m.artist.toLowerCase() === l.artist.toLowerCase())
+    if (m.artist && l.artistExactMatch && m.artist.toLowerCase() === l.artistExactMatch.toLowerCase())
         return true
-    if (m.album && l.album && m.album.toLowerCase() === l.album.toLowerCase())
+    if (m.album && l.albumExactMatch && m.album.toLowerCase() === l.albumExactMatch.toLowerCase())
         return true
-
     return false
 }
 
@@ -208,7 +213,7 @@ async function updateMetadata() {
                             resolve(false);
                         } else {
                             resolve(parseJson(JSON.parse(body)));
-                            console.log(`Updated Metadata for ${channelInfo.id}`)
+                            //console.log(`Updated Metadata for ${channelInfo.id}`)
                         }
                     })
                 })
@@ -776,52 +781,15 @@ async function processPendingBounces() {
                 console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
-            } else {
-                // If Event has completed
-                if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
-                    if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
-                        // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
-                        pendingEvent.guid = thisEvent.guid;
-                        pendingEvent.liveRec = true
-                        pendingEvent.done = true
-                        pendingEvent.inprogress = true
-
-                        console.log(`Digital Recording Found! "${thisEvent.filename}"`)
-                        queueDigitalRecording({
-                            metadata: {
-                                channelId: pendingEvent.ch,
-                                ...thisEvent
-                            },
-                            post_directorys: pendingEvent.post_directorys,
-                            switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
-                            index: true
-                        })
-                    } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
-                        // If specific tuner is set, not set to require digital or has failed to extract via digital
-                        pendingEvent.guid = thisEvent.guid;
-                        pendingEvent.done = true
-                        pendingEvent.inprogress = true
-
-                        console.log(`Extractable Event Found! "${thisEvent.filename}"`)
-                        queueRecordingExtraction({
-                            metadata: {
-                                channelId: pendingEvent.ch,
-                                ...thisEvent,
-                                tuner: getTuner(pendingEvent.tunerId)
-                            },
-                            post_directorys: pendingEvent.post_directorys,
-                            index: true
-                        })
-                    }
-                } else if (Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= ((thisEvent.delay) + (5 * 60) * 1000) && (pendingEvent.digitalOnly || config.live_extract) && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
-                    // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
+            } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
+                    // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
 
-                    console.log(`Live Digital Recording Found! "${thisEvent.filename}"`)
-
+                    console.log(`Digital Recording Found! "${thisEvent.filename}"`)
                     queueDigitalRecording({
                         metadata: {
                             channelId: pendingEvent.ch,
@@ -831,7 +799,41 @@ async function processPendingBounces() {
                         switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
+                } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
+                    // If specific tuner is set, not set to require digital or has failed to extract via digital
+                    pendingEvent.guid = thisEvent.guid;
+                    pendingEvent.done = true
+                    pendingEvent.inprogress = true
+
+                    console.log(`Extractable Event Found! "${thisEvent.filename}"`)
+                    queueRecordingExtraction({
+                        metadata: {
+                            channelId: pendingEvent.ch,
+                            ...thisEvent,
+                            tuner: getTuner(pendingEvent.tunerId)
+                        },
+                        post_directorys: pendingEvent.post_directorys,
+                        index: true
+                    })
                 }
+            } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + (5 * 60)) * 1000)) && (pendingEvent.digitalOnly || config.live_extract) && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
+                // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
+                pendingEvent.guid = thisEvent.guid;
+                pendingEvent.liveRec = true
+                pendingEvent.done = true
+                pendingEvent.inprogress = true
+
+                console.log(`Live Digital Recording Found! "${thisEvent.filename}"`)
+
+                queueDigitalRecording({
+                    metadata: {
+                        channelId: pendingEvent.ch,
+                        ...thisEvent
+                    },
+                    post_directorys: pendingEvent.post_directorys,
+                    switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
+                    index: true
+                })
             }
             return pendingEvent
         })
