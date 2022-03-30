@@ -1785,6 +1785,7 @@ async function tuneDigitalChannel(channel, time, device) {
                         ok(state === 'playing')
                     }, 1000)
                 })
+                console.log(ready)
                 if (!ready)
                     console.log('player not ready')
             }
