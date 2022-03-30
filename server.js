@@ -208,6 +208,7 @@ async function updateMetadata() {
                             resolve(false);
                         } else {
                             resolve(parseJson(JSON.parse(body)));
+                            console.log(`Updated Metadata for ${channelInfo.id}`)
                         }
                     })
                 })
