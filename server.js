@@ -2114,7 +2114,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         channelTimes.pending = prevJobs*/
 
         await updateMetadata();
-
+        registerSchedule();
         cron.schedule("* * * * *", async () => {
             updateMetadata();
         });
