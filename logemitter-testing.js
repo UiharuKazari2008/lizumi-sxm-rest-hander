@@ -128,5 +128,5 @@ function checkPlayStatus(device) {
 }
 
 setInterval(() => {
-    checkPlayStatus();
+    checkPlayStatus('CIAMSK79SOKFBIN7');
 }, 1000)

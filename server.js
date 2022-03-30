@@ -472,33 +472,39 @@ function checkPlayStatus(device) {
                 console.error(`${device.serial} : ${err.message}`)
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
-                const sessionStackIndex = searchStringInArray('  Sessions Stack', log)
+                const sessionStackIndex = searchStringInArray('Sessions Stack', log)
                 if (sessionStackIndex > -1) {
-                    const services = log.slice(sessionStackIndex)
+                    const services = log.slice(searchStringInArray('  Sessions Stack', log))
                         .filter(e => e.includes('package='))
-                        .map(s => log.slice(searchStringInArray(s, log))
-                            .filter(e => e.trim().includes('state=PlaybackState'))
-                            .map(e => {
-                                let x = {}
-                                x[s.split(' package=')[1]] = (() => {
-                                    const serviceState = e.split('state=PlaybackState').pop().trim().slice(1, -1)
-                                        .split(', ')
-                                    switch (parseInt(serviceState.filter(e => e.startsWith('state='))[0].split('=')[1])) {
-                                        case 0: // none
-                                            return "none"
-                                        case 1: // stop
-                                            return "stopped"
-                                        case 2: // pause
-                                            return "paused"
-                                        case 3: // play
-                                            return "playing"
-                                        default: // everything i dont care about
-                                            return "unknown"
-                                    }
-                                })()
-                                return x
-                            }))
-                    resolve(services)
+                        .map(e => e.split(' package=')[1])
+                    const status = log.slice(searchStringInArray('  Sessions Stack', log))
+                        .filter(e => e.trim().includes('state=PlaybackState'))
+                        .map((e,i) => {
+                            let x = {}
+                            x[services[i]] = (() => {
+                                const playState = e.split('state=PlaybackState').pop().trim().slice(1,-1)
+                                    .split(', ').filter(e => e.startsWith('state='))[0].split('=')[1]
+                                switch (playState) {
+                                    case "0":
+                                        // none
+                                        return "none"
+                                    case "1":
+                                        // stop
+                                        return "stopped"
+                                    case "2":
+                                        // pause
+                                        return "paused"
+                                    case "3":
+                                        // play
+                                        return "playing"
+                                    default:
+                                        // everything i dont care about
+                                        return "unknown"
+                                }
+                            })()
+                            return x
+                        })
+                    resolve(status)
                 } else {
                     resolve(false)
                 }
