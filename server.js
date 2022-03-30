@@ -1387,7 +1387,9 @@ async function startAudioClient(device) {
 async function createAudioServer(device) {
     return new Promise((resolve => {
         console.log(`${device.id}: (5/6) Starting Audio Relay @ TCP ${device.audioPort}...`)
-        const passTrough = new stream.PassThrough();
+        const passTrough = new stream.PassThrough({
+            highWaterMark: 2000000
+        });
         const audioServer = net.createServer(function (client) {
             console.log(`TAS/${device.id}: Audio Client Connected ${client.localAddress} => ${client.remotePort}`);
             passTrough.pipe(client)
