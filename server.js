@@ -463,13 +463,13 @@ function adbLogStart(device) {
 // Player Status
 function checkPlayStatus(device) {
     return new Promise(resolve => {
-        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, 'shell', 'dumpsys', 'media_session']
+        const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
             encoding: 'utf8',
             timeout: 2000
         }, (err, stdout, stderr) => {
             if (err) {
-                console.error(`${device} : ${err.message}`)
+                console.error(`${device.serial} : ${err.message}`)
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
                 const sessionStackIndex = searchStringInArray('  Sessions Stack', log)
