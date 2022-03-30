@@ -461,7 +461,7 @@ function adbLogStart(device) {
     adblog_tuners.set(device, logWawtcher)
 }
 // Player Status
-async function checkPlayStatus(device) {
+async function checkPlayStatus(device, name) {
     return await new Promise(resolve => {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device.serial, 'shell', 'dumpsys', 'media_session']
         exec(adblaunch.join(' '), {
@@ -480,26 +480,27 @@ async function checkPlayStatus(device) {
                 const status = log.slice(sessionStackIndex)
                     .filter(e => e.includes('state=PlaybackState'))
                     .map((e,i) => {
-                        let x = {}
-                        x[services[i]] = (() => {
-                            const playState = e.split('state=PlaybackState').pop().trim().slice(1,-1)
-                                .split(', ').filter(e => e.startsWith('state='))[0].split('=')[1]
-                            switch (playState) {
-                                case "0": // none
-                                    return "none"
-                                case "1": // stop
-                                    return "stopped"
-                                case "2": // pause
-                                    return "paused"
-                                case "3": // play
-                                    return "playing"
-                                default: // everything i dont care about
-                                    return "unknown"
-                            }
-                        })()
-                        return x
+                        return {
+                            x: services[i],
+                            y: (() => {
+                                const playState = e.split('state=PlaybackState').pop().trim().slice(1,-1)
+                                    .split(', ').filter(e => e.startsWith('state='))[0].split('=')[1]
+                                switch (playState) {
+                                    case "0": // none
+                                        return "none"
+                                    case "1": // stop
+                                        return "stopped"
+                                    case "2": // pause
+                                        return "paused"
+                                    case "3": // play
+                                        return "playing"
+                                    default: // everything i dont care about
+                                        return "unknown"
+                                }
+                            })()
+                        }
                     })
-                console.log(status)
+                    .filter(e => !name || e.x === name)
                 resolve(status)
             }
         });
@@ -1584,7 +1585,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 })
 
                 watchdog = setInterval(() => {
-                    const state = checkPlayStatus(tuner)['com.sirius']
+                    const state = checkPlayStatus(tuner, 'com.sirius')[0]
                     if (state !== 'playing') {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
@@ -1777,7 +1778,7 @@ async function tuneDigitalChannel(channel, time, device) {
             let i = -1;
             while (await new Promise(ok => {
                 setTimeout(() => {
-                    const state = checkPlayStatus(device)['com.sirius']
+                    const state = checkPlayStatus(device, 'com.sirius')[0]
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -1804,7 +1805,7 @@ async function releaseDigitalTuner(device) {
 //
 async function digitalTunerWatcher(device) {
     watchdog_tuners[device.id] = setInterval(() => {
-        const state = checkPlayStatus(device)['com.sirius']
+        const state = checkPlayStatus(device, 'com.sirius')[0]
         if (state !== 'playing') {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
