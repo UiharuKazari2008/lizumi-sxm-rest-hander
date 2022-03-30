@@ -473,9 +473,13 @@ function checkPlayStatus(device) {
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
                 const sessionStackIndex = searchStringInArray('Sessions Stack', log)
+                console.log(sessionStackIndex)
                 const services = log.slice(sessionStackIndex)
                     .filter(e => e.includes('package='))
                     .map(e => e.split(' package=')[1])
+                console.log(services)
+                console.log(log.slice(sessionStackIndex)
+                    .filter(e => e.trim().includes('state=PlaybackState')))
                 const status = log.slice(sessionStackIndex)
                     .filter(e => e.trim().includes('state=PlaybackState'))
                     .map((e,i) => {
@@ -484,20 +488,15 @@ function checkPlayStatus(device) {
                             const playState = e.split('state=PlaybackState').pop().trim().slice(1,-1)
                                 .split(', ').filter(e => e.startsWith('state='))[0].split('=')[1]
                             switch (playState) {
-                                case "0":
-                                    // none
+                                case "0": // none
                                     return "none"
-                                case "1":
-                                    // stop
+                                case "1": // stop
                                     return "stopped"
-                                case "2":
-                                    // pause
+                                case "2": // pause
                                     return "paused"
-                                case "3":
-                                    // play
+                                case "3": // play
                                     return "playing"
-                                default:
-                                    // everything i dont care about
+                                default: // everything i dont care about
                                     return "unknown"
                             }
                         })()
