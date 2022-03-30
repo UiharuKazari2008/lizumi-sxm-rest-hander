@@ -2316,7 +2316,9 @@ app.use("/debug", (req, res) => {
     })
     const tuners = listTuners()
     const statuses = tuners.filter(e => e.serial).map(async (t) => {
-        return await checkPlayStatus(t)
+        let x = {}
+        x[t] = await checkPlayStatus(t)
+        return x
     })
     const results = {
         activeJob: activeJobs,
