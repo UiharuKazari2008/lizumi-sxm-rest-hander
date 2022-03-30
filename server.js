@@ -563,7 +563,7 @@ function listTuners(digitalOnly) {
                 audioPort: 29000 + i,
                 ...config.digital_radios[e],
                 digital: true,
-                state: (checkPlayStatus(e.serial)['com.sirius']),
+                state: (checkPlayStatus(e)['com.sirius']),
                 activeCh: (a) ? a : null,
                 locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
             }
@@ -1586,7 +1586,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 })
 
                 watchdog = setInterval(async () => {
-                    const state = await checkPlayStatus(tuner.serial)['com.sirius']
+                    const state = await checkPlayStatus(tuner)['com.sirius']
                     if (state !== 'playing') {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
@@ -1779,7 +1779,7 @@ async function tuneDigitalChannel(channel, time, device) {
             let i = -1;
             while (await new Promise(ok => {
                 setTimeout(() => {
-                    const state = checkPlayStatus(device.serial)['com.sirius']
+                    const state = checkPlayStatus(device)['com.sirius']
                     console.log(state)
                     ok(state === 'playing')
                 }, 1000)
@@ -1806,7 +1806,7 @@ async function releaseDigitalTuner(device) {
 //
 async function digitalTunerWatcher(device) {
     watchdog_tuners[device.id] = setInterval(async () => {
-        const state = await checkPlayStatus(device.serial)['com.sirius']
+        const state = await checkPlayStatus(device)['com.sirius']
         if (state !== 'playing') {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
@@ -2288,6 +2288,41 @@ app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner).serial
     res.status(200).json({
         logs: device_logs[serial].split('\n')
+    })
+})
+app.use("/debug", (req, res) => {
+    const activeJobs = Object.keys(activeQueue).map(k => {
+        if (activeQueue[k].guid) {
+            return {
+                queue: k,
+                guid: activeQueue[k].guid,
+                active: !(activeQueue[k].closed),
+                liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+            }
+        }
+        return false
+    }).filter(e => e !== false)
+    const pendingJobs = Object.keys(jobQueue).map(k => {
+        return jobQueue[k].map(pendingJob => {
+            return {
+                channelId: pendingJob.metadata.channelId,
+                guid: pendingJob.metadata.guid,
+                start: pendingJob.metadata.syncStart,
+                name: pendingJob.metadata.filename,
+                post_directorys: pendingJob.post_directorys,
+                switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
+                isRequested: pendingJob.index
+            }
+        })
+    })
+    const tuners = listTuners()
+    res.status(200).json({
+        activeJob: activeJobs,
+        pendingJobs: pendingJobs,
+        requestedJobs: channelTimes.pending,
+        tuners: tuners,
+        player_status: tuners.filter(e => e.digital).map(t => checkPlayStatus(t))
     })
 })
 
