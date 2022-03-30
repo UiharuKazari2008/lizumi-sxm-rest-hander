@@ -470,6 +470,7 @@ function checkPlayStatus(device) {
         }, (err, stdout, stderr) => {
             if (err) {
                 console.error(`${device.serial} : ${err.message}`)
+                resolve(false)
             } else {
                 const log = stdout.toString().split('\r').join('').split('\n')
                 const sessionStackIndex = searchStringInArray('Sessions Stack', log)
