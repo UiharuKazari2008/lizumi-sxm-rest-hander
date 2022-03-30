@@ -1376,7 +1376,7 @@ async function startAudioClient(device) {
                 console.error(JSON.stringify(err));
             });
         }
-        connectDevice(device.audioPort)
+        connectDevice(device.localAudioPort)
         return true
     } else {
         console.error('No Audio Server is running!')
