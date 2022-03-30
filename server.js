@@ -26,6 +26,7 @@ let channelTimes = {
 };
 let locked_tuners = new Map();
 let adblog_tuners = new Map();
+let scheduled_list = new Map();
 let scheduled_tasks = new Map();
 let scheduled_tunes = new Map();
 let device_logs = {};
@@ -853,9 +854,25 @@ async function processPendingBounces() {
 }
 // Generate Cron Schedules for events
 function registerSchedule() {
-    Object.keys(config.schedule).forEach(k => {
+    const configSch = Object.keys(config.schedule)
+    const exsistSch = Array.from(scheduled_list.keys())
+
+    exsistSch.filter(e => configSch.indexOf(e) === -1).forEach(e => {
+        console.log(`Schedule ${e} was removed!`)
+        if (scheduled_tasks.has(e)) {
+            const sch = scheduled_tasks.get(e)
+            sch.destroy()
+            scheduled_tasks.delete(e)
+        }
+        if (scheduled_tunes.has(e)) {
+            const sch = scheduled_tunes.get(e)
+            sch.destroy()
+            scheduled_tunes.delete(e)
+        }
+    })
+    configSch.filter(e => exsistSch.indexOf(e) === -1).forEach(k => {
         const e = config.schedule[k]
-        if (e.record_cron) {
+        if (e.record_cron && !scheduled_tasks.has(k)) {
             if (cron.validate(e.record_cron)) {
                 let channelId = (e.channelId) ? e.channelId : undefined
                 if (e.ch)
@@ -874,11 +891,12 @@ function registerSchedule() {
                     })
                 })
                 scheduled_tasks.set(k, sch)
+                scheduled_list.set(k, true)
             } else {
                 console.error(`${e.record_cron} is not a valid cron string`)
             }
         }
-        if (e.tune_cron) {
+        if (e.tune_cron && !scheduled_tunes.has(k)) {
             if (cron.validate(e.tune_cron)) {
                 let channelId = (e.channelId) ? e.channelId : undefined
                 if (e.ch)
@@ -904,6 +922,7 @@ function registerSchedule() {
                     search()
                 })
                 scheduled_tunes.set(k, sch)
+                scheduled_list.set(k, true)
             } else {
                 console.error(`${e.tune_cron} is not a valid cron string`)
             }
@@ -2196,6 +2215,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         cron.schedule("*/5 * * * *", async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
+            registerSchedule();
         });
 
         console.log(tun)
