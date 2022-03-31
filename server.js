@@ -1654,66 +1654,94 @@ async function tuneToChannel(options) {
                 return [ca, true]
             return [false, false]
         })(options.tuner, findActiveRadioTune(channel.id))
-
-        if (tn[0]) {
-            console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
-            if (await _tuneToChannel(tn[0], channel, tn[1])) {
-                if (options.res) {
-                    options.res.status(200).send((!(tn[1] && !tn[0].always_retune)) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${tn[0].id} was tuned to ${channel.name}`)
-                }
-                console.log((!(tn[1] && !tn[0].always_retune)) ? `UNMODIFIED - Tuner is already tuned and does not have always_retune set` : `OK - Tuner ${tn[0].id} was tuned to ${channel.name}`)
-                return true
+        const tuneResult = await (async () => {
+            if (tn[0]) {
+                console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
+                return _tuneToChannel(tn[0], channel, tn[1])
             } else {
-                if (options.res) {
-                    options.res.status(500).send(`ERROR - Tuner ${tn[0].id} failed to tune to ${channel.name} due to a url request error`)
-                }
-                console.error(`ERROR - Tuner ${tn[0].id} failed to tune to ${channel.name} due to a url request error`)
-                return false
-            }
-        } else {
-            const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
-            if (_ptn && _ptn.length > 0) {
-                if (await _tuneToChannel(_ptn[0], channel, false)) {
-                    if (options.res) {
-                        options.res.status(200).send(`OK - Tuner ${_ptn[0].id} was tuned to ${channel.name}`)
-                    }
-                    console.log(`OK - Tuner ${_ptn[0].id} was tuned to ${channel.name}`)
-                    return true
+                const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
+                if (_ptn && _ptn.length > 0) {
+                    return _tuneToChannel(_ptn[0], channel, false)
                 } else {
-                    if (options.res) {
-                        res.status(500).send(`ERROR - Tuner ${_ptn[0].id} failed to tune to ${channel.name} due to a url request error`)
+                    return {
+                        ok: false,
+                        result: 'unavailable'
                     }
-                    console.error(`ERROR - Tuner ${_ptn[0].id} failed to tune to ${channel.name} due to a url request error`)
-                    return false
                 }
-            } else {
-                if (options.res) {
-                    options.res.status(404).send(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
-                }
-                console.error(`There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`)
-                return false
             }
+        })()
+
+        if (tuneResult.ok) {
+            const respones = (() => {
+                switch (tuneResult.result) {
+                    case 'unmodified':
+                        return `UNMODIFIED - Tuner ${tn[0]} is already tuned to "${channel.name}"`
+                    case 'not-possible':
+                        return `MANUAL - Tuner ${tn[0]} was marked as tuned "${channel.name}" but does not have automation to do so, manually change the channel`
+                    case 'tune-digital':
+                    case 'tune-satellite':
+                        return `OK - Tuner ${tn[0]} was tuned to "${channel.name}"`
+                }
+            })()
+            if (options.res)
+                options.res.status(200).send(respones)
+            console.log(respones)
+            return true
+        } else {
+            const response = (() => {
+                switch (tuneResult.result) {
+                    case 'locked':
+                        return `LOCKED - Tuner ${tn[0].id} is currently locked`
+                    case 'unavailable':
+                        return `There are no tuners available at this time\nThis could be because of locks for events or require manual input (In that case specify that tuner= specifically and change the channel manualy)`
+                    default:
+                        return `ERROR - Tuner ${tn[0].id} failed to tune to ${channel.name} due to a url request error`
+                }
+            })()
+            if (options.res)
+                options.res.status(500).send(response)
+            console.error(response)
+            return false
         }
     } else {
-        if (options.res) {
+        if (options.res)
             options.res.status(404).send('Channel not found')
-        }
         console.error("Channel not found")
         return false
     }
 }
 // Does the actual tuning
 async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
-    if (ptn.locked) {
-        return false
+    let result = {
+        ok: false
     }
-    const tcb = (!(isAlreadyTuned && !ptn.always_retune) && !(!ptn.digital && !channel.tuneUrl[ptn.id])) ? (ptn.digital) ? { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) } : await webRequest(channel.tuneUrl[ptn.id]) : { ok: true }
-    if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
-        await webRequest(ptn.post_tune_url)
-    if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
-        await setAirOutput(ptn.airfoil_source.name)
-
+    if (ptn.locked) {
+        return {
+            ok: false,
+            result: 'locked'
+        }
+    }
+    let tcb = { ok: true }
+    if (!(isAlreadyTuned && !ptn.always_retune)) {
+        if (ptn.digital) {
+            tcb = { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) }
+            result.action = 'tune-digital'
+        } else if (channel.tuneUrl[ptn.id]) {
+            tcb = await webRequest(channel.tuneUrl[ptn.id])
+            result.action = 'tune-satellite'
+        } else {
+            tcb = { ok: true }
+            result.action = 'not-possible'
+        }
+    } else {
+        result.action = 'unmodified'
+    }
     if (tcb.ok) {
+        if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
+            await webRequest(ptn.post_tune_url)
+        if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
+            await setAirOutput(ptn.airfoil_source.name)
+
         if (channelTimes.timetable[ptn.id].length > 0) {
             let lastTune = channelTimes.timetable[ptn.id].pop()
             lastTune.end = moment().valueOf()
@@ -1727,10 +1755,9 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
             digitalTunerWatcher(ptn)
         if (channel.updateOnTune)
             updateMetadata()
-        return true
-    } else {
-        return false
+        result.ok = true
     }
+    return result
 }
 //
 async function deTuneTuner(tuner, force) {
@@ -1768,32 +1795,42 @@ function reTuneTuner(tuner) {
 }
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
+    console.log(`Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
     return new Promise(async (resolve) => {
-        await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
-        console.log(`Tuning Device ${device.serial} to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
-        const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-        if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
-            let ready = false;
-            let i = -1;
-            while (!ready) {
-                i++
-                ready = await new Promise(ok => {
-                    setTimeout(async () => {
-                        const state = await checkPlayStatus(device)
-                        console.log(state)
-                        console.log(state === 'playing')
-                        ok(state === 'playing')
-                    }, 1000)
-                })
-                if (i >= 60)
-                    break
-                if (!ready)
-                    console.log('player not ready')
+        let k = -1
+        let tuneReady = false
+        while (!tuneReady) {
+            k++
+            await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
+            const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+            if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
+                let i = -1;
+                while (!tuneReady) {
+                    i++
+                    tuneReady = await new Promise(ok => {
+                        setTimeout(async () => {
+                            const state = await checkPlayStatus(device)
+                            console.log(state)
+                            console.log(state === 'playing')
+                            ok(state === 'playing')
+                        }, 1000)
+                    })
+                    if (i >= 30) {
+                        console.error(`Tune/${device.id}: Device did not start playing within the required timeout!`)
+                        break
+                    }
+                }
+            } else {
+                console.error(`Tune/${device.id}: Did not receive expected response from device active manager`)
             }
-            resolve(ready)
-        } else {
-            resolve(false)
+            if (!tuneReady)
+                console.error(`Tune/${device.id}: Device failed to tune to ${channel}!`)
+            if (k >= 3) {
+                console.error(`Tune/${device.id}: Device tuning reties exhausted, giving up!`)
+                break
+            }
         }
+        resolve(tuneReady)
     })
 }
 // Stop Playback on Android Device aka Release Stream Entity
