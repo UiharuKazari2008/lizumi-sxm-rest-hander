@@ -2338,9 +2338,13 @@ app.get("/debug/digital/:tuner", async (req, res, next) => {
 app.use("/dir/record", express.static(path.resolve(config.record_dir)))
 app.use("/debug/logcat/:tuner", (req, res) => {
     const serial = getTuner(req.params.tuner).serial
-    res.status(200).json({
-        logs: device_logs[serial].split('\n')
-    })
+    if (device_logs.hasOwnProperty(serial)) {
+        res.status(200).json({
+            logs: device_logs[serial].split('\n')
+        })
+    } else {
+        res.status(400).send('No Logs Available')
+    }
 })
 app.use("/debug", (req, res) => {
     const activeJobs = Object.keys(activeQueue).map(k => {
