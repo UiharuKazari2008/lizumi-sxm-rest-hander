@@ -2289,11 +2289,11 @@ app.get("/trigger/:display", (req, res, next) => {
     if (req.params.display) {
         switch (req.params.display) {
             case 'select_bounce_event':
-                bounceEventGUI(false, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(false, (req.query.tuner) ? req.query.tuner : undefined);
                 res.status(200).send('OK')
                 break;
             case 'select_bounce_song':
-                bounceEventGUI(true, (req.query.ch) ? req.query.ch : undefined);
+                bounceEventGUI(true, (req.query.tuner) ? req.query.tuner : undefined);
                 res.status(200).send('OK')
                 break;
             case 'modify_meta':
