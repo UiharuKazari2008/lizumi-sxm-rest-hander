@@ -26,6 +26,7 @@ let channelTimes = {
 };
 let locked_tuners = new Map();
 let watchdog_tuners = {}
+let timeout_tuners = {}
 let adblog_tuners = new Map();
 let scheduled_list = new Map();
 let scheduled_tasks = new Map();
@@ -1631,6 +1632,15 @@ function recordDigitalAudioInterface(tuner, time, event) {
         }
     })
 }
+//
+function startDeviceTimeout(device) {
+    if (device.timeout) {
+        timeout_tuners[device.id] = setTimeout(async() => {
+            // adb shell am force-stop com.sirius
+            await adbCommand(device.serial, ["shell", "am", "force-stop", "com.sirius"])
+        }, device.timeout)
+    }
+}
 
 // Channel Tuning Functions
 
@@ -1766,8 +1776,10 @@ async function deTuneTuner(tuner, force) {
             clearInterval(watchdog_tuners[tuner.id])
         if (!force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
             setAirOutput(tuner.airfoil_source.return_source)
-        if (tuner.digital)
+        if (tuner.digital) {
             await releaseDigitalTuner(tuner)
+            startDeviceTimeout(tuner)
+        }
         if (channelTimes.timetable[tuner.id].length > 0) {
             let lastTune = channelTimes.timetable[tuner.id].pop()
             if (!lastTune.hasOwnProperty('end'))
@@ -1796,6 +1808,8 @@ function reTuneTuner(tuner) {
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
     console.log(`Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
+    if (timeout_tuners.hasOwnProperty(device.id))
+        clearTimeout(timeout_tuners[device.id])
     return new Promise(async (resolve) => {
         let k = -1
         let tuneReady = false
@@ -1830,6 +1844,8 @@ async function tuneDigitalChannel(channel, time, device) {
                 break
             }
         }
+        if (!tuneReady)
+            startDeviceTimeout(device)
         resolve(tuneReady)
     })
 }
@@ -1877,6 +1893,7 @@ async function recordDigitalEvent(job, tuner) {
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1) || (await getAirOutput()) === tuner.airfoil_source.name) )
                 setAirOutput(tuner.airfoil_source.return_source)
             await releaseDigitalTuner(tuner)
+            startDeviceTimeout(tuner)
         }
         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
         if (recording && fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000) {
