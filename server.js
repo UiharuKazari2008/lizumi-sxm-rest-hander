@@ -38,7 +38,7 @@ let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
 let activeQueue = {};
-const sxmMaxRewind = 14400000;
+const sxmMaxRewind = 28800000;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
