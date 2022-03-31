@@ -844,7 +844,7 @@ async function processPendingBounces() {
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && !pendingEvent.tuner && digitalAvailable && !config.disable_digital_extraction) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
@@ -1031,7 +1031,7 @@ function registerBounce(options) {
         const pendEvent = {
             ch,
             tuner: (options.tuner && (!options.digitalOnly || (options.digitalOnly && options.tuner.digital))) ? t : undefined,
-            tunerId: t.id,
+            tunerId: (t) ? t.id : undefined,
             digitalOnly: (options.digitalOnly),
             restrict: (options.restrict) ? options.restrict : undefined,
             time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : moment().valueOf() + (options.addTime * 60000),
