@@ -38,7 +38,7 @@ let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
 let activeQueue = {};
-const sxmMaxRewind = 28800000;
+const sxmMaxRewind = 18000000;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -1564,12 +1564,6 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     encoding: 'utf8'
                 })
 
-                activeQueue[`REC-${tuner.id}`] = {
-                    recorder,
-                    closed: false,
-                    guid: event.guid
-                }
-
                 recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) })
                 recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) });
                 recorder.on('close', (code, signal) => {
@@ -1597,6 +1591,14 @@ function recordDigitalAudioInterface(tuner, time, event) {
                         recorder.stdin.write('q')
                     }
                 }, 5000)
+
+                activeQueue[`REC-${tuner.id}`] = {
+                    recorder,
+                    watchdog,
+                    closed: false,
+                    guid: event.guid
+                }
+
                 if (!time) {
                     console.log(`Record/${tuner.id}: This is a live event and has no duration, watching for closure`)
                     controller = setInterval(() => {
@@ -1613,6 +1615,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                             activeQueue[`REC-${tuner.id}`] = {
                                 recorder,
                                 stopwatch,
+                                watchdog,
                                 closed: false,
                                 guid: event.guid
                             }
@@ -1623,6 +1626,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     activeQueue[`REC-${tuner.id}`] = {
                         recorder,
                         controller,
+                        watchdog,
                         closed: false,
                         guid: event.guid
                     }
@@ -2176,6 +2180,8 @@ app.get("/pending/:action", (req, res) => {
                                 clearTimeout(activeQueue[k].stopwatch)
                             if (activeQueue[k].controller)
                                 clearInterval(activeQueue[k].controller)
+                            if (activeQueue[k].watchdog)
+                                clearInterval(activeQueue[k].watchdog)
                             if (activeQueue[k].recorder)
                                 activeQueue[k].recorder.kill(9)
                             return true
