@@ -1388,7 +1388,10 @@ async function startRecQueue(q) {
     const tuner = getTuner(q.slice(4))
     while (jobQueue[q].length !== 0) {
         const job = jobQueue[q][0]
-        if (moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
+        let i = (job.retry) ? job.retry : -1
+        i++
+        jobQueue[q][0].retry = i
+        if (i <= 3 && moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
             const completed = await recordDigitalEvent(job, tuner)
             if (completed)
                 await jobQueue[q].shift()
@@ -1604,6 +1607,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                             const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
                             console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                             stopwatch = setTimeout(() => {
+                                clearInterval(watchdog)
                                 recorder.stdin.write('q')
                             }, termTime)
                             activeQueue[`REC-${tuner.id}`] = {
