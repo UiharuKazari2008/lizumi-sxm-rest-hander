@@ -2058,8 +2058,8 @@ async function extractRecordedEvent(job) {
                     console.error(e)
                 }
                 await postExtraction(trimEventFile, eventFilename, job.post_directorys);
-                if (channelTimes.complete.indexOf(eventItem.guid) === -1)
-                    channelTimes.complete.push(eventItem.guid)
+                if (channelTimes.completed.indexOf(eventItem.guid) === -1)
+                    channelTimes.completed.push(eventItem.guid)
                 if (job.index) {
                     const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                     channelTimes.pending[index].inprogress = false
