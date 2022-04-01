@@ -621,7 +621,7 @@ function availableTuners(channel, preferDigital) {
         .filter(e =>
             !e.locked &&
             (e.digital || (!e.digital && ch && ch.tuneUrl[e.id])) &&
-            !(e.tuner.hasOwnProperty('record_only') && e.tuner.record_only)
+            !e.record_only
         )
 }
 // Get the best available digital tuner to queue a job
