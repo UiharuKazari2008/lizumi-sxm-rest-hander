@@ -855,6 +855,8 @@ async function processPendingBounces() {
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 5 * 60000) {
                 console.log(`${thisEvent.filename} has concluded and is available to extract!`)
+                console.log(digitalAvailable)
+                console.log(moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     console.log(`${thisEvent.filename} will be dubbed digitally`)
@@ -873,7 +875,7 @@ async function processPendingBounces() {
                         switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
-                } else if (thisEvent.tunerId && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
+                } else if (thisEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
                     // If specific tuner is set, not set to require digital or has failed to extract via digital
                     console.log(`${thisEvent.filename} will be extracted from the recording storage`)
                     pendingEvent.guid = thisEvent.guid;
@@ -885,7 +887,7 @@ async function processPendingBounces() {
                         metadata: {
                             channelId: pendingEvent.ch,
                             ...thisEvent,
-                            tuner: getTuner(thisEvent.tunerId)
+                            tuner: getTuner(pendingEvent.tunerId)
                         },
                         post_directorys: pendingEvent.post_directorys,
                         index: true
