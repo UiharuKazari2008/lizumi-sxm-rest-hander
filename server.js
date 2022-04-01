@@ -644,8 +644,8 @@ function getBestDigitalTuner() {
 // Event Searching and Formatting
 
 // List all events for a channel that are after start time
-function listEvents(channel, time) {
-    return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && e.syncStart < time)
+function listEvents(channel, time, after) {
+    return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && (!after && e.syncStart < time || after && e.syncStart > time - 300000))
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
@@ -653,7 +653,7 @@ function getEvent(channel, guid) {
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
-    const e = listEvents(channel, time)
+    const e = listEvents(channel, time, (options.restrict))
     return (options.restrict) ? e.filter(e => isWantedEvent(options.restrict, e))[0] : e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
 // Get List of Events and Songs
