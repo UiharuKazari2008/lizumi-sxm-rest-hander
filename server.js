@@ -852,7 +852,7 @@ async function processPendingBounces() {
                 console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
-            } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000 && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
+            } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     pendingEvent.guid = thisEvent.guid;
@@ -887,7 +887,7 @@ async function processPendingBounces() {
                         index: true
                     })
                 }
-            } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + (5 * 60)) * 1000)) && (pendingEvent.digitalOnly || config.live_extract) && (!pendingEvent.restrict || (pendingEvent.restrict && isWantedEvent(pendingEvent.restrict, thisEvent)))) {
+            } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + (5 * 60)) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
                 // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                 pendingEvent.guid = thisEvent.guid;
                 pendingEvent.liveRec = true
