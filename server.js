@@ -29,6 +29,7 @@ let locked_tuners = new Map();
 let watchdog_tuners = {}
 let watchdog_connectivity = {}
 let timeout_tuners = {}
+let timeout_sources = {}
 let adblog_tuners = new Map();
 let scheduled_list = new Map();
 let scheduled_tasks = new Map();
@@ -1332,12 +1333,25 @@ async function bounceEventGUI(type, device) {
 }
 // Set AirFoil Interface
 async function setAirOutput(input) {
-    return await new Promise(resolve => {
+    return await new Promise(async (resolve) => {
+        const currentSource = await getAirOutput()
+        const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
+        if (currentTuner && currentTuner.airfoil_source.auto_release) {
+            if (currentTuner.airfoil_source.name !== input) {
+                timeout_sources[currentTuner.id] = setTimeout(() => {
+                    deTuneTuner(currentTuner)
+                }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
+            } else {
+                clearTimeout(timeout_sources[currentTuner.id])
+                delete timeout_sources[currentTuner.id]
+            }
+        }
+
         const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
         const childProcess = osascript.execute(list, function (err, result, raw) {
             if (err)
                 console.error(err)
-            console.log(`airOutput: ${result}`)
+            console.log(`airOutput: Set audio source to ${input}`)
             clearTimeout(childKiller);
             resolve(!(err));
         });
@@ -1355,7 +1369,7 @@ async function getAirOutput() {
         const childProcess = osascript.execute(list, function (err, result, raw) {
             if (err)
                 console.error(err)
-            console.log(`airOutput: ${result}`)
+            //console.log(`airOutput: ${result}`)
             clearTimeout(childKiller);
             resolve(result);
         });
@@ -1442,7 +1456,7 @@ async function startRecQueue(q) {
 
 // Wait for device to connect and prepare device
 async function initDigitalRecorder(device) {
-    locked_tuners.set(device.id, {})
+    locked_tuners.set(device.id, true)
     console.log(`Searching for digital tuner "${device.name}":${device.serial}...`)
     console.log(`Please connect the device via USB if not already`)
     await adbCommand(device.serial, ["wait-for-device"], true)
@@ -1654,8 +1668,6 @@ function recordDigitalAudioInterface(tuner, time, event) {
                         guid: event.guid
                     }
                 }
-
-                locked_tuners.set(tuner.id, recorder)
             } catch (e) {
                 console.error(e)
                 resolve(false)
@@ -1917,8 +1929,9 @@ async function recordDigitalEvent(job, tuner) {
     console.log(tuner)
     adbLogStart(tuner.serial)
     await deTuneTuner(tuner, true)
+    locked_tuners.set(tuner.id, true)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
-        const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && eventItem.syncStart < (Date.now() - (5 * 60000)))
+        const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && eventItem.syncStart < (Date.now() - (30 * 60000)))
         if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
