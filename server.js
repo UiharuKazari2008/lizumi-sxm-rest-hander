@@ -854,13 +854,11 @@ async function processPendingBounces() {
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
-                console.log(`${thisEvent.filename} has concluded and is available to extract!`)
-
                 const tuner = (thisEvent.tunerId) ? getTuner(thisEvent.tunerId) : undefined
 
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
-                    console.log(`${thisEvent.filename} will be dubbed digitally`)
+                    console.log(`The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
@@ -876,9 +874,9 @@ async function processPendingBounces() {
                         switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
-                } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
+                } else if (tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && tuner.hasOwnProperty("record_prefix")) {
                     // If specific tuner is set, not set to require digital or has failed to extract via digital
-                    console.log(`${thisEvent.filename} will be extracted from the recording storage`)
+                    console.log(`The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
@@ -1857,8 +1855,6 @@ async function tuneDigitalChannel(channel, time, device) {
                     tuneReady = await new Promise(ok => {
                         setTimeout(async () => {
                             const state = await checkPlayStatus(device)
-                            console.log(state)
-                            console.log(state === 'playing')
                             ok(state === 'playing')
                         }, 1000)
                     })
