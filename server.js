@@ -653,7 +653,7 @@ function getEvent(channel, guid) {
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
-    const e = listEvents(channel, time, (options.restrict))
+    const e = listEvents(channel, time, (options.restrict.hasOwnProperty('reverse_lookup') && options.restrict.reverse_lookup))
     return (options.restrict) ? e.filter(e => isWantedEvent(options.restrict, e)).slice(-1).pop() : e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
 // Get List of Events and Songs
