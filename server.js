@@ -731,7 +731,7 @@ function listEventsValidated(songs, device, count) {
                         // Has duration aka is completed
                         (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
                         // If Event is less then 4 Hours old
-                        (moment.utc(f.syncStart).local().valueOf() <= (Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
+                        (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                     ).map((f, i, a) => {
                     if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                         f.syncEnd = a[i + 1].syncStart - 1
@@ -858,7 +858,7 @@ async function processPendingBounces() {
 
                 const tuner = (thisEvent.tunerId) ? getTuner(thisEvent.tunerId) : undefined
 
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     console.log(`${thisEvent.filename} will be dubbed digitally`)
                     pendingEvent.guid = thisEvent.guid;
@@ -1411,7 +1411,7 @@ async function startRecQueue(q) {
             let i = (job.retry) ? job.retry : -1
             i++
             jobQueue[q][0].retry = i
-            if (i <= 3 && moment.utc(job.metadata.syncStart).local().valueOf() <= (Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
+            if (i <= 3 && moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
                 const completed = await recordDigitalEvent(job, tuner)
                 if (completed)
                     await jobQueue[q].shift()
