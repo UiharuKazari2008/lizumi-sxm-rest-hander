@@ -94,6 +94,8 @@ function portInUse(port) {
     })
 }
 function isWantedEvent(l, m) {
+    if (!l.allow_episodes && m.isEpisode)
+        return false
     if (m.title && l.search && m.title.toLowerCase().includes(l.search.toLowerCase()))
         return true
     if (m.artist && l.search && m.artist.toLowerCase().includes(l.search.toLowerCase()))
@@ -852,7 +854,7 @@ async function processPendingBounces() {
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
-                console.log(`${thisEvent.filename} has concluded and is avalible to extract!`)
+                console.log(`${thisEvent.filename} has concluded and is available to extract!`)
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     console.log(`${thisEvent.filename} will be dubbed digitally`)
@@ -2443,6 +2445,11 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
         }
+        if (tun.filter(e => e.digital).length > 0)
+            digitalAvailable = true
+        if (tun.filter(e => !e.digital).length > 0)
+            satelliteAvailable = true
+
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
             for (const a of channelTimes.queues) {
@@ -2459,10 +2466,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         }
         channelTimes.queues = [];
 
-        if (tun.filter(e => e.digital).length > 0)
-            digitalAvailable = true
-        if (tun.filter(e => !e.digital).length > 0)
-            satelliteAvailable = true
+
 
         /*let prevJobs = channelTimes.pending.filter(e => e.done === true && e.inprogress === true).map(e => {
             return {
