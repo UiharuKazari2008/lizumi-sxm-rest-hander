@@ -894,7 +894,7 @@ async function processPendingBounces() {
                         index: true
                     })
                 }
-            } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + (5 * 60)) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
+            } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
                 // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                 console.log(`${thisEvent.filename} is live extractable!`)
                 pendingEvent.guid = thisEvent.guid;
