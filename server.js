@@ -826,7 +826,6 @@ async function processPendingBounces() {
                     return getEvent(pendingEvent.ch, pendingEvent.guid)
                 if (pendingEvent.ch && pendingEvent.time)
                     return findEvent(pendingEvent.ch, pendingEvent.time, { restrict: (pendingEvent.restrict) ? pendingEvent.restrict : undefined })
-                return false
             })()
             //console.log(thisEvent)
 
