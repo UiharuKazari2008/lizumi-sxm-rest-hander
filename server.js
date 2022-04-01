@@ -844,7 +844,7 @@ async function processPendingBounces() {
             }
 
             if (!thisEvent && pendingEvent.time && pendingEvent.time <= moment().valueOf() + 2 * 3600000) {
-                console.log(`Pending Request Expired: ${pendingEvent.time} was not found with in 2 hours`)
+                console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 2 hours`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
@@ -852,8 +852,10 @@ async function processPendingBounces() {
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncStart <= moment().valueOf() + 5 * 60000) {
+                console.log(`${thisEvent.filename} has concluded and is avalible to extract!`)
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
+                    console.log(`${thisEvent.filename} will be dubbed digitally`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
@@ -871,6 +873,7 @@ async function processPendingBounces() {
                     })
                 } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
                     // If specific tuner is set, not set to require digital or has failed to extract via digital
+                    console.log(`${thisEvent.filename} will be extracted from the recording storage`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
@@ -888,6 +891,7 @@ async function processPendingBounces() {
                 }
             } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + (5 * 60)) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
                 // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
+                console.log(`${thisEvent.filename} is live extractable!`)
                 pendingEvent.guid = thisEvent.guid;
                 pendingEvent.liveRec = true
                 pendingEvent.done = true
