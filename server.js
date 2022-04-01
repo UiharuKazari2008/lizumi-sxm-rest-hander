@@ -614,7 +614,7 @@ function availableTuners(channel, preferDigital) {
         .map(e => {
             return {
                 ...e,
-                priority: ((!e.digital && preferDigital) || (e.digital && !preferDigital)) ? e.priority + 1000 : e.priority
+                priority: (preferDigital && ((!e.digital && preferDigital) || (e.digital && !preferDigital))) ? e.priority + 1000 : e.priority
             }
         })
         .sort(sortPriority)
