@@ -26,6 +26,7 @@ let channelTimes = {
 };
 let locked_tuners = new Map();
 let watchdog_tuners = {}
+let watchdog_connectivity = {}
 let timeout_tuners = {}
 let adblog_tuners = new Map();
 let scheduled_list = new Map();
@@ -1391,42 +1392,47 @@ function queueDigitalRecording(jobOptions) {
 }
 // Process all pending digital recordings as FIFO
 async function startRecQueue(q) {
-    activeQueue[q] = true
-    const tuner = getTuner(q.slice(4))
-    while (jobQueue[q].length !== 0) {
-        const job = jobQueue[q][0]
-        let i = (job.retry) ? job.retry : -1
-        i++
-        jobQueue[q][0].retry = i
-        if (i <= 3 && moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
-            const completed = await recordDigitalEvent(job, tuner)
-            if (completed)
+    if (!locked_tuners.has(q.slice(4))) {
+        activeQueue[q] = true
+        const tuner = getTuner(q.slice(4))
+        while (jobQueue[q].length !== 0) {
+            const job = jobQueue[q][0]
+            let i = (job.retry) ? job.retry : -1
+            i++
+            jobQueue[q][0].retry = i
+            if (i <= 3 && moment.utc(job.metadata.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) {
+                const completed = await recordDigitalEvent(job, tuner)
+                if (completed)
+                    await jobQueue[q].shift()
+                console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
+            } else {
+                if (job.index) {
+                    console.error(`Record/${q.slice(4)}: Failed job should be picked up by the recording extractor (if available)`)
+                    const index = channelTimes.pending.map(e => e.guid).indexOf(job.metadata.guid)
+                    channelTimes.pending[index].inprogress = false
+                    channelTimes.pending[index].liveRec = false
+                    channelTimes.pending[index].done = false
+                    channelTimes.pending[index].failedRec = true
+                }
                 await jobQueue[q].shift()
-            console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
-        } else {
-            if (job.index) {
-                console.error(`Record/${q.slice(4)}: Failed job should be picked up by the recording extractor (if available)`)
-                const index = channelTimes.pending.map(e => e.guid).indexOf(job.metadata.guid)
-                channelTimes.pending[index].inprogress = false
-                channelTimes.pending[index].liveRec = false
-                channelTimes.pending[index].done = false
-                channelTimes.pending[index].failedRec = true
+                console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
             }
-            await jobQueue[q].shift()
-            console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
         }
+        delete activeQueue[q]
+        if (tuner.hasOwnProperty('retune_after_jobs') && tuner.retune_after_jobs) {
+            reTuneTuner(tuner)
+        }
+        return true
+    } else {
+        console.error(`Record/${q.slice(4)}: Unable to start the job queue becuase the tuner is locked!`)
     }
-    delete activeQueue[q]
-    if (tuner.hasOwnProperty('retune_after_jobs') && tuner.retune_after_jobs) {
-        reTuneTuner(tuner)
-    }
-    return true
 }
 
 // Digital Tuner Controls and Recorders
 
 // Wait for device to connect and prepare device
 async function initDigitalRecorder(device) {
+    locked_tuners.set(device.id, {})
     console.log(`Searching for digital tuner "${device.name}":${device.serial}...`)
     console.log(`Please connect the device via USB if not already`)
     await adbCommand(device.serial, ["wait-for-device"])
@@ -1445,9 +1451,9 @@ async function initDigitalRecorder(device) {
         if (!jobQueue['REC-' + device.id] && clientOk) {
             jobQueue['REC-' + device.id] = [];
         }
+        locked_tuners.delete(device.id)
     } else {
         console.error(`Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
-        locked_tuners.set(device.id, {})
     }
 }
 // Start TCP Audio Server and Pipeline
@@ -1647,7 +1653,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
         }
     })
 }
-//
+// Return to the home screen after a timeout of inactivity
 function startDeviceTimeout(device) {
     if (device.timeout) {
         timeout_tuners[device.id] = setTimeout(async() => {
@@ -1660,7 +1666,7 @@ function startDeviceTimeout(device) {
 
 // Channel Tuning Functions
 
-// Tune to Channel on specific Tuner or the best avalible onw
+// Tune to Channel on specific Tuner or the best available one
 async function tuneToChannel(options) {
     const channel = (() => {
         if (options.channelId) {
@@ -1785,7 +1791,7 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
     }
     return result
 }
-//
+// End the tuners timeline for the active channel
 async function deTuneTuner(tuner, force) {
     if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
         if (tuner.digital)
@@ -1809,7 +1815,7 @@ async function deTuneTuner(tuner, force) {
         return false
     }
 }
-//
+// Used to tune to the last channel once recordings are completed
 function reTuneTuner(tuner) {
     if (channelTimes.timetable[tuner.id].length > 0) {
         let lastTune = channelTimes.timetable[tuner.id].slice(-1).pop()
@@ -1870,7 +1876,7 @@ async function releaseDigitalTuner(device) {
     console.log(`Releasing Device ${device.serial}...`);
     return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
 }
-//
+// Automatically deturns a tuner if playback is stopped
 async function digitalTunerWatcher(device) {
     watchdog_tuners[device.id] = setInterval(async () => {
         const state = await checkPlayStatus(device)
@@ -1879,6 +1885,16 @@ async function digitalTunerWatcher(device) {
             deTuneTuner(device)
         }
     }, 60000)
+}
+// Watches device for the loss of port forwarding
+async function deviceWatcher(device) {
+    watchdog_connectivity[device.id] = setInterval(async () => {
+        const portlist = await adbCommand(device.serial, ['forward', '--list'])
+        if (!portlist.ok || !portlist.logs.includes(`${device.serial} tcp:${device.localAudioPort} localabstract:sndcpy`)) {
+            console.error(`Player/${device.id}: Device has lost audio connectivity with the server, attempting to reconfigure...`)
+            await initDigitalRecorder(device)
+        }
+    }, 30000)
 }
 
 // Job Workers
@@ -2414,12 +2430,15 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         const tun = listTuners()
         console.log("Settings up recorder queues...")
         for (let t of tun) {
-            if (t.digital)
+            if (t.digital) {
                 await initDigitalRecorder(t);
+                deviceWatcher(t)
+            }
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
         }
         if (channelTimes.queues && channelTimes.queues.length > 0) {
+            jobQueue['extract'] = [];
             for (const a of channelTimes.queues) {
                 console.log(`Recovering Queue "${a.k}"...`)
                 jobQueue[a.k] = a.q
