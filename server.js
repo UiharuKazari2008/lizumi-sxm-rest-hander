@@ -827,9 +827,9 @@ async function processPendingBounces() {
                 if (pendingEvent.ch && pendingEvent.time)
                     return findEvent(pendingEvent.ch, pendingEvent.time, { restrict: (pendingEvent.restrict) ? pendingEvent.restrict : undefined })
             })()
-            //console.log(thisEvent)
 
             if (thisEvent) {
+                console.log(thisEvent)
                 thisEvent.filename = (() => {
                     if (thisEvent.filename) {
                         return thisEvent.filename
