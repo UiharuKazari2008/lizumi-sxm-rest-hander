@@ -2434,7 +2434,7 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
         for (let t of tun) {
             if (t.digital) {
                 await initDigitalRecorder(t);
-                deviceWatcher(t)
+                //deviceWatcher(t)
             }
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
