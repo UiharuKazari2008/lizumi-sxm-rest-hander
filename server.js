@@ -1890,7 +1890,7 @@ async function digitalTunerWatcher(device) {
 async function deviceWatcher(device) {
     watchdog_connectivity[device.id] = setInterval(async () => {
         const portlist = await adbCommand(device.serial, ['forward', '--list'])
-        if (!portlist.ok || !portlist.logs.includes(`localabstract:sndcpy`)) {
+        if (!portlist.ok || !portlist.log.includes(`localabstract:sndcpy`)) {
             console.error(`Player/${device.id}: Device has lost audio connectivity with the server, attempting to reconfigure...`)
             await initDigitalRecorder(device)
         }
@@ -2156,7 +2156,7 @@ app.get("/detune/:tuner", async (req, res, next) => {
 });
 app.get("/source/:tuner", async (req, res, next) => {
     const t = getTuner(req.params.tuner)
-    if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t.serial)) === 'playing'))) {
+    if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === 'playing'))) {
         await setAirOutput(t.airfoil_source.name)
         res.status(200).send("OK")
     } else {
