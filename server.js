@@ -39,7 +39,7 @@ let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
 let activeQueue = {};
-const sxmMaxRewind = 18000000;
+const sxmMaxRewind = 14400000;
 
 const findClosest = (arr, num) => {
     const creds = arr.reduce((acc, val, ind) => {
@@ -855,7 +855,6 @@ async function processPendingBounces() {
                 pendingEvent.inprogress = false
             } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 5 * 60000) {
                 console.log(`${thisEvent.filename} has concluded and is available to extract!`)
-                console.log(digitalAvailable)
                 console.log(moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                 if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
