@@ -845,18 +845,23 @@ async function processPendingBounces() {
                 })()
             }
 
-            if (!thisEvent && pendingEvent.time && pendingEvent.time <= moment().valueOf() + 2 * 3600000) {
-                console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 2 hours`)
+            if (!thisEvent && pendingEvent.time && pendingEvent.time <= moment().valueOf() + 4 * 3600000) {
+                console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
             } else if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
                 console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
-            } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= moment().valueOf() + 5 * 60000) {
+            } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
                 console.log(`${thisEvent.filename} has concluded and is available to extract!`)
-                console.log(moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
-                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
+                console.log(moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
+                console.log(moment.utc(thisEvent.syncStart).local().valueOf())
+                console.log((Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
+
+                const tuner = (thisEvent.tunerId) ? getTuner(thisEvent.tunerId) : undefined
+
+                if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() <= (Date.now() + ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                     // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                     console.log(`${thisEvent.filename} will be dubbed digitally`)
                     pendingEvent.guid = thisEvent.guid;
@@ -874,7 +879,7 @@ async function processPendingBounces() {
                         switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
-                } else if (thisEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
+                } else if (pendingEvent.tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && pendingEvent.tuner.hasOwnProperty("record_prefix")) {
                     // If specific tuner is set, not set to require digital or has failed to extract via digital
                     console.log(`${thisEvent.filename} will be extracted from the recording storage`)
                     pendingEvent.guid = thisEvent.guid;
@@ -886,7 +891,7 @@ async function processPendingBounces() {
                         metadata: {
                             channelId: pendingEvent.ch,
                             ...thisEvent,
-                            tuner: getTuner(pendingEvent.tunerId)
+                            tuner: tuner
                         },
                         post_directorys: pendingEvent.post_directorys,
                         index: true
