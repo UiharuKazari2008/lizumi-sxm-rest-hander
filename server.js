@@ -1700,7 +1700,7 @@ async function tuneToChannel(options) {
                 console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
                 return _tuneToChannel(tn[0], channel, tn[1])
             } else {
-                const _ptn = availableTuners(channel.id, (req.query.digital && req.query.digital === 'true' ))
+                const _ptn = availableTuners(channel.id, (options.digital && options.digital === 'true' ))
                 if (_ptn && _ptn.length > 0) {
                     return _tuneToChannel(_ptn[0], channel, false)
                 } else {
@@ -2146,6 +2146,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
     await tuneToChannel({
         channel: req.params.channelNum,
         tuner: (req.query.tuner) ? req.query.tuner : undefined,
+        digital: (req.query.digital) ? req.query.digital : undefined
         res
     })
 });
