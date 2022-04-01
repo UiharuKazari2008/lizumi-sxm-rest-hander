@@ -825,21 +825,28 @@ async function processPendingBounces() {
                     return getEvent(pendingEvent.ch, pendingEvent.guid)
                 if (pendingEvent.ch && pendingEvent.time)
                     return findEvent(pendingEvent.ch, pendingEvent.time)
+                return false
             })()
 
-            thisEvent.filename = (() => {
-                if (thisEvent.filename) {
-                    return thisEvent.filename
-                } else if (thisEvent.isEpisode) {
-                    return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                } else if (thisEvent.isSong) {
-                    return `${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                } else {
-                    return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                }
-            })()
+            if (thisEvent) {
+                thisEvent.filename = (() => {
+                    if (thisEvent.filename) {
+                        return thisEvent.filename
+                    } else if (thisEvent.isEpisode) {
+                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
+                    } else if (thisEvent.isSong) {
+                        return `${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')}`
+                    } else {
+                        return `${thisEvent.title.replace(/[/\\?%*:|"<>]/g, '')} - ${thisEvent.artist.replace(/[/\\?%*:|"<>]/g, '')}`
+                    }
+                })()
+            }
 
-            if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
+            if (!thisEvent && pendingEvent.time && pendingEvent.time <= moment().valueOf() + 2 * 3600000) {
+                console.log(`Pending Request Expired: ${pendingEvent.time} was not found with in 2 hours`)
+                pendingEvent.done = true
+                pendingEvent.inprogress = false
+            } else if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length !== 0) {
                 console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
@@ -960,7 +967,7 @@ function registerSchedule() {
                     let i = -1
                     function search() {
                         i++
-                        if (!e.restrict || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
+                        if (!e.restrict || !e.restrict_applys_to_tune || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
                             tuneToChannel({
                                 channelId: channelId,
                                 tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
@@ -1645,7 +1652,8 @@ function startDeviceTimeout(device) {
     if (device.timeout) {
         timeout_tuners[device.id] = setTimeout(async() => {
             // adb shell am force-stop com.sirius
-            await adbCommand(device.serial, ["shell", "am", "force-stop", "com.sirius"])
+            // adb shell am start -a android.intent.action.MAIN -c android.intent.category.HOME
+            await adbCommand(device.serial, ["shell", "am", "start", "-a", "android.intent.action.MAIN", '-c', 'android.intent.category.HOME'])
         }, device.timeout)
     }
 }
