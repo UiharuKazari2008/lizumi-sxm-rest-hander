@@ -418,12 +418,12 @@ function webRequest(url) {
     })
 }
 // ADB Command Runner
-function adbCommand(device, commandArray) {
+function adbCommand(device, commandArray, noTimeout) {
     return new Promise(function (resolve) {
         const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, ...commandArray]
         exec(adblaunch.join(' '), {
             encoding: 'utf8',
-            timeout: 10000
+            timeout: (noTimeout) ? undefined : 10000
         }, (err, stdout, stderr) => {
             if (err) {
                 console.error(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
@@ -1373,7 +1373,7 @@ function queueRecordingExtraction(jobOptions) {
     jobQueue['extract'].push(jobOptions)
     console.log(`Extraction Job #${jobQueue['extract'].length} Queued`)
     console.log(jobOptions)
-    if (activeQueue['extract'] === false)
+    if (!activeQueue['extract'])
         startExtractQueue()
 }
 // Process all pending recording extractions as FIFO
@@ -1428,7 +1428,7 @@ async function startRecQueue(q) {
             }
         }
         delete activeQueue[q]
-        if (tuner.hasOwnProperty('retune_after_jobs') && tuner.retune_after_jobs) {
+        if (tuner.hasOwnProperty('stop_after_record') && !tuner.stop_after_record) {
             reTuneTuner(tuner)
         }
         return true
@@ -1444,7 +1444,7 @@ async function initDigitalRecorder(device) {
     locked_tuners.set(device.id, {})
     console.log(`Searching for digital tuner "${device.name}":${device.serial}...`)
     console.log(`Please connect the device via USB if not already`)
-    await adbCommand(device.serial, ["wait-for-device"])
+    await adbCommand(device.serial, ["wait-for-device"], true)
     console.log(`Tuner "${device.name}":${device.serial} was connected! Please Wait for initialization...\n!!!! DO NOT TOUCH DEVICE !!!!`)
     const socketready = await startAudioDevice(device);
     if (socketready) {
@@ -1911,18 +1911,18 @@ async function recordDigitalEvent(job, tuner) {
     console.log(`Record/${tuner.id}: Preparing for digital dubbing...`)
     let eventItem = getEvent(job.metadata.channelId, job.metadata.guid)
     if (!eventItem)
-        eventItem = job.metadata.channelId
-    console.log(eventItem)
+        eventItem = job.metadata
+    console.log(job)
     console.log(tuner)
     adbLogStart(tuner.serial)
     await deTuneTuner(tuner, true)
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
-        const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
+        const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && eventItem.syncStart < (Date.now() - (5 * 60000)))
         if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
-                return eventItem.duration + ((eventItem.isEpisode) ? 300 : 10)
+                return parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
                 return msToTime((parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)) * 1000).split('.')[0]
             return undefined
