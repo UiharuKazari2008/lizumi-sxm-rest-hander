@@ -2146,7 +2146,7 @@ app.get("/tune/:channelNum", async (req, res, next) => {
     await tuneToChannel({
         channel: req.params.channelNum,
         tuner: (req.query.tuner) ? req.query.tuner : undefined,
-        digital: (req.query.digital) ? req.query.digital : undefined
+        digital: (req.query.digital) ? req.query.digital : undefined,
         res
     })
 });
