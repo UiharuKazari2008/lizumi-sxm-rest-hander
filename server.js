@@ -1619,7 +1619,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                         if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) {
                             clearInterval(controller)
                         } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
-                            const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (10000)
+                            const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
                             console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                             stopwatch = setTimeout(() => {
                                 clearInterval(watchdog)
@@ -1915,9 +1915,9 @@ async function recordDigitalEvent(job, tuner) {
             setAirOutput(tuner.airfoil_source.name)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
-                return eventItem.duration + 10
+                return eventItem.duration + ((eventItem.isEpisode) ? 300 : 10)
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
-                return msToTime((parseInt(eventItem.duration.toString()) + 10) * 1000).split('.')[0]
+                return msToTime((parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)) * 1000).split('.')[0]
             return undefined
         })()
         const recording = await recordDigitalAudioInterface(tuner, time, eventItem)
@@ -2156,7 +2156,7 @@ app.get("/detune/:tuner", async (req, res, next) => {
 });
 app.get("/source/:tuner", async (req, res, next) => {
     const t = getTuner(req.params.tuner)
-    if (t && t.airfoil_source && t.airfoil_source.name && t.activeCh && !t.activeCh.hasOwnProperty('end')) {
+    if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t.serial) === 'playing')))) {
         await setAirOutput(t.airfoil_source.name)
         res.status(200).send("OK")
     } else {
