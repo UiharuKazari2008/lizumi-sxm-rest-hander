@@ -2156,7 +2156,7 @@ app.get("/detune/:tuner", async (req, res, next) => {
 });
 app.get("/source/:tuner", async (req, res, next) => {
     const t = getTuner(req.params.tuner)
-    if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t.serial) === 'playing')))) {
+    if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t.serial)) === 'playing'))) {
         await setAirOutput(t.airfoil_source.name)
         res.status(200).send("OK")
     } else {
