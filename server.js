@@ -650,9 +650,9 @@ function getEvent(channel, guid) {
     return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
-function findEvent(channel, time) {
+function findEvent(channel, time, options) {
     const e = listEvents(channel, time)
-    return e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
+    return (options.restrict) ? e.filter(e => isWantedEvent(options.restrict, e))[0] : e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
 // Get List of Events and Songs
 function listEventsValidated(songs, device, count) {
@@ -825,7 +825,7 @@ async function processPendingBounces() {
                 if (pendingEvent.ch && pendingEvent.guid)
                     return getEvent(pendingEvent.ch, pendingEvent.guid)
                 if (pendingEvent.ch && pendingEvent.time)
-                    return findEvent(pendingEvent.ch, pendingEvent.time)
+                    return findEvent(pendingEvent.ch, pendingEvent.time, { restrict: (pendingEvent.restrict) ? pendingEvent.restrict : undefined })
                 return false
             })()
 
@@ -944,6 +944,7 @@ function registerSchedule() {
                     registerBounce({
                         channel: channelId,
                         tuner: (e.rec_tuner) ? getTuner(e.rec_tuner) : undefined,
+                        allow_events: (e.allow_events) ? e.allow_events : undefined,
                         digitalOnly: (e.digitalOnly) ? e.digitalOnly : undefined,
                         addTime: 0,
                         restrict: (e.restrict) ? e.restrict : undefined,
@@ -1004,6 +1005,7 @@ function searchEvents() {
                 tuner: undefined,
                 tunerId: e.tunerId,
                 digitalOnly: (f.digitalOnly),
+                allow_events: (f.allow_events),
                 post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
                 switch_source: (f.switch_source) ? f.switch_source : false,
                 automatic: true,
