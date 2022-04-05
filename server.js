@@ -1620,7 +1620,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
 
                 watchdog = setInterval(async () => {
                     const state = await checkPlayStatus(tuner)
-                    if (state !== 'playing') {
+                    if (state === 'playing' || state === 'unknown' || !state) {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
                         clearTimeout(stopwatch)
@@ -1868,7 +1868,7 @@ async function tuneDigitalChannel(channel, time, device) {
                     tuneReady = await new Promise(ok => {
                         setTimeout(async () => {
                             const state = await checkPlayStatus(device)
-                            ok(state === 'playing')
+                            ok(state === 'playing' || state === 'unknown' || !state)
                         }, 1000)
                     })
                     if (i >= 30) {
@@ -1900,7 +1900,7 @@ async function releaseDigitalTuner(device) {
 async function digitalTunerWatcher(device) {
     watchdog_tuners[device.id] = setInterval(async () => {
         const state = await checkPlayStatus(device)
-        if (state !== 'playing') {
+        if (state === 'playing' || state === 'unknown' || !state) {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
         }
