@@ -1,0 +1,169 @@
+{
+  "record_dir": "/Users/kaz/Music/SiriusXM/",
+  "upload_dir": "/Users/kaz/Workspace/kanmi/upload/Recordings/",
+  "extract_format": "mp3",
+  "schedule": {
+    "RecordsOnRecords": {
+      "record_cron": "05 17 * * 5",
+      "tune_cron": "00 17 * * 5",
+      "ch": "52",
+      "restrict_applys_to_tune": true,
+      "tune_search" : true,
+      "restrict": {
+        "title": "Records"
+      },
+      "switch_source": false
+    }
+  },
+  "autosearch_terms": [
+    {
+      "search": "Wavelength",
+      "switch_source": false
+    }
+  ],
+  "satellite_radios": {
+    "sat-1": {
+      "priority": 10,
+      "name": "Satellite 1",
+      "lock_on_events": true,
+      "record_prefix": "SXM_SAT_1_LIVE_",
+      "record_date_format": "YYYYMMDD-HHmmss",
+      "airfoil_source": {
+        "name": "SiriusXM Satellite Radio 1",
+        "conditions": ["tune"],
+        "return_source": "SiriusXM Satellite Radio 2"
+      }
+    },
+    "sat-2": {
+      "priority": 11,
+      "name": "Satellite 2",
+      "lock_on_events": true,
+      "record_prefix": "SXM_SAT_2_LIVE_",
+      "record_date_format": "YYYYMMDD-HHmmss",
+      "airfoil_source": {
+        "name": "SiriusXM Satellite Radio 2",
+        "conditions": ["tune","record"]
+      }
+    }
+  },
+  "live_extract": true,
+  "adb_command": "/Users/kaz/android-sdk-macosx/platform-tools/adb",
+  "digital_radios": {
+    "stream-1": {
+      "priority": 1,
+      "serial": "CIAMSK79SOKFBIN7",
+      "name": "Digital 1",
+      "record_only": false,
+      "stop_after_record": true,
+      "airfoil_source": {
+        "name": "SiriusXM Digital Radio",
+        "return_source": "SiriusXM Satellite Radio 2",
+        "conditions": ["tune","live_record"],
+        "auto_release": true
+      }
+    }
+  },
+  "channels": {
+    "51": {
+      "name": "SXM 51 - BPM (Today's Dance Hits & Remixes)",
+      "id": "thebeat",
+      "digitalIndex": "3",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=double-press"
+      }
+    },
+    "52": {
+      "name": "SXM 52 - Diplo's Revolution (Global House Party)",
+      "id": "9472",
+      "digitalIndex": "4",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=single-press"
+      }
+    },
+    "736": {
+      "name": "SXM 736 - A State of Armin (Trance & Progressive EDM)",
+      "id": "9527",
+      "updateOnTune": true,
+      "digitalIndex": "8",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=long-press"
+      }
+    },
+    "53": {
+      "name": "SXM 53 - Chill (Smooth Electronic)",
+      "id": "chill",
+      "digitalIndex": "9",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=single-press"
+      }
+    },
+    "10": {
+      "name": "SXM 10 - Pop2K (Pop 2000 Hits)",
+      "id": "8363",
+      "updateOnTune": true,
+      "digitalIndex": "10",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=double-press"
+      }
+    },
+    "11": {
+      "name": "SXM 11 - 10s Spot (Pop hits from the 2010s!)",
+      "id": "9556",
+      "updateOnTune": true,
+      "digitalIndex": "11",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=double-press"
+      }
+    },
+    "99": {
+      "name": "SXM 99 - Raw Dog Comedy",
+      "id": "rawdog",
+      "updateOnTune": true,
+      "digitalIndex": "12",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=long-press"
+      }
+    },
+    "713": {
+      "name": "SXM 713 - The Emo Project",
+      "id": "9447",
+      "digitalIndex": "13",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=long-press"
+      }
+    },
+    "304": {
+      "name": "SXM 304 - SoulCycle Radio",
+      "id": "9500",
+      "digitalIndex": "14",
+      "tuneUrl": {
+        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=single-press"
+      }
+    },
+    "46": {
+      "name": "SXM 46 - The Heat",
+      "id": "hotjamz",
+      "updateOnTune": true,
+      "digitalIndex": "15",
+      "tuneUrl": {}
+    },
+    "2": {
+      "name": "SXM 2 - Hits 1",
+      "id": "siriushits1",
+      "updateOnTune": true,
+      "digitalIndex": "16",
+      "tuneUrl": {}
+    },
+    "341": {
+      "name": "SXM 341 - Utopia",
+      "id": "9365",
+      "updateOnTune": true,
+      "digitalIndex": "16",
+      "tuneUrl": {}
+    }
+  },
+  "ignoredWords": [
+    "sxmElectro"
+  ],
+  "refreshMetadataInterval": 60000
+}

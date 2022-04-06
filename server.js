@@ -645,13 +645,17 @@ function getBestDigitalTuner() {
 
 // Event Searching and Formatting
 
+//
+function nowPlaying(channel) {
+    return metadata[channel].slice(-1).pop()
+}
 // List all events for a channel that are after start time
 function listEvents(channel, time, after) {
     return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && (!after && e.syncStart < time || after && e.syncStart > time - 300000))
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
-    return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && e.guid === guid)[0]
+    return listEventsValidated(undefined, undefined, undefined).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
@@ -2442,6 +2446,57 @@ app.use("/debug", (req, res) => {
         player_status: statuses
     }
     res.status(200).json(results)
+})
+app.get("/status/:type", async (req, res) => {
+    switch (req.params.type) {
+        case 'devices':
+            const source = await getAirOutput()
+            const activeJobs = Object.keys(activeQueue).map(k => {
+                if (activeQueue[k].guid) {
+                    return {
+                        queue: k,
+                        guid: activeQueue[k].guid,
+                        active: !(activeQueue[k].closed),
+                        liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                        isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+                    }
+                }
+                return false
+            }).filter(e => e !== false)
+            const tuners = listTuners().map(e => {
+                const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
+                const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id).map(j => getEvent(undefined, j.guid))
+                return {
+                    id: e.id,
+                    name: e.name,
+                    active: (e.airfoil_source && e.airfoil_source.name === source),
+                    locked: e.locked,
+                    working: (activeJob),
+                    nowPlaying: (() => {
+                        const channelMeta = (activeJob) ? activeJob : (meta) ? meta : false
+                        if (!channelMeta)
+                            return false
+                        let list = [];
+                        if (channelMeta.artist)
+                            list.push(channelMeta.artist)
+                        if (channelMeta.title)
+                            list.push(channelMeta.title)
+                        if (channelMeta.album)
+                            list.push(channelMeta.album)
+                        return {
+                            song: channelMeta.isSong,
+                            episode: channelMeta.isEpisode,
+                            text: list
+                        }
+                    })()
+                }
+            })
+            res.json(tuners);
+            break;
+        default:
+            res.status(400).send("Unknown Request")
+            break;
+    }
 })
 
 app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
