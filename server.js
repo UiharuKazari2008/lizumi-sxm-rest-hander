@@ -2471,9 +2471,10 @@ app.get("/status/:type", async (req, res) => {
                     name: e.name,
                     active: (e.airfoil_source && e.airfoil_source.name === source),
                     locked: e.locked,
-                    working: (activeJob),
+                    working: !(!activeJob),
                     nowPlaying: (() => {
                         const channelMeta = (activeJob) ? activeJob : (meta) ? meta : false
+                        console.log(channelMeta)
                         if (!channelMeta)
                             return false
                         let list = [];
