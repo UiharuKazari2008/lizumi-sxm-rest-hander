@@ -2448,65 +2448,68 @@ app.use("/debug", (req, res) => {
     res.status(200).json(results)
 })
 app.get("/status/:type", async (req, res) => {
-    switch (req.params.type) {
-        case 'devices':
-            const source = await getAirOutput()
-            const activeJobs = Object.keys(activeQueue).map(k => {
-                if (activeQueue[k].guid) {
-                    return {
-                        queue: k,
-                        guid: activeQueue[k].guid,
-                        active: !(activeQueue[k].closed),
-                        liveRec: (activeQueue[k].hasOwnProperty("controller")),
-                        isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+    try {
+        switch (req.params.type) {
+            case 'devices':
+                const source = await getAirOutput()
+                const activeJobs = Object.keys(activeQueue).map(k => {
+                    if (activeQueue[k].guid) {
+                        return {
+                            queue: k,
+                            guid: activeQueue[k].guid,
+                            active: !(activeQueue[k].closed),
+                            liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                            isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+                        }
                     }
-                }
-                return false
-            }).filter(e => e !== false)
-            const tuners = listTuners().map(e => {
-                const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
-                const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id).map(j => getEvent(undefined, j.guid))
-                return {
-                    id: e.id,
-                    name: e.name,
-                    channel: (() => {
-                        if (!meta)
-                            return false
-                        const ch = getChannelbyId(e.activeCh.ch)
-                        return {
-                            id: e.activeCh.ch,
-                            name: ch.name,
-                            number: ch.number
-                        }
-                    })(),
-                    digital: e.digital,
-                    active: (e.airfoil_source && e.airfoil_source.name === source),
-                    locked: e.locked,
-                    working: (activeJob.length > 0),
-                    history: (!e.record_only && e.record_prefix),
-                    nowPlaying: (() => {
-                        const channelMeta = (activeJob.length > 0) ? activeJob[0] : (meta) ? meta : false
-                        console.log(channelMeta)
-                        if (!channelMeta)
-                            return false
-                        let list = [];
-                        if (channelMeta.artist)
-                            list.push(channelMeta.artist)
-                        if (channelMeta.title)
-                            list.push(channelMeta.title)
-                        return {
-                            song: channelMeta.isSong,
-                            episode: channelMeta.isEpisode,
-                            text: list
-                        }
-                    })()
-                }
-            })
-            res.json(tuners);
-            break;
-        default:
-            res.status(400).send("Unknown Request")
-            break;
+                    return false
+                }).filter(e => e !== false)
+                const tuners = listTuners().map(e => {
+                    const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
+                    const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id).map(j => getEvent(undefined, j.guid))
+                    return {
+                        id: e.id,
+                        name: e.name,
+                        channel: (() => {
+                            if (!meta)
+                                return false
+                            const ch = getChannelbyId(e.activeCh.ch)
+                            return {
+                                id: e.activeCh.ch,
+                                name: ch.name,
+                                number: ch.number
+                            }
+                        })(),
+                        digital: e.digital,
+                        active: (e.airfoil_source && e.airfoil_source.name === source),
+                        locked: e.locked,
+                        working: (activeJob.length > 0),
+                        history: (!e.record_only && e.record_prefix),
+                        nowPlaying: (() => {
+                            const channelMeta = (activeJob.length > 0) ? activeJob[0] : (meta) ? meta : false
+                            if (!channelMeta)
+                                return false
+                            let list = [];
+                            if (channelMeta.artist)
+                                list.push(channelMeta.artist)
+                            if (channelMeta.title)
+                                list.push(channelMeta.title)
+                            return {
+                                song: channelMeta.isSong,
+                                episode: channelMeta.isEpisode,
+                                text: list
+                            }
+                        })()
+                    }
+                })
+                res.json(tuners);
+                break;
+            default:
+                res.status(400).send("Unknown Request")
+                break;
+        }
+    } catch (err) {
+        res.status(500).send(err.message);
     }
 })
 
