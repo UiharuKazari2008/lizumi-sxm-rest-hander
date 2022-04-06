@@ -2492,8 +2492,6 @@ app.get("/status/:type", async (req, res) => {
                             list.push(channelMeta.artist)
                         if (channelMeta.title)
                             list.push(channelMeta.title)
-                        if (channelMeta.album)
-                            list.push(channelMeta.album)
                         return {
                             song: channelMeta.isSong,
                             episode: channelMeta.isEpisode,
