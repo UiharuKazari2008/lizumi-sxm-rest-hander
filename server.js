@@ -2469,6 +2469,16 @@ app.get("/status/:type", async (req, res) => {
                 return {
                     id: e.id,
                     name: e.name,
+                    channel: (() => {
+                        if (!meta)
+                            return false
+                        const ch = getChannelbyId(e.activeCh.ch)
+                        return {
+                            id: e.activeCh.ch,
+                            name: ch.name,
+                            number: ch.number
+                        }
+                    })(),
                     active: (e.airfoil_source && e.airfoil_source.name === source),
                     locked: e.locked,
                     working: (activeJob.length > 0),
