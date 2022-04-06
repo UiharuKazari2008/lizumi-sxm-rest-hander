@@ -2483,6 +2483,7 @@ app.get("/status/:type", async (req, res) => {
                     active: (e.airfoil_source && e.airfoil_source.name === source),
                     locked: e.locked,
                     working: (activeJob.length > 0),
+                    history: (!e.record_only && e.record_prefix),
                     nowPlaying: (() => {
                         const channelMeta = (activeJob.length > 0) ? activeJob[0] : (meta) ? meta : false
                         console.log(channelMeta)
