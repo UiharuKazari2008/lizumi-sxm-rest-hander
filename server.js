@@ -2479,6 +2479,7 @@ app.get("/status/:type", async (req, res) => {
                             number: ch.number
                         }
                     })(),
+                    digital: e.digital,
                     active: (e.airfoil_source && e.airfoil_source.name === source),
                     locked: e.locked,
                     working: (activeJob.length > 0),
