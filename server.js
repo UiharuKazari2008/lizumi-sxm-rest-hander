@@ -768,9 +768,8 @@ function listEventsValidated(songs, device, count) {
 
     events = events
         .filter(f =>
-            (parseInt(f.duration.toString()) === 0 ||
-            ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
-            ((songs === false) && parseInt(f.duration.toString()) > 15 * 60))
+            (((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+            (songs === false && parseInt(f.duration.toString()) > 15 * 60))
         )
         .sort(sortEvents)
     if (count)
@@ -2454,10 +2453,10 @@ app.get("/status/:type", async (req, res) => {
     try {
         switch (req.params.type) {
             case 'songs':
-                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1500)))
+                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 500)))
                 break;
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
+                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 500)))
                 break;
             case 'devices':
                 const source = await getAirOutput()
