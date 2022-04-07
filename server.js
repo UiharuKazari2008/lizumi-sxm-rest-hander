@@ -1034,7 +1034,7 @@ function registerBounce(options) {
             return getEvent((options.channel) ? options.channel : undefined, options.guid)
         return false
     })()
-    console.log(event)
+    console.log(options)
     // Get Passed Tuner or Find one that is using that channel number
     const t = (() => {
         if (event && event.tunerId)
