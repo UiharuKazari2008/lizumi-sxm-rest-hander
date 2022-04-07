@@ -691,7 +691,9 @@ function listEventsValidated(songs, device, count) {
                             .slice(0)
                             .filter(f =>
                                 // Has duration aka is completed
-                                (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
+                                (((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+                                (songs === false && parseInt(f.duration.toString()) > 15 * 60) ||
+                                parseInt(f.duration.toString()) === 0) &&
                                 // First Item or Was Tuned after event start
                                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
                                 //
@@ -735,7 +737,9 @@ function listEventsValidated(songs, device, count) {
                         // If not already attached to a tuner
                         guidMap.indexOf(f.guid) === -1 &&
                         // Has duration aka is completed
-                        (parseInt(f.duration.toString()) > 60 || parseInt(f.duration.toString()) === 0) &&
+                        (((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+                        (songs === false && parseInt(f.duration.toString()) > 15 * 60) ||
+                        parseInt(f.duration.toString()) === 0) &&
                         // If Event is less then 4 Hours old
                         (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                     ).map((f, i, a) => {
@@ -766,12 +770,7 @@ function listEventsValidated(songs, device, count) {
     }
 
 
-    events = events
-        .filter(f =>
-            (((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
-            (songs === false && parseInt(f.duration.toString()) > 15 * 60))
-        )
-        .sort(sortEvents)
+    events = events.sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
@@ -2456,7 +2455,7 @@ app.get("/status/:type", async (req, res) => {
                 res.status(200).json(formatEventList(listEventsValidated(true, undefined, 500)))
                 break;
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 500)))
+                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
                 break;
             case 'devices':
                 const source = await getAirOutput()
