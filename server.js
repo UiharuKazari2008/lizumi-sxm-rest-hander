@@ -2466,7 +2466,7 @@ app.get("/status/:type", async (req, res) => {
                 }).filter(e => e !== false)
                 const tuners = listTuners().map(e => {
                     const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
-                    const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id).map(j => getEvent(undefined, j.guid))
+                    const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
                     return {
                         id: e.id,
                         name: e.name,
@@ -2483,10 +2483,10 @@ app.get("/status/:type", async (req, res) => {
                         digital: e.digital,
                         active: (e.airfoil_source && e.airfoil_source.name === source),
                         locked: e.locked,
-                        working: (activeJob.length > 0),
+                        working: (activeJob.length > 0) ? activeJob[0].guid : false,
                         history: (!e.record_only && e.record_prefix),
                         nowPlaying: (() => {
-                            const channelMeta = (activeJob.length > 0) ? activeJob[0] : (meta) ? meta : false
+                            const channelMeta = (activeJob.length > 0) ? activeJob[0].map(j => getEvent(undefined, j.guid)) : (meta) ? meta : false
                             if (!channelMeta)
                                 return false
                             let list = [];
