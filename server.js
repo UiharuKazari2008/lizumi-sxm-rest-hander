@@ -670,14 +670,6 @@ function cacheEventsValidated() {
     let guidMap = []
     Object.keys(channelTimes.timetable)
         .slice(0)
-        .filter(e => {
-            if (!device || (device && e === device)) {
-                const device = getTuner(e)
-                if (device && device.record_prefix)
-                    return true
-            }
-            return false
-        })
         .map(d => {
             return channelTimes.timetable[d]
                 .slice(0)
