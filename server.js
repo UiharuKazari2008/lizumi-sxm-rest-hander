@@ -757,7 +757,8 @@ function listEventsValidated(songs, device, count) {
                     events.push({
                         ...f,
                         channelId: k,
-                        tunerId: dt[0].id
+                        tunerId: dt[0].id,
+                        noTuner: true
                     })
                 })
             }
@@ -801,9 +802,11 @@ function formatEventList(events) {
         return {
             tunerId: tun.id,
             tuner: tun,
+            channelInfo: channel.channels[channel.ids.indexOf(e.channelId)],
             channel: channel.channels[channel.ids.indexOf(e.channelId)].number,
             isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))),
             date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
+            niceDate: moment.utc(e.syncStart).local().fromNow(),
             time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
             queued,
             active,
@@ -1380,8 +1383,8 @@ async function getAirOutput() {
         const childKiller = setTimeout(function () {
             childProcess.stdin.pause();
             childProcess.kill();
-            resolve(null);
-        }, 5000)
+            resolve("");
+        }, 10000)
     })
 }
 
