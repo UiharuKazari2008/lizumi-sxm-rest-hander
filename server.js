@@ -761,7 +761,7 @@ function cacheEventsValidated() {
     eventListCache = events
 }
 // Get List of Events and Songs
-function listEventsValidated(songs, device, count) {
+function listEventsValidated(eventsOnly, device, count) {
     function sortEvents(arrayItemA, arrayItemB) {
         if (arrayItemA.syncStart < arrayItemB.syncStart)
             return -1
@@ -770,9 +770,9 @@ function listEventsValidated(songs, device, count) {
         return 0
     }
     let events = eventListCache.slice(0).filter(f =>
-        songs === undefined ||
-        (songs === true && parseInt(f.duration.toString()) < 15 * 60) ||
-        (songs === false && parseInt(f.duration.toString()) > 15 * 60)
+        ((eventsOnly === true && eventsOnly === undefined) && parseInt(f.duration.toString()) === 0) ||
+        (eventsOnly === false && parseInt(f.duration.toString()) < 15 * 60) ||
+        (eventsOnly === true && parseInt(f.duration.toString()) > 15 * 60)
     ).sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
@@ -1010,7 +1010,7 @@ function registerSchedule() {
 }
 // Keyword Search for Events
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, 8)
+    const events = listEventsValidated(true, undefined, 8)
     config.autosearch_terms.map(f => {
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
             console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
@@ -1226,7 +1226,7 @@ async function modifyMetadataGUI(type) {
 // Show UI for selecting events to extract
 async function bounceEventGUI(type, device) {
     try {
-        const eventsMeta = formatEventList(listEventsValidated(type, device, 250))
+        const eventsMeta = formatEventList(listEventsValidated(!(type), device, 250))
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
@@ -1639,9 +1639,15 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     locked_tuners.delete(tuner.id)
                 })
 
+                let watchdogi = 0
                 watchdog = setInterval(async () => {
                     const state = await checkPlayStatus(tuner)
-                    if (!(state === 'playing' || !state)) {
+                    if (!state) {
+                        watchdogi++
+                    } else if (state === 'playing') {
+                        watchdogi = 0
+                    }
+                    if (!(state === 'playing' || watchdogi < 2)) {
                         console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                         fault = true
                         clearTimeout(stopwatch)
@@ -1889,7 +1895,7 @@ async function tuneDigitalChannel(channel, time, device) {
                     tuneReady = await new Promise(ok => {
                         setTimeout(async () => {
                             const state = await checkPlayStatus(device)
-                            ok(state === 'playing' || !state)
+                            ok(state === 'playing')
                         }, 1000)
                     })
                     if (i >= 30) {
@@ -1919,9 +1925,15 @@ async function releaseDigitalTuner(device) {
 }
 // Automatically deturns a tuner if playback is stopped
 async function digitalTunerWatcher(device) {
+    let watchdogi = 0
     watchdog_tuners[device.id] = setInterval(async () => {
         const state = await checkPlayStatus(device)
-        if (state === 'playing' || !state) {
+        if (!state) {
+            watchdogi++
+        } else if (state === 'playing') {
+            watchdogi = 0
+        }
+        if (!(state === 'playing' || watchdogi < 1)) {
             console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
             deTuneTuner(device)
         }
@@ -2470,10 +2482,10 @@ app.get("/status/:type", async (req, res) => {
     try {
         switch (req.params.type) {
             case 'songs':
-                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1000)))
+                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
                 break;
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
+                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1000)))
                 break;
             case 'devices':
                 const source = await getAirOutput()
