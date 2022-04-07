@@ -130,7 +130,7 @@ function searchStringInArray (str, strArray) {
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
     metadata = require(path.join(config.record_dir, `metadata.json`))
     Object.keys(metadata).map(e => {
-        if (Array.from(config.channels).filter(f => f.id === e).length === 0)
+        if (Object.values(config.channels).filter(f => f.id === e).length === 0)
             delete metadata[e]
     })
 }
