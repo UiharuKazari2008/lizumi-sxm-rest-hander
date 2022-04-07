@@ -654,7 +654,7 @@ function listEvents(channel, time, after) {
     return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && (!after && e.syncStart < time || after && e.syncStart > time - 300000))
 }
 // Get specific event by uuid
-function getEvent(channel, guid, deepSearch) {
+function getEvent(channel, guid) {
     return listEventsValidated(undefined, undefined, undefined).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
@@ -1005,7 +1005,7 @@ function registerSchedule() {
 }
 // Keyword Search for Events
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, undefined)
+    const events = listEventsValidated(false, undefined, 8)
     config.autosearch_terms.map(f => {
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
             console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
@@ -1093,7 +1093,7 @@ async function modifyMetadataGUI(type) {
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
-            const listmeta = eventsMeta.map(e => {
+            const listmeta = eventsMeta.reverse().map(e => {
                 const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
                 const name = (() => {
                     if (e.filename) {
@@ -1208,11 +1208,11 @@ async function modifyMetadataGUI(type) {
 // Show UI for selecting events to extract
 async function bounceEventGUI(type, device) {
     try {
-        const eventsMeta = formatEventList(listEventsValidated(type, device, 250).reverse())
+        const eventsMeta = formatEventList(listEventsValidated(type, device, 250))
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
-            const listmeta = eventsMeta.map(e =>
+            const listmeta = eventsMeta.reverse().map(e =>
                 [
                     '"',
                     `[${(e.tuner.digital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
