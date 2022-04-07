@@ -655,7 +655,7 @@ function listEvents(channel, time, after) {
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
-    return listEventsValidated(undefined, undefined, undefined).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
+    return listEventsValidated(undefined, undefined, 5).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
