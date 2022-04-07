@@ -2450,6 +2450,9 @@ app.use("/debug", (req, res) => {
 app.get("/status/:type", async (req, res) => {
     try {
         switch (req.params.type) {
+            case 'events':
+                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, 1000)))
+                break;
             case 'devices':
                 const source = await getAirOutput()
                 const activeJobs = Object.keys(activeQueue).map(k => {
