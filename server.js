@@ -1030,8 +1030,18 @@ function searchEvents() {
 }
 // Register a event to extract
 function registerBounce(options) {
+    const event = (() => {
+        if (options.eventItem)
+            return options.eventItem
+        if (options.guid) {
+            return getEvent((options.channel) ? options.channel : undefined, options.guid)
+        }
+        return false
+    })()
     // Get Passed Tuner or Find one that is using that channel number
     const t = (() => {
+        if (event && event.tunerId)
+            return event.tunerId
         if (options.tuner && (!options.digitalOnly || (options.digitalOnly && options.tuner.digital)))
             return options.tuner
         if (options.digitalOnly)
@@ -1042,6 +1052,8 @@ function registerBounce(options) {
     })()
     // Get passed channel number ot find that channel that's active with that tuner
     const ch = (() => {
+        if (event && event.channelId)
+            return event.channelId
         if (options.channel)
             return options.channel
         if (t)
@@ -1056,7 +1068,7 @@ function registerBounce(options) {
             tunerId: (t) ? t.id : undefined,
             digitalOnly: (options.digitalOnly),
             restrict: (options.restrict) ? options.restrict : undefined,
-            time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : moment().valueOf() + (options.addTime * 60000),
+            time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : (!event) ? moment().valueOf() + (options.addTime * 60000) : undefined,
             post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
             switch_source: (options.switch_source) ? options.switch_source : false,
             inprogress: false,
@@ -2205,6 +2217,8 @@ app.get("/pending/:action", (req, res) => {
             }
             if (req.query.time)
                 options.absoluteTime = parseInt(req.query.time)
+            if (req.query.guid)
+                options.guid = req.query.guid
             if (req.query.play)
                 options.switch_source = (req.query.play)
 
