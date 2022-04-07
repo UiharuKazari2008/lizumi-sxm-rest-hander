@@ -692,12 +692,6 @@ function listEventsValidated(songs, device, count) {
                             .reverse()
                             .slice(0, (count || undefined))
                             .filter(f =>
-                                // Has duration aka is completed
-                                (
-                                    ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
-                                    ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60) ||
-                                    ((songs === true || songs === undefined) && parseInt(f.duration.toString()) === 0)
-                                ) &&
                                 // First Item or Was Tuned after event start
                                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
                                 //
@@ -742,18 +736,12 @@ function listEventsValidated(songs, device, count) {
                     .filter(f =>
                         // If not already attached to a tuner
                         guidMap.indexOf(f.guid) === -1 &&
-                        // Has duration aka is completed
-                        (
-                            ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
-                            ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60) ||
-                            ((songs === true || songs === undefined) && parseInt(f.duration.toString()) === 0)
-                        ) &&
                         // If Event is less then 4 Hours old
                         (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                     ).map((f, i, a) => {
                     if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                         f.syncEnd = a[i + 1].syncStart - 1
-                        f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                        f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
                     }
                     if (!f.filename) {
                         f.filename = (() => {
@@ -779,7 +767,9 @@ function listEventsValidated(songs, device, count) {
 
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
-    return events.sort(sortEvents)
+    return events.filter(f => ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+        ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60) ||
+        ((songs === true || songs === undefined) && parseInt(f.duration.toString()) === 0)).sort(sortEvents)
 }
 // Format List of Events Data
 function formatEventList(events) {
