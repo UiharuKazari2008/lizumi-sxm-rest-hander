@@ -690,7 +690,7 @@ function listEventsValidated(songs, device, count) {
                         return metadata[tc.ch]
                             .slice(0)
                             .reverse()
-                            .slice(0, (count || undefined))
+                            .slice(0, 2000)
                             .filter(f =>
                                 // First Item or Was Tuned after event start
                                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
@@ -732,7 +732,7 @@ function listEventsValidated(songs, device, count) {
                 metadata[k]
                     .slice(0)
                     .reverse()
-                    .slice(0, (count || undefined))
+                    .slice(0, 2000)
                     .filter(f =>
                         // If not already attached to a tuner
                         guidMap.indexOf(f.guid) === -1 &&
