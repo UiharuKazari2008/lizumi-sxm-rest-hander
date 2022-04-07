@@ -129,6 +129,10 @@ function searchStringInArray (str, strArray) {
 
 if (fs.existsSync(path.join(config.record_dir, `metadata.json`))) {
     metadata = require(path.join(config.record_dir, `metadata.json`))
+    Object.keys(metadata).map(e => {
+        if (config.channels.filter(f => f.id === e).length === 0)
+            delete metadata[e]
+    })
 }
 if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
     channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
@@ -792,7 +796,6 @@ function formatEventList(events) {
         })()
         const queued = pendingJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
         const active = activeJob.filter(q => (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
-        console.log(e.channelId)
         return {
             tunerId: tun.id,
             tuner: tun,
