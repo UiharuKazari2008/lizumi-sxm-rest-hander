@@ -2493,11 +2493,8 @@ app.get("/status/:type", async (req, res) => {
             return false
         }).filter(e => e !== false)
         switch (req.params.type) {
-            case 'songs':
-                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
-                break;
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1000)))
+                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, 5000)))
                 break;
             case 'jobs':
                 const pendingJobs = Object.keys(jobQueue).map(k => {
