@@ -2453,8 +2453,11 @@ app.use("/debug", (req, res) => {
 app.get("/status/:type", async (req, res) => {
     try {
         switch (req.params.type) {
+            case 'songs':
+                res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1500)))
+                break;
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, 4000)))
+                res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
                 break;
             case 'devices':
                 const source = await getAirOutput()
