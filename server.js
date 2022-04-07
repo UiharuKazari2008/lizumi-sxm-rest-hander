@@ -767,9 +767,11 @@ function listEventsValidated(songs, device, count) {
 
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
-    return events.filter(f => ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+    return events.filter(f =>
+        ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
         ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60) ||
-        ((songs === true || songs === undefined) && parseInt(f.duration.toString()) === 0)).sort(sortEvents)
+        ((songs === true || songs === undefined) && parseInt(f.duration.toString()) === 0)
+    ).sort(sortEvents)
 }
 // Format List of Events Data
 function formatEventList(events) {
