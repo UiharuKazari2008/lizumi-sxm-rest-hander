@@ -689,8 +689,6 @@ function listEventsValidated(songs, device, count) {
                     if (metadata[tc.ch]) {
                         return metadata[tc.ch]
                             .slice(0)
-                            .reverse()
-                            .slice(0, 2000)
                             .filter(f =>
                                 // First Item or Was Tuned after event start
                                 (i === 0 || (f.syncStart >= (tc.time - (5 * 60000)))) &&
@@ -731,8 +729,6 @@ function listEventsValidated(songs, device, count) {
             if (metadata[k]) {
                 metadata[k]
                     .slice(0)
-                    .reverse()
-                    .slice(0, 2000)
                     .filter(f =>
                         // If not already attached to a tuner
                         guidMap.indexOf(f.guid) === -1 &&
@@ -772,7 +768,7 @@ function listEventsValidated(songs, device, count) {
         (songs === true && parseInt(f.duration.toString()) < 15 * 60) ||
         (songs === false && parseInt(f.duration.toString()) > 15 * 60) ||
         (songs === true && parseInt(f.duration.toString()) === 0)
-    ).sort(sortEvents)
+    ).sort(sortEvents).reverse()
 }
 // Format List of Events Data
 function formatEventList(events) {
