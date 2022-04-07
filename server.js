@@ -2494,7 +2494,7 @@ app.get("/status/:type", async (req, res) => {
         }).filter(e => e !== false)
         switch (req.params.type) {
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : 5000)))
+                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : undefined)))
                 break;
             case 'jobs':
                 const pendingJobs = Object.keys(jobQueue).map(k => {
