@@ -2454,7 +2454,7 @@ app.get("/status/:type", async (req, res) => {
     try {
         switch (req.params.type) {
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined)))
+                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, 4000)))
                 break;
             case 'devices':
                 const source = await getAirOutput()
