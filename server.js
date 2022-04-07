@@ -672,6 +672,7 @@ function listEventsValidated(songs, device, count) {
         return 0
     }
     let events = []
+    let guidMap = []
     Object.keys(channelTimes.timetable)
         .slice(0)
         .filter(e => {
@@ -697,26 +698,29 @@ function listEventsValidated(songs, device, count) {
                                 // Is Last Item or Look ahead and see if this has not occured after the next channel change
                                 (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
                             ).map((f, i, a) => {
-                                if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                                    f.syncEnd = a[i + 1].syncStart - 1
-                                    f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                                if (guidMap.indexOf(f.guid) !== -1) {
+                                    if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                                        f.syncEnd = a[i + 1].syncStart - 1
+                                        f.duration = ((f.syncEnd - f.syncStart) / 1000).toFixed(0)
+                                    }
+                                    if (!f.filename) {
+                                        f.filename = (() => {
+                                            if (f.isEpisode) {
+                                                return `${cleanText(f.title)}`
+                                            } else if (f.isSong) {
+                                                return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                            } else {
+                                                return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                            }
+                                        })()
+                                    }
+                                    guidMap.push(f.guid)
+                                    events.push({
+                                        ...f,
+                                        channelId: tc.ch,
+                                        tunerId: d
+                                    })
                                 }
-                                if (!f.filename) {
-                                    f.filename = (() => {
-                                        if (f.isEpisode) {
-                                            return `${cleanText(f.title)}`
-                                        } else if (f.isSong) {
-                                            return `${cleanText(f.artist)} - ${cleanText(f.title)}`
-                                        } else {
-                                            return `${cleanText(f.title)} - ${cleanText(f.artist)}`
-                                        }
-                                    })()
-                                }
-                                events.push({
-                                    ...f,
-                                    channelId: tc.ch,
-                                    tunerId: d
-                                })
                             })
                     }
                 })
@@ -724,7 +728,7 @@ function listEventsValidated(songs, device, count) {
 
     const dt = listTuners(true)
     if (dt) {
-        const guidMap = events.map(g => g.guid)
+
         Object.keys(metadata).map(k => {
             if (metadata[k]) {
                 metadata[k]
