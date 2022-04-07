@@ -41,6 +41,7 @@ let digitalAvailable = false
 let satelliteAvailable = false
 let jobQueue = {};
 let activeQueue = {};
+let eventListCache = [];
 const sxmMaxRewind = 14400000;
 
 const findClosest = (arr, num) => {
@@ -272,6 +273,7 @@ async function updateMetadata() {
                 console.error(`Failed to pull metadata`)
             }
         }
+        await cacheEventsValidated()
         nowPlayingNotification();
         await searchEvents();
         await processPendingBounces();
@@ -659,18 +661,11 @@ function getEvent(channel, guid) {
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
-    const e = listEvents(channel, time, (options.restrict && options.restrict.reverse_lookup))
+    const e = listEvents(channel, time, (options.restrict && options.restrict.search_forward))
     return (options.restrict) ? e.filter(e => isWantedEvent(options.restrict, e)).slice(-1).pop() : e[findClosest(e.map(f => moment.utc(f.syncStart).local()), time + 60000)]
 }
-// Get List of Events and Songs
-function listEventsValidated(songs, device, count) {
-    function sortEvents(arrayItemA, arrayItemB) {
-        if (arrayItemA.syncStart < arrayItemB.syncStart)
-            return -1
-        if (arrayItemA.syncStart > arrayItemB.syncStart)
-            return 1
-        return 0
-    }
+// Generate Event List Cache
+function cacheEventsValidated() {
     let events = []
     let guidMap = []
     Object.keys(channelTimes.timetable)
@@ -724,11 +719,10 @@ function listEventsValidated(songs, device, count) {
                             })
                     }
                 })
-    })
+        })
 
     const dt = listTuners(true)
     if (dt) {
-
         Object.keys(metadata).map(k => {
             if (metadata[k]) {
                 metadata[k]
@@ -764,7 +758,18 @@ function listEventsValidated(songs, device, count) {
             }
         })
     }
-    events = events.filter(f =>
+    eventListCache = events
+}
+// Get List of Events and Songs
+function listEventsValidated(songs, device, count) {
+    function sortEvents(arrayItemA, arrayItemB) {
+        if (arrayItemA.syncStart < arrayItemB.syncStart)
+            return -1
+        if (arrayItemA.syncStart > arrayItemB.syncStart)
+            return 1
+        return 0
+    }
+    let events = eventListCache.slice(0).filter(f =>
         songs === undefined ||
         (songs === true && parseInt(f.duration.toString()) < 15 * 60) ||
         (songs === false && parseInt(f.duration.toString()) > 15 * 60)
