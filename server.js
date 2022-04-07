@@ -654,8 +654,8 @@ function listEvents(channel, time, after) {
     return listEventsValidated(undefined, undefined, undefined).filter(e => e.channelId === channel && !e.isSong && (!after && e.syncStart < time || after && e.syncStart > time - 300000))
 }
 // Get specific event by uuid
-function getEvent(channel, guid) {
-    return listEventsValidated(undefined, undefined, 5).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
+function getEvent(channel, guid, deepSearch) {
+    return listEventsValidated(undefined, undefined, undefined).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
@@ -767,9 +767,8 @@ function listEventsValidated(songs, device, count) {
     events = events.filter(f =>
         songs === undefined ||
         (songs === true && parseInt(f.duration.toString()) < 15 * 60) ||
-        (songs === false && parseInt(f.duration.toString()) > 15 * 60) ||
-        (songs === true && parseInt(f.duration.toString()) === 0)
-    ).sort(sortEvents).reverse()
+        (songs === false && parseInt(f.duration.toString()) > 15 * 60)
+    ).sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
     return events
@@ -1006,7 +1005,7 @@ function registerSchedule() {
 }
 // Keyword Search for Events
 function searchEvents() {
-    const events = listEventsValidated(false, undefined, 8)
+    const events = listEventsValidated(false, undefined, undefined)
     config.autosearch_terms.map(f => {
         events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
             console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
@@ -1209,7 +1208,7 @@ async function modifyMetadataGUI(type) {
 // Show UI for selecting events to extract
 async function bounceEventGUI(type, device) {
     try {
-        const eventsMeta = formatEventList(listEventsValidated(type, device, 250))
+        const eventsMeta = formatEventList(listEventsValidated(type, device, 250).reverse())
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
