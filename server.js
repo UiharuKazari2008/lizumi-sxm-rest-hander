@@ -1659,6 +1659,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                 activeQueue[`REC-${tuner.id}`] = {
                     recorder,
                     watchdog,
+                    startTime,
                     closed: false,
                     guid: event.guid
                 }
@@ -1679,6 +1680,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                             activeQueue[`REC-${tuner.id}`] = {
                                 recorder,
                                 stopwatch,
+                                startTime,
                                 watchdog,
                                 closed: false,
                                 guid: event.guid
@@ -1690,6 +1692,7 @@ function recordDigitalAudioInterface(tuner, time, event) {
                     activeQueue[`REC-${tuner.id}`] = {
                         recorder,
                         controller,
+                        startTime,
                         watchdog,
                         closed: false,
                         guid: event.guid
@@ -2480,6 +2483,19 @@ app.use("/debug", (req, res) => {
 })
 app.get("/status/:type", async (req, res) => {
     try {
+        const activeJobs = Object.keys(activeQueue).map(k => {
+            if (activeQueue[k].guid) {
+                return {
+                    queue: k,
+                    start: activeQueue[k].startTime,
+                    guid: activeQueue[k].guid,
+                    active: !(activeQueue[k].closed),
+                    liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                    isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+                }
+            }
+            return false
+        }).filter(e => e !== false)
         switch (req.params.type) {
             case 'songs':
                 res.status(200).json(formatEventList(listEventsValidated(false, undefined, 1000)))
@@ -2487,20 +2503,30 @@ app.get("/status/:type", async (req, res) => {
             case 'events':
                 res.status(200).json(formatEventList(listEventsValidated(true, undefined, 1000)))
                 break;
-            case 'devices':
-                const source = await getAirOutput()
-                const activeJobs = Object.keys(activeQueue).map(k => {
-                    if (activeQueue[k].guid) {
+            case 'jobs':
+                const pendingJobs = Object.keys(jobQueue).map(k => {
+                    return jobQueue[k].map(pendingJob => {
                         return {
                             queue: k,
-                            guid: activeQueue[k].guid,
-                            active: !(activeQueue[k].closed),
-                            liveRec: (activeQueue[k].hasOwnProperty("controller")),
-                            isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+                            channelId: pendingJob.metadata.channelId,
+                            guid: pendingJob.metadata.guid,
+                            start: pendingJob.metadata.syncStart,
+                            name: pendingJob.metadata.filename,
+                            post_directorys: pendingJob.post_directorys,
+                            switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
+                            isRequested: pendingJob.index
                         }
-                    }
-                    return false
-                }).filter(e => e !== false)
+                    })
+                })
+                const results = {
+                    activeJob: activeJobs,
+                    pendingJobs: pendingJobs,
+                    requestedJobs: channelTimes.pending,
+                }
+                res.status(200).json(results)
+                break;
+            case 'devices':
+                const source = await getAirOutput()
                 const tuners = listTuners().map(e => {
                     const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
                     const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
