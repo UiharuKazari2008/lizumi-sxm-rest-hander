@@ -688,6 +688,8 @@ function listEventsValidated(songs, device, count) {
                 .map((tc, i, a) => {
                     if (metadata[tc.ch]) {
                         return metadata[tc.ch]
+                            .slice(0)
+                            .reverse()
                             .slice(0, (count || undefined))
                             .filter(f =>
                                 // Has duration aka is completed
@@ -734,6 +736,8 @@ function listEventsValidated(songs, device, count) {
         Object.keys(metadata).map(k => {
             if (metadata[k]) {
                 metadata[k]
+                    .slice(0)
+                    .reverse()
                     .slice(0, (count || undefined))
                     .filter(f =>
                         // If not already attached to a tuner
@@ -1097,7 +1101,7 @@ async function modifyMetadataGUI(type) {
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
-            const listmeta = eventsMeta.reverse().map(e => {
+            const listmeta = eventsMeta.map(e => {
                 const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
                 const name = (() => {
                     if (e.filename) {
@@ -1216,7 +1220,7 @@ async function bounceEventGUI(type, device) {
         if (eventsMeta.length === 0)
             return false
         const eventSearch = await new Promise(resolve => {
-            const listmeta = eventsMeta.reverse().map(e =>
+            const listmeta = eventsMeta.map(e =>
                 [
                     '"',
                     `[${(e.tuner.digital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
