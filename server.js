@@ -2471,6 +2471,15 @@ app.get("/status/:type", async (req, res) => {
                         id: e.id,
                         name: e.name,
                         channel: (() => {
+                            if (activeJob.length > 0) {
+                                const job = activeJob.map(j => getEvent(undefined, j.guid))[0]
+                                const ch = getChannelbyId(job.channelId)
+                                return {
+                                    id: e.activeCh.ch,
+                                    name: ch.name,
+                                    number: ch.number
+                                }
+                            }
                             if (!meta)
                                 return false
                             const ch = getChannelbyId(e.activeCh.ch)
@@ -2486,7 +2495,7 @@ app.get("/status/:type", async (req, res) => {
                         working: (activeJob.length > 0) ? activeJob[0].guid : false,
                         history: (!e.record_only && e.record_prefix),
                         nowPlaying: (() => {
-                            const channelMeta = (activeJob.length > 0) ? activeJob[0].map(j => getEvent(undefined, j.guid)) : (meta) ? meta : false
+                            const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
                             if (!channelMeta)
                                 return false
                             let list = [];
