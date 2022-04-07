@@ -770,7 +770,7 @@ function listEventsValidated(songs, device, count) {
         .filter(f =>
             (parseInt(f.duration.toString()) === 0 ||
             ((songs === true || songs === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
-            ((songs === false || songs === undefined) && parseInt(f.duration.toString()) > 15 * 60))
+            ((songs === false) && parseInt(f.duration.toString()) > 15 * 60))
         )
         .sort(sortEvents)
     if (count)
