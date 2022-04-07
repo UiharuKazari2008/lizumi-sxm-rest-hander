@@ -1067,6 +1067,7 @@ function registerBounce(options) {
             tuner: (options.tuner && (!options.digitalOnly || (options.digitalOnly && options.tuner.digital))) ? t : undefined,
             tunerId: (t) ? t.id : undefined,
             digitalOnly: (options.digitalOnly),
+            guid: (event) ? event.guid : undefined,
             restrict: (options.restrict) ? options.restrict : undefined,
             time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : (!event) ? moment().valueOf() + (options.addTime * 60000) : undefined,
             post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
