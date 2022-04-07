@@ -762,9 +762,9 @@ function listEventsValidated(eventsOnly, device, count) {
         return 0
     }
     let events = eventListCache.slice(0).filter(f =>
-        ((eventsOnly === true && eventsOnly === undefined) && parseInt(f.duration.toString()) === 0) ||
-        (eventsOnly === false && parseInt(f.duration.toString()) < 15 * 60) ||
-        (eventsOnly === true && parseInt(f.duration.toString()) > 15 * 60)
+        ((eventsOnly === true || eventsOnly === undefined) && parseInt(f.duration.toString()) === 0) ||
+        ((eventsOnly === false || eventsOnly === undefined) && parseInt(f.duration.toString()) < 15 * 60) ||
+        ((eventsOnly === true || eventsOnly === undefined) && parseInt(f.duration.toString()) > 15 * 60)
     ).sort(sortEvents)
     if (count)
         return (events.length > count) ? events.slice(Math.abs(count) * -1) : events
