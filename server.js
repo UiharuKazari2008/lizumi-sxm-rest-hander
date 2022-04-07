@@ -2494,12 +2494,13 @@ app.get("/status/:type", async (req, res) => {
         }).filter(e => e !== false)
         switch (req.params.type) {
             case 'events':
-                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : undefined)))
+                res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : 5000)))
                 break;
             case 'jobs':
-                const pendingJobs = Object.keys(jobQueue).map(k => {
+                let pendingJobs = []
+                Object.keys(jobQueue).map(k => {
                     return jobQueue[k].map(pendingJob => {
-                        return {
+                        pendingJobs.push({
                             queue: k,
                             channelId: pendingJob.metadata.channelId,
                             guid: pendingJob.metadata.guid,
@@ -2508,7 +2509,7 @@ app.get("/status/:type", async (req, res) => {
                             post_directorys: pendingJob.post_directorys,
                             switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
                             isRequested: pendingJob.index
-                        }
+                        })
                     })
                 })
                 const results = {
