@@ -2507,7 +2507,7 @@ app.get("/status/:type", async (req, res) => {
                 res.status(200).json(listChannels().channels.map(e => {
                     let supportedDevices = (e.tuneUrl) ? Object.keys(e.tuneUrl) : []
                     return {
-                        number: e.number,
+                        number: parseInt(e.number),
                         name: e.name,
                         id: e.id,
                         supportedDevices
