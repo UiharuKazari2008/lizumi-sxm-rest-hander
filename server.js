@@ -1061,6 +1061,13 @@ function registerBounce(options) {
             return t.activeCh.ch
         return undefined
     })()
+    const time = (() => {
+        if (options.absoluteTime)
+            return options.absoluteTime + (options.addTime * 60000)
+        if (event)
+            return event.syncStart + 60000
+        return moment().valueOf() + (options.addTime * 60000)
+    })()
 
     if (ch) {
         const pendEvent = {
@@ -1070,7 +1077,7 @@ function registerBounce(options) {
             digitalOnly: (options.digitalOnly),
             guid: (event) ? event.guid : undefined,
             restrict: (options.restrict) ? options.restrict : undefined,
-            time: (options.absoluteTime) ? options.absoluteTime + (options.addTime * 60000) : (!event) ? moment().valueOf() + (options.addTime * 60000) : undefined,
+            time,
             post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
             switch_source: (options.switch_source) ? options.switch_source : false,
             inprogress: false,
