@@ -1427,10 +1427,10 @@ async function setAirOutput(tuner, release) {
                 deTuneTuner(currentTuner)
                 delete timeout_sources[currentTuner.id]
             }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
-        } else if (!release && tuner.airfoil_source.auto_release) {
+        } else if (!release && tuner.airfoil_source.auto_release && timeout_sources[tuner.id]) {
             console.info(`Tuner regained focus, stopping timeout`)
-            clearTimeout(timeout_sources[currentTuner.id])
-            delete timeout_sources[currentTuner.id]
+            clearTimeout(timeout_sources[tuner.id])
+            delete timeout_sources[tuner.id]
         }
 
         const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
