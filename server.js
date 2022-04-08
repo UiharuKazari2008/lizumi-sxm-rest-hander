@@ -599,7 +599,7 @@ function getTuner(id) {
 // Return the best radio that is currently tuned to channel else false
 // use true or false after channel if you want all that are tuned to a channel
 function findActiveRadio(channel, all) {
-    const f = listTuners().filter(e => !e.activeCh || (e.activeCh && e.activeCh.ch === channel))
+    const f = listTuners().filter(e => e.activeCh && e.activeCh.ch === channel && !e.activeCh.hasOwnProperty("end"))
     return (f && f.length > 0) ? (all) ? f : f.slice(-1).pop() : false
 }
 // Return a tuner that is tuned to a channel else false
@@ -1805,6 +1805,7 @@ async function tuneToChannel(options) {
                 console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
                 return _tuneToChannel(tn[0], channel, tn[1])
             } else {
+                console.log(`Request available tuner to channel ${channel.name}`)
                 const _ptn = availableTuners(channel.id, (options.digital && options.digital === 'true' ))
                 if (_ptn && _ptn.length > 0) {
                     return _tuneToChannel(_ptn[0], channel, false)
