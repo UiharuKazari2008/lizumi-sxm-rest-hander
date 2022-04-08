@@ -1421,12 +1421,12 @@ async function setAirOutput(tuner, release) {
         const currentSource = await getAirOutput()
         const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
 
-        if (currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
+        if (!release && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
             console.info(`Last tuner is not in use anymore, starting timeout...`)
             timeout_sources[currentTuner.id] = setTimeout(() => {
                 deTuneTuner(currentTuner)
             }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
-        } else if (tuner.airfoil_source.auto_release && timeout_sources[currentTuner.id]) {
+        } else if (!release && tuner.airfoil_source.auto_release && timeout_sources[currentTuner.id]) {
             console.info(`Tuner regained focus, stopping timeout`)
             clearTimeout(timeout_sources[currentTuner.id])
             delete timeout_sources[currentTuner.id]
@@ -1915,7 +1915,7 @@ async function deTuneTuner(tuner, force) {
         if (tuner.digital)
             clearInterval(watchdog_tuners[tuner.id])
         if (!force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
-            setAirOutput(tuner, false)
+            setAirOutput(tuner, true)
         if (tuner.digital) {
             await releaseDigitalTuner(tuner)
             startDeviceTimeout(tuner)
