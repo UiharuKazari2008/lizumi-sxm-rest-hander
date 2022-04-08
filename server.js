@@ -2547,7 +2547,7 @@ app.get("/status/:type", async (req, res) => {
                         id: e.id,
                         name: e.name,
                         channel: (() => {
-                            if (activeJob.length > 0) {
+                            if (activeJob.length > 0 && channelMeta) {
                                 const ch = getChannelbyId(channelMeta.channelId)
                                 return {
                                     id: e.activeCh.ch,
@@ -2599,6 +2599,7 @@ app.get("/status/:type", async (req, res) => {
                 break;
         }
     } catch (err) {
+        console.error(err);
         res.status(500).send(err.message);
     }
 })
