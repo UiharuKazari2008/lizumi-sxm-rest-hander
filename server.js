@@ -2569,7 +2569,7 @@ app.get("/status/:type", async (req, res) => {
                         locked: e.locked,
                         working: (activeJob.length > 0) ? {
                             guid: activeJob[0].guid,
-                            startTime: activeJob[0].startTime,
+                            startTime: activeJob[0].start,
                         } : false,
                         history: (!e.record_only && e.record_prefix),
                         nowPlaying: (() => {
