@@ -851,7 +851,7 @@ async function processPendingBounces() {
                 })()
             }
 
-            if (!thisEvent && pendingEvent.time && pendingEvent.time <= moment().valueOf() + 4 * 3600000) {
+            if (!thisEvent && pendingEvent.time && pendingEvent.time <= (Date.now() - (4 * 3600000))) {
                 console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`)
                 pendingEvent.done = true
                 pendingEvent.inprogress = false
@@ -2569,6 +2569,7 @@ app.get("/status/:type", async (req, res) => {
                         locked: e.locked,
                         working: (activeJob.length > 0) ? {
                             guid: activeJob[0].guid,
+                            jobCount: jobQueue[activeJob[0].queue].length,
                             startTime: activeJob[0].start,
                             elapsedTime: Math.abs(Date.now() - activeJob[0].start),
                             duration: (channelMeta.duration && channelMeta.duration > 0) ? ((parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
