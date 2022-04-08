@@ -1415,19 +1415,21 @@ async function bounceEventGUI(type, device) {
     }
 }
 // Set AirFoil Interface
-async function setAirOutput(input) {
+async function setAirOutput(tuner, release) {
     return await new Promise(async (resolve) => {
+        const input = (release && tuner.airfoil_source.return_source) ? tuner.airfoil_source.return_source : tuner.airfoil_source.name
         const currentSource = await getAirOutput()
         const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
-        if (currentTuner && currentTuner.airfoil_source.auto_release) {
-            if (currentTuner.airfoil_source.name !== input) {
-                timeout_sources[currentTuner.id] = setTimeout(() => {
-                    deTuneTuner(currentTuner)
-                }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
-            } else {
-                clearTimeout(timeout_sources[currentTuner.id])
-                delete timeout_sources[currentTuner.id]
-            }
+
+        if (currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
+            console.info(`Last tuner is not in use anymore, starting timeout...`)
+            timeout_sources[currentTuner.id] = setTimeout(() => {
+                deTuneTuner(currentTuner)
+            }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
+        } else if (tuner.airfoil_source.auto_release && timeout_sources[currentTuner.id]) {
+            console.info(`Tuner regained focus, stopping timeout`)
+            clearTimeout(timeout_sources[currentTuner.id])
+            delete timeout_sources[currentTuner.id]
         }
 
         const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
@@ -1888,7 +1890,7 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
         if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
             await webRequest(ptn.post_tune_url)
         if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
-            await setAirOutput(ptn.airfoil_source.name)
+            await setAirOutput(ptn, false)
 
         if (channelTimes.timetable[ptn.id].length > 0) {
             let lastTune = channelTimes.timetable[ptn.id].pop()
@@ -1913,7 +1915,7 @@ async function deTuneTuner(tuner, force) {
         if (tuner.digital)
             clearInterval(watchdog_tuners[tuner.id])
         if (!force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
-            setAirOutput(tuner.airfoil_source.return_source)
+            setAirOutput(tuner, false)
         if (tuner.digital) {
             await releaseDigitalTuner(tuner)
             startDeviceTimeout(tuner)
@@ -1946,8 +1948,8 @@ function reTuneTuner(tuner) {
 // Tune to Digital Channel on Android Device
 async function tuneDigitalChannel(channel, time, device) {
     console.log(`Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
-    if (timeout_tuners.hasOwnProperty(device.id))
-        clearTimeout(timeout_tuners[device.id])
+    if (timeout_tuners[device.id])
+        clearInterval(timeout_tuners[device.id])
     return new Promise(async (resolve) => {
         let k = -1
         let tuneReady = false
@@ -2033,7 +2035,7 @@ async function recordDigitalEvent(job, tuner) {
     if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
         const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && eventItem.syncStart < (Date.now() - (30 * 60000)))
         if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
-            setAirOutput(tuner.airfoil_source.name)
+            setAirOutput(tuner, false)
         const time = (() => {
             if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
                 return parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)
@@ -2044,7 +2046,7 @@ async function recordDigitalEvent(job, tuner) {
         const recording = await recordDigitalAudioInterface(tuner, time, eventItem)
         if (tuner.record_only || tuner.stop_after_record) {
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source && ((job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1) || (await getAirOutput()) === tuner.airfoil_source.name) )
-                setAirOutput(tuner.airfoil_source.return_source)
+                setAirOutput(tuner, true)
             await releaseDigitalTuner(tuner)
             startDeviceTimeout(tuner)
         }
@@ -2279,7 +2281,7 @@ app.get("/detune/:tuner", async (req, res, next) => {
 app.get("/source/:tuner", async (req, res, next) => {
     const t = getTuner(req.params.tuner)
     if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === 'playing'))) {
-        await setAirOutput(t.airfoil_source.name)
+        await setAirOutput(t, false)
         res.status(200).send("OK")
     } else {
         res.status(404).send("Tuner not found")
