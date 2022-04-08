@@ -2542,13 +2542,13 @@ app.get("/status/:type", async (req, res) => {
                 const tuners = listTuners().map(e => {
                     const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
                     const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
+                    const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
                     return {
                         id: e.id,
                         name: e.name,
                         channel: (() => {
                             if (activeJob.length > 0) {
-                                const job = activeJob.map(j => getEvent(undefined, j.guid))[0]
-                                const ch = getChannelbyId(job.channelId)
+                                const ch = getChannelbyId(channelMeta.channelId)
                                 return {
                                     id: e.activeCh.ch,
                                     name: ch.name,
@@ -2567,10 +2567,12 @@ app.get("/status/:type", async (req, res) => {
                         digital: e.digital,
                         active: (e.airfoil_source && e.airfoil_source.name === source),
                         locked: e.locked,
-                        working: (activeJob.length > 0) ? activeJob[0].guid : false,
+                        working: (activeJob.length > 0) ? {
+                            guid: activeJob[0].guid,
+                            startTime: activeJob[0].startTime,
+                        } : false,
                         history: (!e.record_only && e.record_prefix),
                         nowPlaying: (() => {
-                            const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
                             if (!channelMeta)
                                 return false
                             let list = [];
