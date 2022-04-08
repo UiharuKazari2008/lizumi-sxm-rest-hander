@@ -2503,6 +2503,17 @@ app.get("/status/:type", async (req, res) => {
             case 'events':
                 res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : 5000)))
                 break;
+            case 'channels':
+                res.status(200).json(listChannels().channels.map(e => {
+                    let supportedDevices = (e.tuneUrl) ? Object.keys(e.tuneUrl) : []
+                    return {
+                        number: e.number,
+                        name: e.name,
+                        id: e.id,
+                        supportedDevices
+                    }
+                }))
+                break;
             case 'jobs':
                 let pendingJobs = []
                 Object.keys(jobQueue).map(k => {
