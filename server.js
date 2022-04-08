@@ -1870,7 +1870,8 @@ async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
     let tcb = { ok: true }
     if (!(isAlreadyTuned && !ptn.always_retune)) {
         if (ptn.digital) {
-            tcb = { ok: (await tuneDigitalChannel(channel.id, 0, ptn)) }
+            const resultsTune = await tuneDigitalChannel(channel.id, 0, ptn)
+            tcb = { ok: resultsTune }
             result.action = 'tune-digital'
         } else if (channel.tuneUrl[ptn.id]) {
             tcb = await webRequest(channel.tuneUrl[ptn.id])
