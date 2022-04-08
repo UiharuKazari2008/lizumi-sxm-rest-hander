@@ -661,7 +661,66 @@ function listEvents(channel, time, after) {
 }
 // Get specific event by uuid
 function getEvent(channel, guid) {
-    return listEventsValidated(undefined, undefined, undefined).filter(e => (!channel || e.channelId === channel) && e.guid === guid)[0]
+    let events = [];
+    const dt = listTuners(true)
+    if (channel) {
+        metadata[channel]
+            .slice(0)
+            .filter(f => f.guid === guid ).map((f, i, a) => {
+            if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                f.syncEnd = a[i + 1].syncStart - 1
+                f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+            }
+            if (!f.filename) {
+                f.filename = (() => {
+                    if (f.isEpisode) {
+                        return `${cleanText(f.title)}`
+                    } else if (f.isSong) {
+                        return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                    } else {
+                        return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                    }
+                })()
+            }
+            events.push({
+                ...f,
+                channelId: channel,
+                tunerId: dt[0].id,
+                noTuner: true
+            })
+        })
+    } else {
+        Object.keys(metadata).map(k => {
+            if (metadata[k]) {
+                metadata[k]
+                    .slice(0)
+                    .filter(f => f.guid === guid ).map((f, i, a) => {
+                    if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                        f.syncEnd = a[i + 1].syncStart - 1
+                        f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+                    }
+                    if (!f.filename) {
+                        f.filename = (() => {
+                            if (f.isEpisode) {
+                                return `${cleanText(f.title)}`
+                            } else if (f.isSong) {
+                                return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                            } else {
+                                return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                            }
+                        })()
+                    }
+                    events.push({
+                        ...f,
+                        channelId: k,
+                        tunerId: dt[0].id,
+                        noTuner: true
+                    })
+                })
+            }
+        })
+    }
+    return events[0]
 }
 // Find last event for a channel after the start time
 function findEvent(channel, time, options) {
