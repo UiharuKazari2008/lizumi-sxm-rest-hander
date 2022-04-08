@@ -2570,6 +2570,8 @@ app.get("/status/:type", async (req, res) => {
                         working: (activeJob.length > 0) ? {
                             guid: activeJob[0].guid,
                             startTime: activeJob[0].start,
+                            elapsedTime: Math.abs(Date.now() - activeJob[0].start),
+                            elapsedTimeNice: msToTime(Math.abs(Date.now() - activeJob[0].start)).split('.')[0],
                             duration: (channelMeta.duration && channelMeta.duration > 0) ? ((parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                             timeLeft: (channelMeta.duration && channelMeta.duration > 0) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                         } : false,
