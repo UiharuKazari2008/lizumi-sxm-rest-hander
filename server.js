@@ -1156,6 +1156,7 @@ function registerBounce(options) {
 
 // macOS GUI - TO BE DEPRECATED AND REPLACED BY A REAL WEB UI
 
+/*
 // Edit Metadata - Needs to be updated
 async function modifyMetadataGUI(type) {
     try {
@@ -1414,6 +1415,7 @@ async function bounceEventGUI(type, device) {
         console.error(e);
     }
 }
+*/
 // Set AirFoil Interface
 async function setAirOutput(tuner, release) {
     return await new Promise(async (resolve) => {
