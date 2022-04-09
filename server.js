@@ -2404,7 +2404,36 @@ app.get("/pending/:action", (req, res) => {
         case "activeRecording":
         case "activeLiveRecording":
         default:
-            res.status(400).send(`Unknown Action: ${action}`);
+            res.status(400).send(`Unknown Action: ${req.params.action}`);
+            break;
+    }
+})
+app.get("/metadata/:action", (req, res) => {
+    switch (req.params.action) {
+        case "update":
+            if (req.query.ch && req.query.ch.length > 0 && req.query.guid && req.query.guid.length > 0 && req.query.filename && req.query.filename.length > 0) {
+                const updatedFilenames = metadata[req.query.ch].slice(0).filter(e => e.guid === req.query.guid).map(e => {
+                    return {
+                        ...e,
+                        filename: req.query.filename
+                    }
+                })
+                if (updatedFilenames.length > 0) {
+                    metadata[req.query.ch] = [
+                        ...metadata[req.query.ch].filter(e => e.guid !== req.query.guid),
+                        ...updatedFilenames
+                    ]
+                    res.status(200).send('Filename updated');
+                    updateMetadata();
+                } else {
+                    res.status(404).send('GUID and Channel Event not found')
+                }
+            } else {
+                res.status(400).send('Missing Required Data')
+            }
+            break;
+        default:
+            res.status(400).send(`Unknown Action: ${req.params.action}`);
             break;
     }
 
