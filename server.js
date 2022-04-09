@@ -786,8 +786,7 @@ function cacheEventsValidated() {
                         // If not already attached to a tuner
                         guidMap.indexOf(f.guid) === -1 &&
                         // If Event is less then 4 Hours old
-                        (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) &&
-                        (a.length - 1 !== i || (a.length - 1 === i && (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - 5400000)) && f.duration === 0))
+                        (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                     ).map((f, i, a) => {
                     if ((!f.duration || f.duration === 0) && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                         f.syncEnd = a[i + 1].syncStart - 1
