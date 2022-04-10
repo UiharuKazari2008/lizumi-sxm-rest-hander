@@ -2734,7 +2734,7 @@
                                     return {
                                         id: e.activeCh.ch,
                                         name: ch.name,
-                                        number: ch.number
+                                        number: ch.number,
                                         description: e.description,
                                         color: e.color,
                                         imageUrl: e.image,
