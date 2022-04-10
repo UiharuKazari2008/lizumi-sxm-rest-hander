@@ -237,6 +237,8 @@
                     })
                     if (image) {
                         channelsImages[channel.id] = image
+                    } else {
+                        console.error(`No Image Data for ${channel.number}`)
                     }
                 }
                 console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
