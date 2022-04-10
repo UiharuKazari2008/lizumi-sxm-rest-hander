@@ -2777,7 +2777,8 @@ app.get("/status/:type", async (req, res) => {
     }
 })
 
-(async () => {
+app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
+    console.log("Server running");
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
@@ -2830,7 +2831,4 @@ app.get("/status/:type", async (req, res) => {
         console.log(tun)
         console.log(jobQueue)
     }
-})()
-app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
-    console.log("Server running");
 });
