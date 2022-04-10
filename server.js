@@ -205,42 +205,6 @@
             })
             if (init_metadata) {
                 channelsAvailable = init_metadata;
-                // channelsImages
-                for (let channel of channelsAvailable.filter(e => e.image)) {
-                    const image = await new Promise(resolve => {
-                        request.get({
-                            url: channel.image,
-                            headers: {
-                                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                                'accept-language': 'en-US,en;q=0.9',
-                                'cache-control': 'max-age=0',
-                                'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
-                                'sec-ch-ua-mobile': '?0',
-                                'sec-fetch-dest': 'document',
-                                'sec-fetch-mode': 'navigate',
-                                'sec-fetch-site': 'none',
-                                'sec-fetch-user': '?1',
-                                'referer': "https://player.siriusxm.com/",
-                                'upgrade-insecure-requests': '1',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
-                                'cookie': cookies.authenticate
-                            },
-                        }, async function (err, res, body) {
-                            if (err) {
-                                console.error(err.message);
-                                console.log("FAULT");
-                                resolve(false);
-                            } else {
-                                resolve(body.toString('base64'));
-                            }
-                        })
-                    })
-                    if (image) {
-                        channelsImages[channel.id] = image
-                    } else {
-                        console.error(`No Image Data for ${channel.number}`)
-                    }
-                }
                 console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
                 return true
             } else {
@@ -2877,5 +2841,41 @@
         app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             console.log("Server running");
         });
+
+        for (let channel of channelsAvailable.filter(e => e.image)) {
+            const image = await new Promise(resolve => {
+                request.get({
+                    url: channel.image,
+                    headers: {
+                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                        'accept-language': 'en-US,en;q=0.9',
+                        'cache-control': 'max-age=0',
+                        'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
+                        'sec-ch-ua-mobile': '?0',
+                        'sec-fetch-dest': 'document',
+                        'sec-fetch-mode': 'navigate',
+                        'sec-fetch-site': 'none',
+                        'sec-fetch-user': '?1',
+                        'referer': "https://player.siriusxm.com/",
+                        'upgrade-insecure-requests': '1',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
+                        'cookie': cookies.authenticate
+                    },
+                }, async function (err, res, body) {
+                    if (err) {
+                        console.error(err.message);
+                        console.log("FAULT");
+                        resolve(false);
+                    } else {
+                        resolve(body.toString('base64'));
+                    }
+                })
+            })
+            if (image) {
+                channelsImages[channel.id] = image
+            } else {
+                console.error(`No Image Data for ${channel.number}`)
+            }
+        }
     }
 })()
