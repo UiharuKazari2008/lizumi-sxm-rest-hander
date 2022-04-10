@@ -604,6 +604,7 @@ function listChannels() {
             ...channelsAvailable[parseInt(e.toString())]
         }
     })
+    console.log(c)
     const cn = c.map(e => e.number)
     const id = c.map(e => e.id)
     return {
