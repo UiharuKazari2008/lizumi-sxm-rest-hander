@@ -2684,6 +2684,9 @@
                             number: parseInt(e.number),
                             name: e.name,
                             id: e.id,
+                            description: e.description,
+                            color: e.color,
+                            image: e.image,
                             supportedDevices
                         }
                     }))
