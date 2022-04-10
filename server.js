@@ -151,7 +151,6 @@ async function initializeChannels() {
                 if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
                     let chItems = {}
                     _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['carousel'][0]['carouselTiles'].filter(e => e['tileContentType'] === 'channel').map(e => {
-                        console.log(e['tileMarkup']['tileText'])
                         const data = {
                             number: e['tileMarkup']['tileText'].filter(f => f['textValue'] && f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
                             id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId')[0],
@@ -198,12 +197,12 @@ async function initializeChannels() {
                     console.log("FAULT");
                     resolve(false);
                 } else {
-                    channelsAvailable = parseJson(JSON.parse(body))
-                    resolve();
+                    resolve(parseJson(JSON.parse(body)));
                 }
             })
         })
         if (init_metadata) {
+            channelsAvailable = init_metadata;
             console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
         } else {
             console.error(`Failed to initialise the application base metadata from SiriusXM`)
