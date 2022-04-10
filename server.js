@@ -2829,9 +2829,8 @@ app.get("/status/:type", async (req, res) => {
 
         console.log(tun)
         console.log(jobQueue)
-
-        app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
-            console.log("Server running");
-        });
     }
 })()
+app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
+    console.log("Server running");
+});
