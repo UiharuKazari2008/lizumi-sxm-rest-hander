@@ -752,10 +752,8 @@ function cacheEventsValidated() {
                                     if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && a[i + 1].syncStart) {
                                         f.syncEnd = a[i + 1].syncStart
                                         f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                                        if (f.duration <= 1) {
+                                        if (f.duration <= 1)
                                             f.duration = 1
-                                            f.chBumpper = true
-                                        }
                                     }
                                     if (!f.filename) {
                                         f.filename = (() => {
@@ -795,9 +793,9 @@ function cacheEventsValidated() {
                     if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart)) {
                         f.syncEnd = a[i + 1].syncStart - 1
                         f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                        if (f.duration <= 1) {
+                        if (f.duration <= 1)
                             f.duration = 1
-                        }
+                    }
                     if (!f.filename) {
                         f.filename = (() => {
                             if (f.isEpisode) {
