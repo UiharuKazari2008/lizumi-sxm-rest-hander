@@ -917,7 +917,9 @@
         const channel = listChannels()
         const pendingJobs = Object.keys(jobQueue).map(k => {return { q: k, ids: jobQueue[k].map(e => e.metadata.guid) }})
         const activeJob = Object.keys(activeQueue).map(k => {return { q: k, id: activeQueue[k].guid }})
-        return events.map(e => {
+        return events
+            .filter(e => channel.ids.indexOf(e.channelId) > -1)
+            .map(e => {
             const tun = (e.tuner) ? e.tuner : (e.tunerId) ? getTuner(e.tunerId) : undefined
             const dyp = (events.filter(f =>
                 (e.filename && f.filename && e.filename.toLowerCase() === f.filename.toLowerCase()) || (
@@ -934,9 +936,6 @@
             })()
             const queued = pendingJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
             const active = activeJob.filter(q => (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
-            console.log(e.channelId)
-            console.log(channel.ids.indexOf(e.channelId))
-            console.log(channel.channels[channel.ids.indexOf(e.channelId)])
             return {
                 tunerId: tun.id,
                 tuner: tun,
