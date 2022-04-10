@@ -16,6 +16,7 @@ const NodeID3 = require('node-id3');
 const stream = require('stream');
 
 let metadata = {};
+let channelsAvailable = {};
 let channelTimes = {
     timetable: {
 
@@ -140,6 +141,78 @@ if (fs.existsSync(path.join(config.record_dir, `accesstimes.json`))) {
 
 // Metadata Retrieval and Parsing
 
+// Get All Metadata For Channels
+async function initializeChannels() {
+    // https://player.siriusxm.com/rest/v4/experience/carousels?page-name=channels_all&result-template=everest%7Cweb&cacheBuster=1649613776453
+    try {
+        function parseJson(_json) {
+            try {
+                // Check if messages and successful response
+                if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
+                    let chItems = {}
+                    _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['carousel'][0]['carouselTiles'].filter(e => e['tileContentType'] === 'channel').map(e => {
+                        const data = {
+                            number: e['tileMarkup']['tileText'].filter(f => e.textValue.startsWith('Ch '))[0].textValue.slice(3),
+                            id: e['tileAssetInfo'].filter(f => f.assetInfoKey === 'channelId')[0],
+                            name: e['tileAssetInfo'].filter(f => f.assetInfoKey === 'channelName')[0],
+                            description: e['tileMarkup']['tileText'].filter(f => e.textClass === 'line3')[0].textValue,
+                            color: e['tileAssetInfo'].filter(f => f.assetInfoKey === 'backgroundColor')[0] || e['tileMarkup']['backgroundColor'],
+                            image: 'https://siriusxm-art-dd.akamaized.net' + e['tileMarkup']['tileImage'][0]['imageLink'].slice(7),
+                        }
+                        chItems[parseInt(data.number)] = data
+                    })
+                    return chItems
+                } else {
+                    console.log("FAULT: XM did not give a valid API response for initialise data");
+                    return false;
+                }
+            } catch (e) {
+                console.error(`FAULT: Failed to parse initialization data!`)
+                console.error(e);
+                return false;
+            }
+        }
+        const init_metadata = await new Promise(resolve => {
+            const refreshURL = `https://player.siriusxm.com/rest/v4/experience/carousels?page-name=channels_all&result-template=everest%7Cweb&cacheBuster=${Date.now()}`
+            request.get({
+                url: refreshURL,
+                headers: {
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'cache-control': 'max-age=0',
+                    'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-fetch-dest': 'document',
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-site': 'none',
+                    'sec-fetch-user': '?1',
+                    'referer': "https://player.siriusxm.com/all-channels",
+                    'upgrade-insecure-requests': '1',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
+                    'cookie': cookies.authenticate
+                },
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.log("FAULT");
+                    resolve(false);
+                } else {
+                    channelsAvailable = parseJson(JSON.parse(body))
+                    resolve();
+                }
+            })
+        })
+        if (init_metadata) {
+            console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
+        } else {
+            console.error(`Failed to initialise the application base metadata from SiriusXM`)
+            return false
+        }
+    } catch (e) {
+        console.error(e);
+        console.error(`Failed to pull metadata`)
+    }
+}
 // Update Metadata for Channels
 // All Channels will be updated every minute unless "updateOnTune: true" is set
 // In that case the metadata is only pulled if the channel is active on a tunner
@@ -527,7 +600,8 @@ function listChannels() {
     const c = Object.keys(config.channels).map(e => {
         return {
             number: e,
-            ...config.channels[e]
+            ...config.channels[e],
+            ...channelsAvailable[parseInt(e.toString())]
         }
     })
     const cn = c.map(e => e.number)
@@ -2703,12 +2777,13 @@ app.get("/status/:type", async (req, res) => {
     }
 })
 
-app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
-    console.log("Server running");
+(async () => {
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
+        await initializeChannels();
         const tun = listTuners()
+
         console.log("Settings up recorder queues...")
         for (let t of tun) {
             if (t.digital) {
@@ -2738,20 +2813,6 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             jobQueue['extract'] = [];
         }
         channelTimes.queues = [];
-
-
-
-        /*let prevJobs = channelTimes.pending.filter(e => e.done === true && e.inprogress === true).map(e => {
-            return {
-                ...e,
-                liveRec: undefined,
-                inprogress: false,
-                done: false
-            }
-        })
-        prevJobs.push(...channelTimes.pending.filter(e => e.done === false || e.inprogress === false))
-        channelTimes.pending = prevJobs*/
-
         await updateMetadata();
         registerSchedule();
         cron.schedule("* * * * *", async () => {
@@ -2768,5 +2829,9 @@ app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
 
         console.log(tun)
         console.log(jobQueue)
+
+        app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
+            console.log("Server running");
+        });
     }
-});
+})()
