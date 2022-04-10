@@ -2735,10 +2735,10 @@
                                         id: e.activeCh.ch,
                                         name: ch.name,
                                         number: ch.number,
-                                        description: e.description,
-                                        color: e.color,
-                                        imageUrl: e.image,
-                                        image: channelsImages[e.id],
+                                        description: ch.description,
+                                        color: ch.color,
+                                        imageUrl: ch.image,
+                                        image: channelsImages[ch.id],
                                     }
                                 }
                                 if (!meta)
@@ -2748,10 +2748,10 @@
                                     id: e.activeCh.ch,
                                     name: ch.name,
                                     number: ch.number,
-                                    description: e.description,
-                                    color: e.color,
-                                    imageUrl: e.image,
-                                    image: channelsImages[e.id]
+                                    description: ch.description,
+                                    color: ch.color,
+                                    imageUrl: ch.image,
+                                    image: channelsImages[ch.id]
                                 }
                             })(),
                             digital: e.digital,
