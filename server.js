@@ -2735,6 +2735,10 @@
                                         id: e.activeCh.ch,
                                         name: ch.name,
                                         number: ch.number
+                                        description: e.description,
+                                        color: e.color,
+                                        imageUrl: e.image,
+                                        image: channelsImages[e.id],
                                     }
                                 }
                                 if (!meta)
@@ -2743,7 +2747,11 @@
                                 return {
                                     id: e.activeCh.ch,
                                     name: ch.name,
-                                    number: ch.number
+                                    number: ch.number,
+                                    description: e.description,
+                                    color: e.color,
+                                    imageUrl: e.image,
+                                    image: channelsImages[e.id]
                                 }
                             })(),
                             digital: e.digital,
