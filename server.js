@@ -160,7 +160,7 @@
                                 color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor').map(f => f['assetInfoValue'])[0] || e['tileMarkup']['backgroundColor'],
                                 image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'https://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7))[0],
                             }
-                            chItems[parseInt(data.number)] = data
+                            chItems[data.number] = data
                         })
                         return chItems
                     } else {
@@ -602,7 +602,7 @@
             return {
                 number: e,
                 ...config.channels[e],
-                ...channelsAvailable[parseInt(e.toString())]
+                ...channelsAvailable[e]
             }
         })
         const cn = c.map(e => e.number)
