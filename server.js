@@ -155,7 +155,7 @@ async function initializeChannels() {
                             number: e['tileMarkup']['tileText'].filter(f => f['textValue'] && f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
                             id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId')[0],
                             name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName')[0],
-                            description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3')[0]['textValue'],
+                            description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3' && f['textValue']).map(f => f['textValue']),
                             color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor')[0] || e['tileMarkup']['backgroundColor'],
                             image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'https://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7)),
                         }
