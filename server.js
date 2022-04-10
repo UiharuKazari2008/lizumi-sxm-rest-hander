@@ -158,7 +158,7 @@
                                 name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName').map(f => f['assetInfoValue'])[0],
                                 description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3' && f['textValue']).map(f => f['textValue'])[0],
                                 color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor').map(f => f['assetInfoValue'])[0] || e['tileMarkup']['backgroundColor'],
-                                image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'https://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7))[0],
+                                image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'http://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7))[0],
                             }
                             chItems[data.number] = data
                         })
