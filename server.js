@@ -154,11 +154,11 @@
                         _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['carousel'][0]['carouselTiles'].filter(e => e['tileContentType'] === 'channel').map(e => {
                             const data = {
                                 number: e['tileMarkup']['tileText'].filter(f => f['textValue'] && f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
-                                id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId')[0],
-                                name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName')[0],
-                                description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3' && f['textValue']).map(f => f['textValue']),
-                                color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor')[0] || e['tileMarkup']['backgroundColor'],
-                                image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'https://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7)),
+                                id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId').map(f => f['assetInfoValue'])[0],
+                                name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName').map(f => f['assetInfoValue'])[0],
+                                description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3' && f['textValue']).map(f => f['textValue'])[0],
+                                color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor').map(f => f['assetInfoValue'])[0] || e['tileMarkup']['backgroundColor'],
+                                image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'https://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7))[0],
                             }
                             chItems[parseInt(data.number)] = data
                         })
