@@ -2782,6 +2782,7 @@
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
         await initializeChannels();
+        console.log(listChannels())
         const tun = listTuners()
 
         console.log("Settings up recorder queues...")
