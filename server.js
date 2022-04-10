@@ -934,6 +934,8 @@
             })()
             const queued = pendingJobs.filter(q => (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
             const active = activeJob.filter(q => (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
+            console.log(e.channelId)
+            console.log(channel.ids.indexOf(e.channelId))
             console.log(channel.channels[channel.ids.indexOf(e.channelId)])
             return {
                 tunerId: tun.id,
