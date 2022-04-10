@@ -750,10 +750,14 @@ function cacheEventsValidated() {
                             ).map((f, i, a) => {
                                 if (guidMap.indexOf(f.guid) === -1) {
                                     if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && a[i + 1].syncStart) {
-                                        f.syncEnd = a[i + 1].syncStart
-                                        f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                                        if (f.duration === 0)
+                                        if ((f.syncEnd - f.syncStart) >= 60) {
+                                            f.syncEnd = a[i + 1].syncStart
+                                            f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+                                        } else {
+                                            f.syncEnd = a[i + 1].syncStart
                                             f.duration = 1
+                                            f.chBumpper = true
+                                        }
                                     }
                                     if (!f.filename) {
                                         f.filename = (() => {
