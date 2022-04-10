@@ -153,10 +153,10 @@ async function initializeChannels() {
                     _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['carousel'][0]['carouselTiles'].filter(e => e['tileContentType'] === 'channel').map(e => {
                         console.log(e['tileMarkup']['tileText'])
                         const data = {
-                            number: e['tileMarkup']['tileText'].filter(f => f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
+                            number: e['tileMarkup']['tileText'].filter(f => f['textValue'] && f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
                             id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId')[0],
                             name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName')[0],
-                            description: e['tileMarkup']['tileText'].filter(f => e['textClass'] === 'line3')[0]['textValue'],
+                            description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3')[0]['textValue'],
                             color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor')[0] || e['tileMarkup']['backgroundColor'],
                             image: 'https://siriusxm-art-dd.akamaized.net' + e['tileMarkup']['tileImage'][0]['imageLink'].slice(7),
                         }
