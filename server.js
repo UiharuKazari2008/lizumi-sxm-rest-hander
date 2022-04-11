@@ -997,7 +997,7 @@
                     console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`)
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
-                } else if (channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
+                } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
                     console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
