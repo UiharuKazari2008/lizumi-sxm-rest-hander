@@ -829,7 +829,7 @@
                                         if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && a[i + 1].syncStart) {
                                             f.syncEnd = a[i + 1].syncStart
                                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                                            if (f.duration <= 1)
+                                            if (f.duration <= 1 && !a[i + 1].isEpisode)
                                                 f.duration = 1
                                         }
                                         if (!f.filename) {
