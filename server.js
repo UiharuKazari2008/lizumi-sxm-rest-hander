@@ -825,12 +825,10 @@
                                     // Is Last Item or Look ahead and see if this has not occured after the next channel change
                                     (i === a.length - 1 || (i !== a.length - 1 && f.syncStart <= a[i + 1].time))
                                 ).map((f, i, a) => {
-                                    if (guidMap.indexOf(f.guid) === -1) {
+                                    if (guidMap.indexOf(f.guid) === -1 && (i !== a.length - 1 || (i === a.length - 1 && !tc.hasOwnProperty('end')))) {
                                         if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && a[i + 1].syncStart) {
                                             f.syncEnd = a[i + 1].syncStart
                                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                                            if (f.duration <= 1 && !a[i + 1].isEpisode)
-                                                f.duration = 1
                                         }
                                         if (!f.filename) {
                                             f.filename = (() => {
@@ -859,6 +857,7 @@
         if (dt) {
             Object.keys(metadata).map(k => {
                 if (metadata[k]) {
+                    const isActive = findActiveRadio(k)
                     metadata[k]
                         .slice(0)
                         .filter((f,i,a) =>
@@ -867,29 +866,31 @@
                             // If Event is less then 4 Hours old
                             (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                         ).map((f, i, a) => {
-                        if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                            f.syncEnd = a[i + 1].syncStart - 1
-                            f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                            if (f.duration <= 1)
-                                f.duration = 1
+                        if (i === a.length - 1 || (i === a.length - 1 && isActive)) {
+                            if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                                f.syncEnd = a[i + 1].syncStart - 1
+                                f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+                                if (f.duration <= 1)
+                                    f.duration = 1
+                            }
+                            if (!f.filename) {
+                                f.filename = (() => {
+                                    if (f.isEpisode) {
+                                        return `${cleanText(f.title)}`
+                                    } else if (f.isSong) {
+                                        return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                    } else {
+                                        return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                    }
+                                })()
+                            }
+                            events.push({
+                                ...f,
+                                channelId: k,
+                                tunerId: dt[0].id,
+                                noTuner: true
+                            })
                         }
-                        if (!f.filename) {
-                            f.filename = (() => {
-                                if (f.isEpisode) {
-                                    return `${cleanText(f.title)}`
-                                } else if (f.isSong) {
-                                    return `${cleanText(f.artist)} - ${cleanText(f.title)}`
-                                } else {
-                                    return `${cleanText(f.title)} - ${cleanText(f.artist)}`
-                                }
-                            })()
-                        }
-                        events.push({
-                            ...f,
-                            channelId: k,
-                            tunerId: dt[0].id,
-                            noTuner: true
-                        })
                     })
                 }
             })
