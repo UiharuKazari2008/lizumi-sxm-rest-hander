@@ -1561,7 +1561,12 @@
                     console.error(err)
                 console.log(result)
                 clearTimeout(childKiller);
-                resolve(result);
+                const state = result[1];
+                let devices = {};
+                result[0].map((e,i) => {
+                    devices[e] = result[1][i]
+                })
+                resolve(devices);
             });
             const childKiller = setTimeout(function () {
                 childProcess.stdin.pause();
@@ -1569,6 +1574,62 @@
                 resolve("");
             }, 10000)
         })
+    }
+    // Inflate the Room configuration for speakers
+    async function inflateRoomConfig() {
+        if (config.hasOwnProperty("rooms")) {
+            const speakers = await getAirSpeakers();
+            let rooms = {};
+            Object.keys(config.rooms).map(e => {
+                rooms[e] = {
+                    name: e,
+                    speakers: config.rooms[e].map(f => { return { name: f, state: speakers[f] }})
+                }
+            })
+            return rooms
+        }
+        return false;
+    }
+    // Set Airfoil Speakers States
+    async function setAirSpeakers(room, device) {
+        const roomConfig = inflateRoomConfig();
+        if (roomConfig.hasOwnProperty(room)) {
+            const deviceToUse = roomConfig[room].speakers[device]
+            if (deviceToUse && !deviceToUse.state) {
+                await new Promise(resolve => {
+                    const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
+                    const childProcess = osascript.execute(list, function (err, result, raw) {
+                        if (err)
+                            console.error(err)
+                        clearTimeout(childKiller);
+                        resolve(!err);
+                    });
+                    const childKiller = setTimeout(function () {
+                        childProcess.stdin.pause();
+                        childProcess.kill();
+                        resolve("");
+                    }, 10000)
+                })
+                roomConfig[room].speakers.filter(e => e.state === true && e.name !== deviceToUse.name).map(async e => {
+                    await new Promise(resolve => {
+                        const list = `tell application "Airfoil" to disconnect from (first speaker whose name is "${e.name}")`
+                        const childProcess = osascript.execute(list, function (err, result, raw) {
+                            if (err)
+                                console.error(err)
+                            clearTimeout(childKiller);
+                            resolve(!err);
+                        });
+                        const childKiller = setTimeout(function () {
+                            childProcess.stdin.pause();
+                            childProcess.kill();
+                            resolve("");
+                        }, 10000)
+                    })
+                })
+                return true
+            }
+        }
+        return false
     }
 
     // Job Queues
@@ -2393,13 +2454,7 @@
         }
     })
     app.get("/output/:room/:index", async (req, res, next) => {
-        const t = getTuner(req.params.tuner)
-        if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === 'playing'))) {
-            await setAirOutput(t, false)
-            res.status(200).send("OK")
-        } else {
-            res.status(404).send("Tuner not found")
-        }
+        req.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index)));
     })
     app.get("/pending/:action", (req, res) => {
         switch (req.params.action) {
@@ -2708,6 +2763,9 @@
             switch (req.params.type) {
                 case 'events':
                     res.status(200).json(formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : 5000)))
+                    break;
+                case 'rooms':
+                    res.status(200).json(await inflateRoomConfig())
                     break;
                 case 'channels':
                     res.status(200).json(listChannels().channels.map(e => {
