@@ -1552,6 +1552,24 @@
             }, 10000)
         })
     }
+    // Get AirFoil Speakers
+    async function getAirSpeakers() {
+        return await new Promise(resolve => {
+            const list = `tell application "Airfoil" to {name, connected} of speakers`
+            const childProcess = osascript.execute(list, function (err, result, raw) {
+                if (err)
+                    console.error(err)
+                console.log(result)
+                clearTimeout(childKiller);
+                resolve(result);
+            });
+            const childKiller = setTimeout(function () {
+                childProcess.stdin.pause();
+                childProcess.kill();
+                resolve("");
+            }, 10000)
+        })
+    }
 
     // Job Queues
 
@@ -2374,6 +2392,15 @@
             res.status(404).send("Tuner not found")
         }
     })
+    app.get("/output/:room/:index", async (req, res, next) => {
+        const t = getTuner(req.params.tuner)
+        if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === 'playing'))) {
+            await setAirOutput(t, false)
+            res.status(200).send("OK")
+        } else {
+            res.status(404).send("Tuner not found")
+        }
+    })
     app.get("/pending/:action", (req, res) => {
         switch (req.params.action) {
             case "add":
@@ -2850,6 +2877,8 @@
         app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             console.log("Server running");
         });
+
+        getAirSpeakers();
 
         for (let k of Object.keys(channelsAvailable)) {
             if (channelsAvailable[k].image) {
