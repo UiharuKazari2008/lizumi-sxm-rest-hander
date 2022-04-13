@@ -2456,7 +2456,7 @@
         }
     })
     app.get("/output/:action/:room/:index", async (req, res, next) => {
-        req.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index), req.params.action));
+        res.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index), req.params.action));
     })
     app.get("/pending/:action", (req, res) => {
         switch (req.params.action) {
