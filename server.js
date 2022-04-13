@@ -1591,26 +1591,28 @@
         return false;
     }
     // Set Airfoil Speakers States
-    async function setAirSpeakers(room, device) {
+    async function setAirSpeakers(room, device, action) {
         const roomConfig = inflateRoomConfig();
         if (roomConfig.hasOwnProperty(room)) {
             const deviceToUse = roomConfig[room].speakers[device]
             if (deviceToUse && !deviceToUse.state) {
-                await new Promise(resolve => {
-                    const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
-                    const childProcess = osascript.execute(list, function (err, result, raw) {
-                        if (err)
-                            console.error(err)
-                        clearTimeout(childKiller);
-                        resolve(!err);
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve("");
-                    }, 10000)
-                })
-                roomConfig[room].speakers.filter(e => e.state === true && e.name !== deviceToUse.name).map(async e => {
+                if (action !== 'leave') {
+                    await new Promise(resolve => {
+                        const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
+                        const childProcess = osascript.execute(list, function (err, result, raw) {
+                            if (err)
+                                console.error(err)
+                            clearTimeout(childKiller);
+                            resolve(!err);
+                        });
+                        const childKiller = setTimeout(function () {
+                            childProcess.stdin.pause();
+                            childProcess.kill();
+                            resolve("");
+                        }, 10000)
+                    })
+                }
+                roomConfig[room].speakers.filter(e => action !== 'add' && e.state === true && (e.name !== deviceToUse.name && action === 'leave')).map(async e => {
                     await new Promise(resolve => {
                         const list = `tell application "Airfoil" to disconnect from (first speaker whose name is "${e.name}")`
                         const childProcess = osascript.execute(list, function (err, result, raw) {
@@ -2453,8 +2455,8 @@
             res.status(404).send("Tuner not found")
         }
     })
-    app.get("/output/:room/:index", async (req, res, next) => {
-        req.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index)));
+    app.get("/output/:action/:room/:index", async (req, res, next) => {
+        req.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index), req.params.action));
     })
     app.get("/pending/:action", (req, res) => {
         switch (req.params.action) {
