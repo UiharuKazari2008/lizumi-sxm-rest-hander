@@ -1559,9 +1559,7 @@
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err)
                     console.error(err)
-                console.log(result)
                 clearTimeout(childKiller);
-                const state = result[1];
                 let devices = {};
                 result[0].map((e,i) => {
                     devices[e] = result[1][i]
@@ -1571,7 +1569,7 @@
             const childKiller = setTimeout(function () {
                 childProcess.stdin.pause();
                 childProcess.kill();
-                resolve("");
+                resolve({});
             }, 10000)
         })
     }
@@ -2938,7 +2936,7 @@
             console.log("Server running");
         });
 
-        getAirSpeakers();
+        inflateRoomConfig();
 
         for (let k of Object.keys(channelsAvailable)) {
             if (channelsAvailable[k].image) {
