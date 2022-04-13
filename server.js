@@ -1595,7 +1595,7 @@
         const roomConfig = inflateRoomConfig();
         if (roomConfig.hasOwnProperty(room)) {
             const deviceToUse = roomConfig[room].speakers[device]
-            if (deviceToUse && !deviceToUse.state) {
+            if (deviceToUse) {
                 if (action !== 'leave') {
                     await new Promise(resolve => {
                         const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
