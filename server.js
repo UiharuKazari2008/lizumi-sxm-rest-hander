@@ -1130,7 +1130,7 @@
                                     channelId: channelId,
                                     tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
                                 })
-                            } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 5) && e.tune_search) {
+                            } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 15) && e.tune_search) {
                                 console.log(`Event ${k} has not started, trying again in a minute...`)
                                 setTimeout(search, 60000)
                             } else {
