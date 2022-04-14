@@ -1872,6 +1872,7 @@
                         const state = await checkPlayStatus(tuner)
                         if (!state) {
                             watchdogi = watchdogi + 1
+                            console.error(`Record/${tuner.id}: Device Audio Session not found!`)
                         } else if (state === 'playing') {
                             watchdogi = 0
                         }
@@ -2163,6 +2164,7 @@
             const state = await checkPlayStatus(device)
             if (!state) {
                 watchdogi = watchdogi + 1
+                console.error(`Player/${device.id}: Device Audio Session not found!`)
             } else if (state === 'playing') {
                 watchdogi = 0
             }
