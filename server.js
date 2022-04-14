@@ -818,6 +818,7 @@
         let guidMap = []
         Object.keys(channelTimes.timetable)
             .slice(0)
+            .filter(e => getTuner(e).hasOwnProperty('record_prefix'))
             .map(d => {
                 return channelTimes.timetable[d]
                     .slice(0)
