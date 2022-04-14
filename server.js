@@ -864,31 +864,29 @@
                             // If Event is less then 4 Hours old
                             (moment.utc(f.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind)))
                         ).map((f, i, a) => {
-                        if (i === a.length - 1 || (i === a.length - 1 && isActive)) {
-                            if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart)) {
-                                f.syncEnd = a[i + 1].syncStart - 1
-                                f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
-                                if (f.duration <= 1)
-                                    f.duration = 1
-                            }
-                            if (!f.filename) {
-                                f.filename = (() => {
-                                    if (f.isEpisode) {
-                                        return `${cleanText(f.title)}`
-                                    } else if (f.isSong) {
-                                        return `${cleanText(f.artist)} - ${cleanText(f.title)}`
-                                    } else {
-                                        return `${cleanText(f.title)} - ${cleanText(f.artist)}`
-                                    }
-                                })()
-                            }
-                            events.push({
-                                ...f,
-                                channelId: k,
-                                tunerId: dt[0].id,
-                                noTuner: true
-                            })
+                        if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart)) {
+                            f.syncEnd = a[i + 1].syncStart - 1
+                            f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+                            if (f.duration <= 1 && (i === a.length - 1 || (i === a.length - 1 && isActive)))
+                                f.duration = 1
                         }
+                        if (!f.filename) {
+                            f.filename = (() => {
+                                if (f.isEpisode) {
+                                    return `${cleanText(f.title)}`
+                                } else if (f.isSong) {
+                                    return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                } else {
+                                    return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                }
+                            })()
+                        }
+                        events.push({
+                            ...f,
+                            channelId: k,
+                            tunerId: dt[0].id,
+                            noTuner: true
+                        })
                     })
                 }
             })
