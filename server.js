@@ -1899,7 +1899,7 @@
                             const eventData = getEvent(event.channelId, event.guid)
                             if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) {
                                 clearInterval(controller)
-                            } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 0) {
+                            } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 60) {
                                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
                                 console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                                 stopwatch = setTimeout(() => {
