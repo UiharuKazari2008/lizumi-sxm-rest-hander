@@ -100,6 +100,16 @@
         })
     }
     function isWantedEvent(l, m) {
+        if (l.channel && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
+            return false
+        if (l.duration && (m.duration < l.duration || (Date.now() - moment.utc(m.syncStart).local().valueOf() / 1000) < l.duration))
+            return false
+        if (l.dayOfWeek && moment.utc(m.syncStart).local().add(20, 'minutes').format('ddd').toLowerCase() !== l.dayOfWeek.toLowerCase())
+            return false
+        if (l.beforeHour && moment.utc(m.syncStart).local().hours() >= l.beforeHour)
+            return false
+        if (l.afterHour && moment.utc(m.syncStart).local().hours() <= l.afterHour)
+            return false
         if (!l.allow_episodes && m.isEpisode)
             return false
         if (m.title && l.search && m.title.toLowerCase().includes(l.search.toLowerCase()))
@@ -829,6 +839,8 @@
                                         } else if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && !a[i + 1].isEpisode)) {
                                             f.syncEnd = a[i + 1].syncStart
                                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
+                                        } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && Math.abs(f.syncEnd - f.syncStart) > 2) {
+                                            f.duration = 1
                                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && f.syncEnd - f.syncStart > 2) {
                                             f.duration = 1
                                         }
@@ -1154,25 +1166,33 @@
     }
     // Keyword Search for Events
     function searchEvents() {
-        const events = listEventsValidated(true, undefined, 8)
+        const events = listEventsValidated(true, undefined, 15)
         config.autosearch_terms.map(f => {
-            events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && e.filename && e.filename.toLowerCase().includes(f.search.toLowerCase()) && (!f.duration || (f.duration && e.duration > f.duration))).map(e => {
+            events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                 console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
+                if (f.tuneToChannel) {
+                    tuneToChannel({
+                        channelId: e.channelId,
+                        tuner: (f.tuneToChannel !== true) ? e.tuneToChannel : undefined
+                    })
+                }
                 channelTimes.completed.push(e.guid)
-                channelTimes.pending.push({
-                    ch: e.channelId,
-                    guid: e.guid,
-                    time: e.syncStart + 10,
-                    tuner: undefined,
-                    tunerId: e.tunerId,
-                    digitalOnly: (f.digitalOnly),
-                    allow_events: (f.allow_events),
-                    post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
-                    switch_source: (f.switch_source) ? f.switch_source : false,
-                    automatic: true,
-                    inprogress: false,
-                    done: false,
-                })
+                if (!f.onlyTune) {
+                    channelTimes.pending.push({
+                        ch: e.channelId,
+                        guid: e.guid,
+                        time: e.syncStart + 10,
+                        tuner: undefined,
+                        tunerId: e.tunerId,
+                        digitalOnly: (f.digitalOnly),
+                        allow_events: (f.allow_events),
+                        post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
+                        switch_source: (f.switch_source) ? f.switch_source : false,
+                        automatic: true,
+                        inprogress: false,
+                        done: false,
+                    })
+                }
             })
         })
 
