@@ -1000,7 +1000,7 @@
                     console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
-                } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 0 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
+                } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 1 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
                     const tuner = (thisEvent.tunerId) ? getTuner(thisEvent.tunerId) : undefined
 
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
@@ -1899,7 +1899,7 @@
                             const eventData = getEvent(event.channelId, event.guid)
                             if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) {
                                 clearInterval(controller)
-                            } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 60) {
+                            } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 1) {
                                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
                                 console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                                 stopwatch = setTimeout(() => {
@@ -2199,13 +2199,13 @@
         await deTuneTuner(tuner, true)
         locked_tuners.set(tuner.id, true)
         if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
-            const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && eventItem.syncStart < (Date.now() - (30 * 60000)))
+            const isLiveRecord = !(eventItem.duration && parseInt(eventItem.duration.toString()) > 1 && eventItem.syncStart < (Date.now() - (30 * 60000)))
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && job.switch_source && tuner.airfoil_source.conditions.indexOf((isLiveRecord) ? 'live_record' : 'record') !== -1)
                 setAirOutput(tuner, false)
             const time = (() => {
-                if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0 && tuner.audio_interface)
+                if (eventItem.duration && parseInt(eventItem.duration.toString()) > 1 && tuner.audio_interface)
                     return parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)
-                if (eventItem.duration && parseInt(eventItem.duration.toString()) > 0)
+                if (eventItem.duration && parseInt(eventItem.duration.toString()) > 1)
                     return msToTime((parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)) * 1000).split('.')[0]
                 return undefined
             })()
@@ -2283,7 +2283,7 @@
             });
             const recTimeIndex = recFiles.map(e => e.date.valueOf());
 
-            if (parseInt(eventItem.duration.toString()) > 0) {
+            if (parseInt(eventItem.duration.toString()) > 1) {
                 const trueTime = moment.utc(eventItem.syncStart).local();
                 const eventFilename = `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format((eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss")}).${(config.extract_format) ? config.extract_format : 'mp3'}`
                 let startFileIndex = findClosest(recTimeIndex, trueTime.valueOf()) - 1
@@ -2848,8 +2848,8 @@
                                 jobCount: jobQueue[activeJob[0].queue].length,
                                 startTime: activeJob[0].start,
                                 elapsedTime: Math.abs(Date.now() - activeJob[0].start),
-                                duration: (channelMeta.duration && channelMeta.duration > 0) ? ((parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
-                                timeLeft: (channelMeta.duration && channelMeta.duration > 0) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
+                                duration: (channelMeta.duration && channelMeta.duration > 1) ? ((parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
+                                timeLeft: (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
                             history: (!e.record_only && e.record_prefix),
                             nowPlaying: (() => {
