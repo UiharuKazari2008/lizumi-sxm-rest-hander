@@ -860,6 +860,7 @@
             Object.keys(metadata).map(k => {
                 if (metadata[k]) {
                     const isActive = findActiveRadio(k)
+                    const channelConfig = getChannelbyId(k)
                     metadata[k]
                         .slice(0)
                         .filter((f,i,a) =>
@@ -875,7 +876,7 @@
                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && f.syncEnd - f.syncStart > 2) {
                             f.duration = 1
-                        } else if (i === a.length - 1 && !isActive) {
+                        } else if (i === a.length - 1 && !isActive && (!channelConfig || (channelConfig && !channelConfig.updateOnTune))) {
                             f.duration = 1
                         }
                         if (!f.filename) {
