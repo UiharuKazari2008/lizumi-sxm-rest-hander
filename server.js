@@ -1879,7 +1879,7 @@
                         if (!state) {
                             watchdogi = watchdogi + 1
                             console.error(`Record/${tuner.id}: Device Audio Session not found!`)
-                        } else if (state === 'playing') {
+                        } else {
                             watchdogi = 0
                         }
                         if (watchdogi >= 2) {
@@ -2171,7 +2171,7 @@
             if (!state) {
                 watchdogi = watchdogi + 1
                 console.error(`Player/${device.id}: Device Audio Session not found!`)
-            } else if (state === 'playing') {
+            } else {
                 watchdogi = 0
             }
             if (watchdogi >= 2) {
