@@ -1876,7 +1876,7 @@
                         } else if (state === 'playing') {
                             watchdogi = 0
                         }
-                        if (!(state === 'playing' || watchdogi < 2)) {
+                        if (watchdogi >= 2) {
                             console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
                             fault = true
                             clearTimeout(stopwatch)
@@ -2129,7 +2129,7 @@
                         tuneReady = await new Promise(ok => {
                             setTimeout(async () => {
                                 const state = await checkPlayStatus(device)
-                                ok(state === 'playing')
+                                ok(state)
                             }, 1000)
                         })
                         if (i >= 30) {
@@ -2168,7 +2168,7 @@
             } else if (state === 'playing') {
                 watchdogi = 0
             }
-            if (!(state === 'playing' || watchdogi < 1)) {
+            if (watchdogi >= 2) {
                 console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
                 deTuneTuner(device)
             }
@@ -2446,7 +2446,7 @@
     });
     app.get("/source/:tuner", async (req, res, next) => {
         const t = getTuner(req.params.tuner)
-        if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === 'playing'))) {
+        if (t && t.airfoil_source && t.airfoil_source.name && ((t.activeCh && !t.activeCh.hasOwnProperty('end')) || (t.digital && (await checkPlayStatus(t)) === true))) {
             await setAirOutput(t, false)
             res.status(200).send("OK")
         } else {
