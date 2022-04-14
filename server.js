@@ -888,7 +888,7 @@
                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0))
                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && Math.abs(f.syncEnd - f.syncStart) > 2) {
                             f.duration = 1
-                        } else if (i === a.length - 1 && !isActive && (!channelConfig || (channelConfig && !channelConfig.updateOnTune))) {
+                        } else if (i === a.length - 1 && !isActive && (!channelConfig || (channelConfig && channelConfig.updateOnTune))) {
                             f.duration = 1
                         }
                         if (!f.filename) {
