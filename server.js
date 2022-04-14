@@ -565,7 +565,7 @@
                     const services = log.slice(sessionStackIndex)
                         .filter(e => e.includes('package='))
                         .map(e => e.split(' package=')[1])
-                    resolve(log.slice(sessionStackIndex)
+                    const sessionResult = log.slice(sessionStackIndex)
                         .filter(e => e.includes('state=PlaybackState'))
                         .map((e,i) => {
                             return {
@@ -574,21 +574,19 @@
                                     const playState = e.split('state=PlaybackState').pop().trim().slice(1,-1)
                                         .split(', ').filter(e => e.startsWith('state='))[0].split('=')[1]
                                     switch (playState) {
-                                        case "0": // none
-                                            return "none"
-                                        case "1": // stop
-                                            return "stopped"
-                                        case "2": // pause
-                                            return "paused"
                                         case "3": // play
-                                            return "playing"
+                                            return true
+                                        case "0": // none
+                                        case "1": // stop
+                                        case "2": // pause
                                         default: // everything i dont care about
-                                            return "unknown"
+                                            return false
                                     }
                                 })()
                             }
                         })
-                        .filter(e => e.x === 'com.sirius').map(e => e.y)[0])
+                        .filter(e => e.x === 'com.sirius').map(e => e.y)
+                    resolve((sessionResult.length === 0) ? false : sessionResult[0])
                 }
             });
         })
@@ -1873,7 +1871,7 @@
                     watchdog = setInterval(async () => {
                         const state = await checkPlayStatus(tuner)
                         if (!state) {
-                            watchdogi++
+                            watchdogi = watchdogi + 1
                         } else if (state === 'playing') {
                             watchdogi = 0
                         }
@@ -2164,7 +2162,7 @@
         watchdog_tuners[device.id] = setInterval(async () => {
             const state = await checkPlayStatus(device)
             if (!state) {
-                watchdogi++
+                watchdogi = watchdogi + 1
             } else if (state === 'playing') {
                 watchdogi = 0
             }
