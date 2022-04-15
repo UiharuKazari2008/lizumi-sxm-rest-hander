@@ -1090,22 +1090,8 @@
     // Generate Cron Schedules for events
     function registerSchedule() {
         const configSch = Object.keys(config.schedule)
-        const exsistSch = Array.from(scheduled_list.keys())
 
-        exsistSch.filter(e => configSch.indexOf(e) === -1).forEach(e => {
-            console.log(`Schedule ${e} was removed!`)
-            if (scheduled_tasks.has(e)) {
-                const sch = scheduled_tasks.get(e)
-                sch.destroy()
-                scheduled_tasks.delete(e)
-            }
-            if (scheduled_tunes.has(e)) {
-                const sch = scheduled_tunes.get(e)
-                sch.destroy()
-                scheduled_tunes.delete(e)
-            }
-        })
-        configSch.filter(e => exsistSch.indexOf(e) === -1).forEach(k => {
+        configSch.forEach(k => {
             const e = config.schedule[k]
             if (e.record_cron && !scheduled_tasks.has(k)) {
                 if (cron.validate(e.record_cron)) {
@@ -1126,12 +1112,11 @@
                             switch_source: (e.hasOwnProperty("switch_source")) ? e.switch_source : false
                         })
                     })
-                    scheduled_tasks.set(k, sch)
-                    scheduled_list.set(k, true)
                 } else {
                     console.error(`${e.record_cron} is not a valid cron string`)
                 }
             }
+
             if (e.tune_cron && !scheduled_tunes.has(k)) {
                 if (cron.validate(e.tune_cron)) {
                     let channelId = (e.channelId) ? e.channelId : undefined
@@ -1157,8 +1142,6 @@
                         }
                         search()
                     })
-                    scheduled_tunes.set(k, sch)
-                    scheduled_list.set(k, true)
                 } else {
                     console.error(`${e.tune_cron} is not a valid cron string`)
                 }
@@ -2961,7 +2944,6 @@
         cron.schedule("*/5 * * * *", async () => {
             config = require('./config.json');
             cookies = require("./cookie.json");
-            registerSchedule();
         });
 
         console.log(tun)
