@@ -837,7 +837,7 @@
                                     if (guidMap.indexOf(f.guid) === -1 && (i !== a.length - 1 || (i === a.length - 1 && !tc.hasOwnProperty('end')))) {
                                         if (!f.duration && f.isEpisode) {
                                             f.duration = 1
-                                        } else if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && !a[i + 1].isEpisode)) {
+                                        } else if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && (!a[i + 1].isEpisode || (a[i + 1].isEpisode && (i - (a.length - 1)) > 4)))) {
                                             f.syncEnd = a[i + 1].syncStart
                                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0)) + 1
                                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && Math.abs(f.syncEnd - f.syncStart) > 2) {
@@ -884,7 +884,7 @@
                         ).map((f, i, a) => {
                         if (!f.duration && f.isEpisode) {
                             f.duration = 1
-                        } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && !a[i + 1].isEpisode)) {
+                        } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && (!a[i + 1].isEpisode || (a[i + 1].isEpisode && (i - (a.length - 1)) > 4)))) {
                             f.syncEnd = a[i + 1].syncStart - 1
                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0)) + 1
                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && Math.abs(f.syncEnd - f.syncStart) > 2) {
