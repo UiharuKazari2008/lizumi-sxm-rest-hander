@@ -100,6 +100,8 @@
         })
     }
     function isWantedEvent(l, m) {
+        if (!((m.duration && m.duration > 15 * 60) || (!m.duration && (Date.now() - m.syncStart)) > 15 * 60000))
+            return false
         if (l.channel && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
             return false
         if (l.duration && (m.duration < l.duration || (Date.now() - moment.utc(m.syncStart).local().valueOf() / 1000) < l.duration))
