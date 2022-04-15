@@ -100,7 +100,9 @@
         })
     }
     function isWantedEvent(l, m) {
-        if (!((m.duration && m.duration > 15 * 60) || (!m.duration && (Date.now() - m.syncStart)) > 15 * 60000))
+        if (!l.fast_trigger && !((m.duration && m.duration > 15 * 60) || (!m.duration && (Date.now() - m.syncStart)) > 15 * 60000))
+            return false
+        if (l.fast_trigger && !((m.duration && m.duration > 60) || (!m.duration && (Date.now() - m.syncStart)) > 60000))
             return false
         if (l.channel && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
             return false
@@ -1176,7 +1178,7 @@
                 })
             }
             if (f.tuneToChannel) {
-                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
                     console.log(`Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`)
                     tuneToChannel({
                         channelId: e.channelId,
