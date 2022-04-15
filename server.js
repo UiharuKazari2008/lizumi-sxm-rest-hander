@@ -106,9 +106,9 @@
             return false
         if (l.dayOfWeek && moment.utc(m.syncStart).local().add(20, 'minutes').format('ddd').toLowerCase() !== l.dayOfWeek.toLowerCase())
             return false
-        if (l.beforeHour && moment.utc(m.syncStart).local().hours() >= l.beforeHour)
+        if (l.beforeHour && moment.utc(m.syncStart).local().hours() > l.beforeHour)
             return false
-        if (l.afterHour && moment.utc(m.syncStart).local().hours() <= l.afterHour)
+        if (l.afterHour && moment.utc(m.syncStart).local().hours() < l.afterHour)
             return false
         if (!l.allow_episodes && m.isEpisode)
             return false
@@ -1168,17 +1168,12 @@
     // Keyword Search for Events
     function searchEvents() {
         const events = listEventsValidated(true, undefined, 15)
+        const all = listEventsValidated(false, undefined, 25)
         config.autosearch_terms.map(f => {
-            events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
-                console.log(`Found Event ${e.filename} ${e.guid} - ${e.duration}`)
-                if (f.tuneToChannel) {
-                    tuneToChannel({
-                        channelId: e.channelId,
-                        tuner: (f.tuneToChannel !== true) ? e.tuneToChannel : undefined
-                    })
-                }
-                channelTimes.completed.push(e.guid)
-                if (!f.onlyTune) {
+            if (!f.onlyTune) {
+                events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                    console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
+                    channelTimes.completed.push(e.guid)
                     channelTimes.pending.push({
                         ch: e.channelId,
                         guid: e.guid,
@@ -1193,8 +1188,19 @@
                         inprogress: false,
                         done: false,
                     })
-                }
-            })
+                })
+            }
+            if (f.tuneToChannel) {
+                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                    console.log(`Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`)
+                    tuneToChannel({
+                        channelId: e.channelId,
+                        tuner: (f.tuneToChannel !== true) ? e.tuneToChannel : undefined
+                    })
+                    if (f.onlyTune)
+                        channelTimes.completed.push(e.guid)
+                })
+            }
         })
 
     }
