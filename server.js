@@ -368,9 +368,9 @@
                 }
             }
             await cacheEventsValidated()
-            nowPlayingNotification();
+            await nowPlayingNotification();
             await searchEvents();
-            await processPendingBounces();
+            setTimeout(processPendingBounces, 2500);
         } catch (e) {
             console.error(e);
             console.error("FAULT");
