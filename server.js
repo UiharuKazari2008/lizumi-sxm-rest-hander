@@ -1257,7 +1257,7 @@
             if (!release && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
                 console.info(`Last tuner is not in use anymore, starting timeout...`)
                 timeout_sources[currentTuner.id] = setTimeout(() => {
-                    deTuneTuner(currentTuner)
+                    deTuneTuner(currentTuner, false, true)
                     delete timeout_sources[currentTuner.id]
                 }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
             } else if (!release && tuner.airfoil_source.auto_release && timeout_sources[tuner.id]) {
@@ -1829,11 +1829,11 @@
         }
     }
     // End the tuners timeline for the active channel
-    async function deTuneTuner(tuner, force) {
+    async function deTuneTuner(tuner, force, noOutputSet) {
         if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
             if (tuner.digital)
                 clearInterval(watchdog_tuners[tuner.id])
-            if (!force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
+            if (!noOutputSet && !force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
                 setAirOutput(tuner, true)
             if (tuner.digital) {
                 await releaseDigitalTuner(tuner)
