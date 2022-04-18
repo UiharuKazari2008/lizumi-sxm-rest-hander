@@ -34,9 +34,6 @@
     let timeout_tuners = {}
     let timeout_sources = {}
     let adblog_tuners = new Map();
-    let scheduled_list = new Map();
-    let scheduled_tasks = new Map();
-    let scheduled_tunes = new Map();
     let device_logs = {};
     let audio_servers = new Map();
     let nowPlayingGUID = {};
@@ -210,7 +207,7 @@
                 }, async function (err, res, body) {
                     if (err) {
                         console.error(err.message);
-                        console.log("FAULT");
+                        console.error("FAULT Getting Response Data");
                         resolve(false);
                     } else {
                         resolve(parseJson(JSON.parse(body)));
@@ -319,11 +316,10 @@
                         }, async function (err, res, body) {
                             if (err) {
                                 console.error(err.message);
-                                console.log("FAULT");
+                                console.error(`FAULT Updating metadata for channel ${channelInfo.number}`);
                                 resolve(false);
                             } else {
                                 resolve(parseJson(JSON.parse(body)));
-                                //console.log(`Updated Metadata for ${channelInfo.id}`)
                             }
                         })
                     })
@@ -368,12 +364,13 @@
                 }
             }
             await cacheEventsValidated()
-            await nowPlayingNotification();
+            if (config.nowPlaying)
+                await nowPlayingNotification();
             await searchEvents();
             setTimeout(processPendingBounces, 2500);
         } catch (e) {
             console.error(e);
-            console.error("FAULT");
+            console.error("FAULT Updating Metadata");
         }
     }
     // Sync metadata and timetables to disk
@@ -393,6 +390,7 @@
                 }
             } catch (e) {
                 console.error(e);
+                console.error(`Fault saving metadata`);
             }
             resolve(null);
         })
@@ -440,19 +438,6 @@
                 })()
                 const ch = channels.channels[channels.ids.indexOf(t.activeCh.ch)]
                 console.log(`Now Playing: ${t.name}:${t.activeCh.ch} - ${eventText}`)
-                await new Promise(resolve => {
-                    const list = `display notification "${(n.isUpdated) ? '📝 ' : '🆕 '}${eventText} @ ${moment(n.syncStart).format("HH:mm:ss")}" with title "📻 ${(ch.name) ? ch.name : "SiriusXM"}"`
-                    const childProcess = osascript.execute(list, function (err, result, raw) {
-                        resolve(null);
-                        if (err) return console.error(err)
-                        clearTimeout(childKiller);
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(null);
-                    }, 90000)
-                })
                 publishMetaIcecast(t, eventText, (ch.name) ? ch.name : "SiriusXM");
                 publishMetadataFile(t, n, (ch.name) ? ch.name : "SiriusXM");
             }
@@ -533,7 +518,7 @@
                 } else {
                     if (stderr.toString().length > 1)
                         console.error(stderr.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
-                    console.log(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
+                    //console.log(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
                     resolve({
                         log: stdout.toString().split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== '').join('\n'),
                         error: false
@@ -1002,7 +987,6 @@
                 })()
 
                 if (thisEvent) {
-                    console.log(thisEvent)
                     thisEvent.filename = (() => {
                         if (thisEvent.filename) {
                             return thisEvent.filename
@@ -1021,7 +1005,7 @@
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                 } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
-                    console.log(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
+                    console.error(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                 } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 1 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
@@ -1034,8 +1018,6 @@
                         pendingEvent.liveRec = true
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
-
-                        console.log(`Digital Recording Found! "${thisEvent.filename}"`)
                         queueDigitalRecording({
                             metadata: {
                                 channelId: pendingEvent.ch,
@@ -1051,8 +1033,6 @@
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
-
-                        console.log(`Extractable Event Found! "${thisEvent.filename}"`)
                         queueRecordingExtraction({
                             metadata: {
                                 channelId: pendingEvent.ch,
@@ -1070,9 +1050,6 @@
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
                     pendingEvent.inprogress = true
-
-                    console.log(`Live Digital Recording Found! "${thisEvent.filename}"`)
-
                     queueDigitalRecording({
                         metadata: {
                             channelId: pendingEvent.ch,
@@ -1089,22 +1066,22 @@
             channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
         } catch (err) {
             console.error(err)
+            console.error(`Error processing pending requests`)
         }
     }
     // Generate Cron Schedules for events
     function registerSchedule() {
-        const configSch = Object.keys(config.schedule)
-
-        configSch.forEach(k => {
+        Object.keys(config.schedule).forEach(k => {
             const e = config.schedule[k]
-            if (e.record_cron && !scheduled_tasks.has(k)) {
+            if (e.record_cron) {
                 if (cron.validate(e.record_cron)) {
                     let channelId = (e.channelId) ? e.channelId : undefined
                     if (e.ch)
                         channelId = getChannelbyNumber(e.ch).id
 
                     console.log(`Record Schedule ${k} @ ${e.record_cron} was created! `)
-                    const sch = cron.schedule(e.record_cron, () => {
+                    cron.schedule(e.record_cron, () => {
+                        console.log(`Automated Record for ${k}`)
                         registerBounce({
                             channel: channelId,
                             tuner: (e.rec_tuner) ? getTuner(e.rec_tuner) : undefined,
@@ -1121,31 +1098,44 @@
                 }
             }
 
-            if (e.tune_cron && !scheduled_tunes.has(k)) {
+            if (e.tune_cron) {
                 if (cron.validate(e.tune_cron)) {
                     let channelId = (e.channelId) ? e.channelId : undefined
                     if (e.ch)
                         channelId = getChannelbyNumber(e.ch).id
 
-                    console.log(`Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
-                    const sch = cron.schedule(e.tune_cron, () => {
-                        let i = -1
-                        function search() {
-                            i++
-                            if (!e.restrict || !e.restrict_applys_to_tune || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
-                                tuneToChannel({
-                                    channelId: channelId,
-                                    tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
-                                })
-                            } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 15) && e.tune_search) {
-                                console.log(`Event ${k} has not started, trying again in a minute...`)
-                                setTimeout(search, 60000)
-                            } else {
-                                console.log(`Event ${k} was not found, giving up!`)
+                    if (!e.hasOwnProperty('restrict') || (e.hasOwnProperty('restrict') && !e.restrict_applys_to_tune)) {
+                        console.log(`Direct Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
+                        cron.schedule(e.tune_cron, () => {
+                            console.log(`Automated Tuning for ${k}`)
+                            tuneToChannel({
+                                channelId: channelId,
+                                tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
+                            })
+                        })
+                    } else {
+                        console.log(`Search Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
+                        cron.schedule(e.tune_cron, () => {
+                            let i = -1
+                            function search() {
+                                i++
+                                if (!e.restrict || !e.restrict_applys_to_tune || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
+                                    console.log(`Automated Tuning for ${k}`)
+                                    tuneToChannel({
+                                        channelId: channelId,
+                                        tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
+                                    })
+                                } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 15) && e.tune_search) {
+                                    console.error(`Event ${k} has not started, trying again in a minute...`)
+                                    setTimeout(search, 60000)
+                                } else {
+                                    console.error(`Event ${k} was not found, giving up!`)
+                                }
                             }
-                        }
-                        search()
-                    })
+                            search()
+                        })
+                    }
+
                 } else {
                     console.error(`${e.tune_cron} is not a valid cron string`)
                 }
@@ -1200,7 +1190,6 @@
                 return getEvent((options.channel) ? options.channel : undefined, options.guid)
             return false
         })()
-        console.log(options)
         // Get Passed Tuner or Find one that is using that channel number
         const t = (() => {
             if (event && event.tunerId)
@@ -1253,272 +1242,11 @@
             return pendEvent
         } else {
             console.error("Missing Required data to register a pending Extraction")
+            console.error(options);
             return false
         }
     }
 
-    // macOS GUI - TO BE DEPRECATED AND REPLACED BY A REAL WEB UI
-
-    /*
-    // Edit Metadata - Needs to be updated
-    async function modifyMetadataGUI(type) {
-        try {
-            let eventsMeta = [];
-            const lastIndex = channelTimes.timetable.length - 1
-            for (let c in channelTimes.timetable) {
-                let events = await metadata[channelTimes.timetable[parseInt(c)].ch].filter(f => (parseInt(c) === 0 || (f.syncStart >= (channelTimes.timetable[parseInt(c)].time - (5 * 60000)))) && (parseInt(c) === lastIndex || (parseInt(c) !== lastIndex && f.syncStart <= channelTimes.timetable[parseInt(c) + 1].time)) && ((type && f.isSong) || (!type && !f.isSong))).map(e => {
-                    return {
-                        ...e,
-                        ch: channelTimes.timetable[parseInt(c)].ch
-                    }
-                })
-                eventsMeta.push(...events)
-            }
-            if (eventsMeta.length === 0)
-                return false
-            const eventSearch = await new Promise(resolve => {
-                const listmeta = eventsMeta.reverse().map(e => {
-                    const duplicate = (eventsMeta.filter(f => (e.filename && f.filename && e.filename === f.filename) || (f.title === e.title && ((f.artist && e.artist && f.artist === e.artist) || (!f.artist && !e.artist)))).length > 1)
-                    const name = (() => {
-                        if (e.filename) {
-                            return e.filename
-                        } else if (e.isEpisode) {
-                            return `${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                        } else if (e.isSong) {
-                            return `${e.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${e.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                        } else {
-                            return `${e.title.replace(/[/\\?%*:|"<>]/g, '')} - ${e.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                        }
-                    })()
-                    let exsists = false
-                    try {
-                        exsists = fs.existsSync(path.join(config.record_dir, `Extracted_${e.syncStart}.mp3`))
-                    } catch (err) { }
-                    return `"[📡${e.ch} 📅${moment.utc(e.syncStart).local().format("MMM D HH:mm")}] ${(e.isEpisode) ? '🔶' : ''}${(parseInt(e.duration.toString()) === 0) ? '🔴' : (exsists) ? '💿' : '〰'} ${name} ${(duplicate) ? '🔂 ' : '' }(${msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0]})"`
-                })
-                const list = `choose from list {${listmeta.join(',')}} with title "Modify Metadata" with prompt "Select Event to modify metadata for:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
-                const childProcess = osascript.execute(list, function (err, result, raw) {
-                    if (err) return console.error(err)
-                    if (result) {
-                        resolve(result.map(e => listmeta.indexOf(`"${e}"`)))
-                    } else {
-                        resolve([])
-                    }
-                    clearTimeout(childKiller);
-                });
-                const childKiller = setTimeout(function () {
-                    childProcess.stdin.pause();
-                    childProcess.kill();
-                    resolve([]);
-                }, 90000)
-            })
-            if (!eventSearch || eventSearch.length === 0)
-                return false;
-            const eventsToParse = eventSearch.map(e => eventsMeta[e]);
-
-            for (let eventItem of eventsToParse) {
-                const _eventFilename = (() => {
-                    if (eventItem.filename) {
-                        return eventItem.filename
-                    } else if (eventItem.isEpisode) {
-                        return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else if (eventItem.isSong) {
-                        return `${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')}`
-                    } else {
-                        return `${eventItem.title.replace(/[/\\?%*:|"<>]/g, '')} - ${eventItem.artist.replace(/[/\\?%*:|"<>]/g, '')}`
-                    }
-                })()
-                let realItem = metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)]
-                realItem.filename = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Set Filename" default answer "${_eventFilename}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "${_eventFilename}"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve(_eventFilename);
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(_eventFilename);
-                    }, 120000)
-                });
-                realItem.isUpdated = true
-                const duration = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)?" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "NaN"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve("NaN");
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve("NaN");
-                    }, 120000)
-                });
-                if (duration !== "NaN") {
-                    realItem.duration = parseInt(duration.toString()) * 60
-                    realItem.syncEnd = moment(eventItem.syncStart).add(realItem.duration, "seconds").valueOf()
-                }
-                metadata[eventItem.ch][metadata[eventItem.ch].map(f => f.guid).indexOf(eventItem.guid)] = realItem
-            }
-        } catch (e) {
-            console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
-            console.error(e);
-        }
-    }
-    // Show UI for selecting events to extract
-    async function bounceEventGUI(type, device) {
-        try {
-            const eventsMeta = formatEventList(listEventsValidated(!(type), device, 250))
-            if (eventsMeta.length === 0)
-                return false
-            const eventSearch = await new Promise(resolve => {
-                const listmeta = eventsMeta.reverse().map(e =>
-                    [
-                        '"',
-                        `[${(e.tuner.digital) ? '💎' : '📡'}${(e.tuner.name)? e.tuner.name : e.tunerId} - ${e.channel}]`,
-                        `[📅${e.date}]`,
-                        e.name,
-                        `[${(e.event.isEpisode) ? '🔶' : ''}${(e.duplicate) ? '🔂' : '' }${(e.isExtractedDigitally) ? '⏱' : ''}${(e.exists) ? '💾' : ''}${(e.queued) ? '⏳' : ''}${(e.active) ? '⚙' : ''}${(e.time === "00:00:00") ? '🔴' : ''}]`,
-                        `${(e.time !== "00:00:00") ? '(' + e.time + ')' : ''}`,
-                        '"'
-                    ].join(' ')
-                )
-
-                const list = `choose from list {${listmeta.join(',')}} with title "Bounce Tracks" with prompt "Select Event to bounce to disk:" default items ${listmeta[0]} multiple selections allowed true empty selection allowed false`
-                const childProcess = osascript.execute(list, function (err, result, raw) {
-                    if (err) return console.error(err)
-                    if (result) {
-                        resolve(result.map(e => listmeta.indexOf(`"${e}"`)))
-                    } else {
-                        resolve([])
-                    }
-                    clearTimeout(childKiller);
-                });
-                const childKiller = setTimeout(function () {
-                    childProcess.stdin.pause();
-                    childProcess.kill();
-                    resolve([]);
-                }, 90000)
-            })
-            if (!eventSearch || eventSearch.length === 0)
-                return false;
-            const eventsToParse = eventSearch.map(e => eventsMeta[e]);
-
-            for (let eventItem of eventsToParse) {
-                let eventsToExtract = eventItem.event
-                eventsToExtract.tuner = eventItem.tuner
-                eventsToExtract.digitalOnly = (eventItem.isExtractedDigitally) ? await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Attempt to get this digitaly" buttons {"No", "Yes"} default button 2 giving up after 90)`,
-                        `return (the button returned of the dialogResult is "Yes")`
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve(true);
-                        } else {
-                            console.log(result)
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(true);
-                    }, 120000)
-                }) : false
-                eventsToExtract.filename = await new Promise(resolve => {
-                    const dialog = [
-                        `set dialogResult to (display dialog "Set Filename" default answer "${eventItem.name}" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                        `if the button returned of the dialogResult is "Update" then`,
-                        'return text returned of dialogResult',
-                        'else',
-                        `return "${eventItem.name}"`,
-                        'end if'
-                    ].join('\n');
-                    const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                        if (err) {
-                            console.error(err)
-                            resolve(eventItem.name);
-                        } else {
-                            resolve(result)
-                            clearTimeout(childKiller);
-                        }
-                    });
-                    const childKiller = setTimeout(function () {
-                        childProcess.stdin.pause();
-                        childProcess.kill();
-                        resolve(eventItem.name);
-                    }, 120000)
-                });
-                if (!eventsToExtract.duration || eventsToExtract.duration === 0) {
-                    const duration = await new Promise(resolve => {
-                        const dialog = [
-                            `set dialogResult to (display dialog "Event has no termination, would you like to set the duration (in minutes)? WARNING: Do not set a duration for live/active events!" default answer "60" buttons {"Keep", "Update"} default button 2 giving up after 120)`,
-                            `if the button returned of the dialogResult is "Update" then`,
-                            'return text returned of dialogResult',
-                            'else',
-                            `return "NaN"`,
-                            'end if'
-                        ].join('\n');
-                        const childProcess = osascript.execute(dialog, function (err, result, raw) {
-                            if (err) {
-                                console.error(err)
-                                resolve("NaN");
-                            } else {
-                                resolve(result)
-                                clearTimeout(childKiller);
-                            }
-                        });
-                        const childKiller = setTimeout(function () {
-                            childProcess.stdin.pause();
-                            childProcess.kill();
-                            resolve("NaN");
-                        }, 120000)
-                    });
-                    if (duration !== "NaN") {
-                        eventsToExtract.duration = parseInt(duration.toString()) * 60
-                        eventsToExtract.syncEnd = moment(eventItem.syncStart).add(eventsToExtract.duration, "seconds").valueOf()
-                    }
-                }
-
-                if (eventsToExtract.digitalOnly || eventsToExtract.duration === 0) {
-                    queueDigitalRecording({ metadata: eventsToExtract })
-                } else if (eventsToExtract.tuner.hasOwnProperty("record_prefix")) {
-                    queueRecordingExtraction({ metadata: eventsToExtract })
-                }
-            }
-        } catch (e) {
-            console.error(`ALERT:FAULT - Edit Metadata|${e.message}`)
-            console.error(e);
-        }
-    }
-    */
     // Set AirFoil Interface
     async function setAirOutput(tuner, release) {
         return await new Promise(async (resolve) => {
@@ -1560,7 +1288,6 @@
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err)
                     console.error(err)
-                //console.log(`airOutput: ${result}`)
                 clearTimeout(childKiller);
                 resolve(result);
             });
@@ -1657,7 +1384,7 @@
     function queueRecordingExtraction(jobOptions) {
         jobQueue['extract'].push(jobOptions)
         console.log(`Extraction Job #${jobQueue['extract'].length} Queued`)
-        console.log(jobOptions)
+        //console.log(jobOptions)
         if (!activeQueue['extract'])
             startExtractQueue()
     }
@@ -1680,7 +1407,7 @@
             return false
         jobQueue[best_recorder].push(jobOptions)
         console.log(`Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder}`)
-        console.log(jobOptions)
+        //console.log(jobOptions)
         if (!activeQueue[best_recorder])
             startRecQueue(best_recorder)
     }
@@ -1824,14 +1551,14 @@
             console.log(`Setting up USB Audio Interface for "${device.name}"...`)
             async function start() {
                 console.log(`${device.id}: (1/6) Installing USB Interface...`)
-                const ins = await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
+                await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
                 console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
-                const alw = await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
+                await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
                 console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
-                const fwa = await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
+                await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
                 console.log(`${device.id}: (4/6) Starting Audio Interface...`)
-                const kil = await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
-                const sta = await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
+                await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
+                await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
                 console.log(`${device.id}: Ready`)
                 return true
             }
@@ -1898,7 +1625,12 @@
                             watchdogi = 0
                         }
                         if (watchdogi >= 2) {
-                            console.log(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
+                            console.error(`#########################################################################################################`)
+                            console.error(`#########################################################################################################`)
+                            console.error(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
+                            console.error(`#########################################################################################################`)
+                            console.error(`#########################################################################################################`)
+
                             fault = true
                             clearTimeout(stopwatch)
                             clearInterval(controller)
@@ -1970,6 +1702,57 @@
 
     // Tune to Channel on specific Tuner or the best available one
     async function tuneToChannel(options) {
+        // Does the actual tuning
+        async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
+            let result = {
+                ok: false
+            }
+            if (ptn.locked) {
+                return {
+                    ok: false,
+                    result: 'locked'
+                }
+            }
+            let tcb = { ok: true }
+            if (!(isAlreadyTuned && !ptn.always_retune)) {
+                if (ptn.digital) {
+                    const resultsTune = await tuneDigitalChannel(channel.id, 0, ptn)
+                    tcb = { ok: resultsTune }
+                    result.action = 'tune-digital'
+                } else if (channel.tuneUrl[ptn.id]) {
+                    tcb = await webRequest(channel.tuneUrl[ptn.id])
+                    result.action = 'tune-satellite'
+                } else {
+                    tcb = { ok: true }
+                    result.action = 'not-possible'
+                }
+            } else {
+                result.action = 'unmodified'
+            }
+            if (tcb.ok) {
+                if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
+                    await webRequest(ptn.post_tune_url)
+                if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
+                    await setAirOutput(ptn, false)
+
+                if (channelTimes.timetable[ptn.id].length > 0) {
+                    let lastTune = channelTimes.timetable[ptn.id].pop()
+                    lastTune.end = moment().valueOf()
+                    channelTimes.timetable[ptn.id].push(lastTune)
+                }
+                channelTimes.timetable[ptn.id].push({
+                    time: moment().valueOf(),
+                    ch: channel.id,
+                })
+                if (ptn.digital)
+                    digitalTunerWatcher(ptn)
+                if (channel.updateOnTune)
+                    updateMetadata()
+                result.ok = true
+            }
+            return result
+        }
+
         const channel = (() => {
             if (options.channelId) {
                 return getChannelbyId(options.channelId)
@@ -2045,56 +1828,6 @@
             return false
         }
     }
-    // Does the actual tuning
-    async function _tuneToChannel(ptn, channel, isAlreadyTuned) {
-        let result = {
-            ok: false
-        }
-        if (ptn.locked) {
-            return {
-                ok: false,
-                result: 'locked'
-            }
-        }
-        let tcb = { ok: true }
-        if (!(isAlreadyTuned && !ptn.always_retune)) {
-            if (ptn.digital) {
-                const resultsTune = await tuneDigitalChannel(channel.id, 0, ptn)
-                tcb = { ok: resultsTune }
-                result.action = 'tune-digital'
-            } else if (channel.tuneUrl[ptn.id]) {
-                tcb = await webRequest(channel.tuneUrl[ptn.id])
-                result.action = 'tune-satellite'
-            } else {
-                tcb = { ok: true }
-                result.action = 'not-possible'
-            }
-        } else {
-            result.action = 'unmodified'
-        }
-        if (tcb.ok) {
-            if (ptn.post_tune_url !== undefined && ptn.post_tune_url)
-                await webRequest(ptn.post_tune_url)
-            if (ptn.airfoil_source !== undefined && ptn.airfoil_source && ptn.airfoil_source.conditions.indexOf('tune') !== -1)
-                await setAirOutput(ptn, false)
-
-            if (channelTimes.timetable[ptn.id].length > 0) {
-                let lastTune = channelTimes.timetable[ptn.id].pop()
-                lastTune.end = moment().valueOf()
-                channelTimes.timetable[ptn.id].push(lastTune)
-            }
-            channelTimes.timetable[ptn.id].push({
-                time: moment().valueOf(),
-                ch: channel.id,
-            })
-            if (ptn.digital)
-                digitalTunerWatcher(ptn)
-            if (channel.updateOnTune)
-                updateMetadata()
-            result.ok = true
-        }
-        return result
-    }
     // End the tuners timeline for the active channel
     async function deTuneTuner(tuner, force) {
         if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
@@ -2151,9 +1884,9 @@
                             setTimeout(async () => {
                                 const state = await checkPlayStatus(device)
                                 ok(state)
-                            }, 1000)
+                            }, 500)
                         })
-                        if (i >= 30) {
+                        if (i >= 60) {
                             console.error(`Tune/${device.id}: Device did not start playing within the required timeout!`)
                             break
                         }
@@ -2214,8 +1947,6 @@
         let eventItem = getEvent(job.metadata.channelId, job.metadata.guid)
         if (!eventItem)
             eventItem = job.metadata
-        console.log(job)
-        console.log(tuner)
         adbLogStart(tuner.serial)
         await deTuneTuner(tuner, true)
         locked_tuners.set(tuner.id, true)
@@ -2295,7 +2026,6 @@
         try {
             console.log(`Extract: Preparing for recording extraction...`)
             const eventItem = job.metadata
-            console.log(eventItem)
             const recFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
                 return {
                     date: moment(e.replace(eventItem.tuner.record_prefix, '').split('.')[0] + '', (eventItem.tuner.record_date_format) ? eventItem.tuner.record_date_format : "YYYYMMDD-HHmmss"),
@@ -2905,6 +2635,7 @@
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
         await initializeChannels();
+        console.error(`Channels ###################`)
         console.log(listChannels())
         const tun = listTuners()
 
@@ -2950,7 +2681,9 @@
             cookies = require("./cookie.json");
         });
 
+        console.error(`Devices ###################`)
         console.log(tun)
+        console.error(`Job Queues ###################`)
         console.log(jobQueue)
         app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
             console.log("Server running");
