@@ -1255,11 +1255,15 @@
             const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
 
             if (!release && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
-                console.info(`Last tuner is not in use anymore, starting timeout...`)
-                timeout_sources[currentTuner.id] = setTimeout(() => {
-                    deTuneTuner(currentTuner, false, true)
-                    delete timeout_sources[currentTuner.id]
-                }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
+                if (currentTuner.locked) {
+                    console.info(`Last tuner is currently locked`)
+                } else {
+                    console.info(`Last tuner is not in use anymore, starting timeout...`)
+                    timeout_sources[currentTuner.id] = setTimeout(() => {
+                        deTuneTuner(currentTuner, false, true)
+                        delete timeout_sources[currentTuner.id]
+                    }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
+                }
             } else if (!release && tuner.airfoil_source.auto_release && timeout_sources[tuner.id]) {
                 console.info(`Tuner regained focus, stopping timeout`)
                 clearTimeout(timeout_sources[tuner.id])
@@ -1329,6 +1333,7 @@
                     name: e,
                     speakers: config.rooms[e].map(f => { return { name: f, state: speakers[f] }})
                 }
+                rooms[e]['active'] = rooms[e]['speakers'].filter(f => f.state).length > 0
             })
             return rooms
         }
@@ -1337,45 +1342,56 @@
     // Set Airfoil Speakers States
     async function setAirSpeakers(room, device, action) {
         const roomConfig = inflateRoomConfig();
-        if (roomConfig.hasOwnProperty(room)) {
-            const deviceToUse = roomConfig[room].speakers[device]
-            if (deviceToUse) {
-                if (action !== 'leave') {
-                    await new Promise(resolve => {
-                        const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
-                        const childProcess = osascript.execute(list, function (err, result, raw) {
-                            if (err)
-                                console.error(err)
-                            clearTimeout(childKiller);
-                            resolve(!err);
-                        });
-                        const childKiller = setTimeout(function () {
-                            childProcess.stdin.pause();
-                            childProcess.kill();
-                            resolve("");
-                        }, 10000)
-                    })
-                }
-                roomConfig[room].speakers.filter(e => action !== 'add' && e.state === true && (e.name !== deviceToUse.name && action === 'leave')).map(async e => {
-                    await new Promise(resolve => {
+        if (roomConfig[room] !== undefined) {
+            let response = [];
+            let deviceToUse = false
+            if (action !== 'leave') {
+                deviceToUse = roomConfig[room].speakers[device]
+                console.log(deviceToUse)
+                if (!deviceToUse)
+                    return `The speaker #${device} in room "${room}" does not exist`
+                response.push(await new Promise(resolve => {
+                    const list = `tell application "Airfoil" to connect to (first speaker whose name is "${deviceToUse.name}")`
+                    const childProcess = osascript.execute(list, function (err, result, raw) {
+                        clearTimeout(childKiller);
+                        if (err) {
+                            console.error(err)
+                            resolve(`Connection Failed: "${deviceToUse.name}}"@"${room}"`);
+                        } else {
+                            resolve(`Connected: "${deviceToUse.name}}"@"${room}"`);
+                        }
+                    });
+                    const childKiller = setTimeout(function () {
+                        childProcess.stdin.pause();
+                        childProcess.kill();
+                        resolve(`Connection Timeout: "${deviceToUse.name}}"@"${room}"`);
+                    }, 10000)
+                }))
+            }
+            if (action !== 'add') {
+                roomConfig[room].speakers.filter(e => e.state === true && (!deviceToUse || (deviceToUse && e.name !== deviceToUse.name))).map(async e => {
+                    response.push(await new Promise(resolve => {
                         const list = `tell application "Airfoil" to disconnect from (first speaker whose name is "${e.name}")`
                         const childProcess = osascript.execute(list, function (err, result, raw) {
-                            if (err)
-                                console.error(err)
                             clearTimeout(childKiller);
-                            resolve(!err);
+                            if (err) {
+                                console.error(err)
+                                resolve(`Disconnect Failed: "${e.name}}"@"${room}"`);
+                            } else {
+                                resolve(`Disconnected: "${e.name}}"@"${room}"`);
+                            }
                         });
                         const childKiller = setTimeout(function () {
                             childProcess.stdin.pause();
                             childProcess.kill();
-                            resolve("");
+                            resolve(`Disconnect Timeout: "${e.name}}"@"${room}"`);
                         }, 10000)
-                    })
+                    }))
                 })
-                return true
             }
+            return response.join('\n')
         }
-        return false
+        return `The "${room}" does not exist`
     }
 
     // Job Queues
@@ -2210,8 +2226,8 @@
             res.status(404).send("Tuner not found")
         }
     })
-    app.get("/output/:action/:room/:index", async (req, res, next) => {
-        res.status(200).send(await setAirSpeakers(req.params.room, parseInt(req.params.index), req.params.action));
+    app.get("/output/:action/:zone/:index", async (req, res, next) => {
+        res.status(200).send(await setAirSpeakers(req.params.zone, parseInt(req.params.index), req.params.action));
     })
     app.get("/pending/:action", (req, res) => {
         switch (req.params.action) {
@@ -2523,6 +2539,9 @@
                     break;
                 case 'rooms':
                     res.status(200).json(await inflateRoomConfig())
+                    break;
+                case 'activeRooms':
+                    res.status(200).json(await inflateRoomConfig().map(e => { return `${e.name} : ${e.active}`}))
                     break;
                 case 'channels':
                     res.status(200).json(listChannels().channels.map(e => {
