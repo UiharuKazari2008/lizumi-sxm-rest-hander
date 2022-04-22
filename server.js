@@ -1345,9 +1345,8 @@
         console.log(roomConfig[room])
         if (roomConfig[room] !== undefined) {
             let response = [];
-            let deviceToUse = false
-            if (action !== 'leave') {
-                deviceToUse = roomConfig[room].speakers[device]
+            let deviceToUse = deviceToUse = roomConfig[room].speakers[device]
+            if (action !== 'leave' && action !== 'remove') {
                 console.log(deviceToUse)
                 if (!deviceToUse)
                     return `The speaker #${device} in room "${room}" does not exist`
@@ -1370,7 +1369,7 @@
                 }))
             }
             if (action !== 'add') {
-                roomConfig[room].speakers.filter(e => e.state === true && (!deviceToUse || (deviceToUse && e.name !== deviceToUse.name))).map(async e => {
+                roomConfig[room].speakers.filter(e => e.state === true && (action === 'leave' || (action === 'remove' && e.name === deviceToUse.name) || (action === 'swap' && e.name !== deviceToUse.name))).map(async e => {
                     response.push(await new Promise(resolve => {
                         const list = `tell application "Airfoil" to disconnect from (first speaker whose name is "${e.name}")`
                         const childProcess = osascript.execute(list, function (err, result, raw) {
