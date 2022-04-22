@@ -1590,6 +1590,8 @@
             } else {
                 console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
                 try {
+                    clearInterval(watchdog_tuners[tuner.id])
+                    watchdog_tuners[tuner.id] = null
                     const startTime = Date.now()
                     const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
                     console.log(ffmpeg.join(' '))
@@ -1846,7 +1848,7 @@
                 channelTimes.timetable[tuner.id].push(lastTune)
             }
             if (tuner.digital)
-                delete watchdog_tuners[tuner.id]
+                watchdog_tuners[tuner.id] = null
             return true
         } else {
             return false
@@ -1915,16 +1917,20 @@
     async function digitalTunerWatcher(device) {
         let watchdogi = 0
         watchdog_tuners[device.id] = setInterval(async () => {
-            const state = await checkPlayStatus(device)
-            if (!state) {
-                watchdogi = watchdogi + 1
-                console.error(`Player/${device.id}: Device Audio Session not found!`)
+            if (watchdog_tuners[device.id] !== null) {
+                const state = await checkPlayStatus(device)
+                if (!state) {
+                    watchdogi = watchdogi + 1
+                    console.error(`Player/${device.id}: Device Audio Session not found!`)
+                } else {
+                    watchdogi = 0
+                }
+                if (watchdogi >= 2) {
+                    console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
+                    deTuneTuner(device)
+                }
             } else {
-                watchdogi = 0
-            }
-            if (watchdogi >= 2) {
-                console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
-                deTuneTuner(device)
+                console.error(`Invalid tuner watchdog still active when it should have been stopped!`)
             }
         }, 60000)
     }
