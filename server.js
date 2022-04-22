@@ -1342,12 +1342,10 @@
     // Set Airfoil Speakers States
     async function setAirSpeakers(room, device, action) {
         const roomConfig = await inflateRoomConfig();
-        console.log(roomConfig[room])
         if (roomConfig[room] !== undefined) {
             let response = [];
-            let deviceToUse = deviceToUse = roomConfig[room].speakers[device]
+            let deviceToUse = roomConfig[room].speakers[device]
             if (action !== 'leave' && action !== 'remove') {
-                console.log(deviceToUse)
                 if (!deviceToUse)
                     return `The speaker #${device} in room "${room}" does not exist`
                 response.push(await new Promise(resolve => {
@@ -1356,15 +1354,15 @@
                         clearTimeout(childKiller);
                         if (err) {
                             console.error(err)
-                            resolve(`Connection Failed: "${deviceToUse.name}}"@"${room}"`);
+                            resolve(`Connection Failed: "${deviceToUse.name}"@"${room}"`);
                         } else {
-                            resolve(`Connected: "${deviceToUse.name}}"@"${room}"`);
+                            resolve(`Connected: "${deviceToUse.name}"@"${room}"`);
                         }
                     });
                     const childKiller = setTimeout(function () {
                         childProcess.stdin.pause();
                         childProcess.kill();
-                        resolve(`Connection Timeout: "${deviceToUse.name}}"@"${room}"`);
+                        resolve(`Connection Timeout: "${deviceToUse.name}"@"${room}"`);
                     }, 10000)
                 }))
             }
@@ -1376,15 +1374,15 @@
                             clearTimeout(childKiller);
                             if (err) {
                                 console.error(err)
-                                resolve(`Disconnect Failed: "${e.name}}"@"${room}"`);
+                                resolve(`Disconnect Failed: "${e.name}"@"${room}"`);
                             } else {
-                                resolve(`Disconnected: "${e.name}}"@"${room}"`);
+                                resolve(`Disconnected: "${e.name}"@"${room}"`);
                             }
                         });
                         const childKiller = setTimeout(function () {
                             childProcess.stdin.pause();
                             childProcess.kill();
-                            resolve(`Disconnect Timeout: "${e.name}}"@"${room}"`);
+                            resolve(`Disconnect Timeout: "${e.name}"@"${room}"`);
                         }, 10000)
                     }))
                 })
