@@ -2539,7 +2539,7 @@
                     res.status(200).json(await inflateRoomConfig())
                     break;
                 case 'activeRooms':
-                    res.status(200).json(await inflateRoomConfig().map(e => { return `${e.name} : ${e.active}`}))
+                    res.status(200).json((await inflateRoomConfig()).map(e => { return `${e.name} : ${e.active}`}))
                     break;
                 case 'channels':
                     res.status(200).json(listChannels().channels.map(e => {
