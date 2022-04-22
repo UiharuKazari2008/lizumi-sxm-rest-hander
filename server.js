@@ -1342,6 +1342,8 @@
     // Set Airfoil Speakers States
     async function setAirSpeakers(room, device, action) {
         const roomConfig = inflateRoomConfig();
+        console.log(roomConfig)
+        console.log(roomConfig[room])
         if (roomConfig[room] !== undefined) {
             let response = [];
             let deviceToUse = false
