@@ -2063,7 +2063,8 @@
                     console.error(`Failed to write tags`)
                     console.error(e)
                 }
-                await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.post_directorys)
+                const eventData = getEvent(eventItem.channelId, eventItem.guid)
+                await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${(eventData) ? eventData.filename.trim() : eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.post_directorys)
             } else if (fs.existsSync(completedFile)) {
                 rimraf(completedFile, () => {})
             }
