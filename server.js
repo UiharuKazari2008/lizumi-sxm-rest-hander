@@ -9,6 +9,7 @@
     const { spawn, exec } = require("child_process");
     const cron = require('node-cron');
     const request = require('request').defaults({ encoding: null });
+    const fetch = require('node-fetch');
     const express = require("express");
     const app = express();
     const net = require('net');
@@ -42,6 +43,8 @@
     let jobQueue = {};
     let activeQueue = {};
     let eventListCache = [];
+    let sentNotificatons = [];
+    let tunedEvents = [];
     const sxmMaxRewind = 14400000;
 
     const findClosest = (arr, num) => {
@@ -590,6 +593,29 @@
             });
         })
     }
+    // Send Notification to Discord
+    async function sendDiscord(channel, name, content, guid) {
+        try {
+            if (config.notifications && config.notifications[channel] && (!guid || guid && sentNotificatons.indexOf(guid) === -1)) {
+                const res = await fetch(config.notifications[channel], {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "username": name,
+                        "content": content
+                    })
+                });
+                if (res.statusCode < 400 && guid) {
+                    sentNotificatons.push(guid)
+                }
+            }
+        } catch (e) {
+            console.error(e)
+            console.error(`Failed to send discord message`)
+        }
+    }
 
     // Channel Searching and Retrieval
 
@@ -1004,6 +1030,7 @@
                     console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`)
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
+                    sendDiscord('error', 'SiriusXM', `❌ The pending request from ${moment.utc(pendingEvent.time).local().format('MMM D HH:mm"')} has expired!`)
                 } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
                     console.error(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
                     pendingEvent.done = true
@@ -1014,6 +1041,7 @@
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                         console.log(`The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
+                        sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.liveRec = true
                         pendingEvent.done = true
@@ -1030,6 +1058,7 @@
                     } else if (tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && tuner.hasOwnProperty("record_prefix")) {
                         // If specific tuner is set, not set to require digital or has failed to extract via digital
                         console.log(`The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
+                        sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
@@ -1046,6 +1075,7 @@
                 } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     console.log(`${thisEvent.filename} is live extractable!`)
+                    sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" will be extracted live`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
@@ -1168,7 +1198,7 @@
                 })
             }
             if (f.tuneToChannel) {
-                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
+                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && tunedEvents.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
                     console.log(`Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`)
                     tuneToChannel({
                         channelId: e.channelId,
@@ -1176,6 +1206,13 @@
                     })
                     if (f.onlyTune)
                         channelTimes.completed.push(e.guid)
+                    tunedEvents.push(e.guid);
+                })
+            }
+            if (f.notify) {
+                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1).map(e => {
+                    const channelData = getChannelbyId(e.channelId);
+                    sendDiscord('alert', (channelData) ? channelData.name : 'SiriusXM', `🆕 ${e.filename}`, e.guid)
                 })
             }
         })
@@ -1451,6 +1488,7 @@
                     }
                     await jobQueue[q].shift()
                     console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
+                    sendDiscord('error', 'SiriusXM', `❌ The job "${job.metadata.filename}" has expired due to no longer being able to record`)
                 }
             }
             delete activeQueue[q]
@@ -1459,7 +1497,7 @@
             }
             return true
         } else {
-            console.error(`Record/${q.slice(4)}: Unable to start the job queue becuase the tuner is locked!`)
+            console.error(`Record/${q.slice(4)}: Unable to start the job queue because the tuner is locked!`)
         }
     }
 
@@ -1489,6 +1527,7 @@
             locked_tuners.delete(device.id)
         } else {
             console.error(`Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
+            sendDiscord('error', 'SiriusXM', `❌ Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
         }
     }
     // Start TCP Audio Server and Pipeline
@@ -1603,6 +1642,7 @@
                 resolve(false)
             } else {
                 console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
+                sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`)
                 try {
                     clearInterval(watchdog_tuners[tuner.id])
                     watchdog_tuners[tuner.id] = null
@@ -1626,6 +1666,12 @@
                             clearTimeout(stopwatch)
                             clearInterval(controller)
                             clearInterval(watchdog)
+
+                            if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed || fault) {
+                                sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Failed Digital Dubbing of "${event.filename}"`)
+                            } else {
+                                sendDiscord('info', 'SiriusXM', `✅ ${tuner.name} Completed Digital Dubbing of "${event.filename}"`)
+                            }
                             resolve((!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed || fault) ? false : fs.existsSync(completedFile) && fs.statSync(completedFile).size > 1000000)
                         }
                         locked_tuners.delete(tuner.id)
@@ -1650,6 +1696,7 @@
                             fault = true
                             clearTimeout(stopwatch)
                             clearInterval(controller)
+                            sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Audio Session failed to detect active playback of "${event.filename}"`)
                             recorder.stdin.write('q')
                         }
                     }, 5000)
@@ -1671,6 +1718,7 @@
                             } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 1) {
                                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
                                 console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
+                                sendDiscord('info', 'SiriusXM', `⏲ Event "${event.filename}" concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                                 stopwatch = setTimeout(() => {
                                     clearInterval(watchdog)
                                     recorder.stdin.write('q')
@@ -1930,7 +1978,7 @@
     // Automatically deturns a tuner if playback is stopped
     async function digitalTunerWatcher(device) {
         let watchdogi = 0
-        watchdog_tuners[device.id] = setInterval(async () => {
+        const timer = setInterval(async () => {
             if (watchdog_tuners[device.id] !== null) {
                 const state = await checkPlayStatus(device)
                 if (!state) {
@@ -1940,13 +1988,14 @@
                     watchdogi = 0
                 }
                 if (watchdogi >= 2) {
-                    console.log(`Player/${device.id}: Tuner is no longer playing and will be detuned`)
+                    console.log(`Player/${device.id}: Tuner is no longer available and will be detuned`)
                     deTuneTuner(device)
                 }
             } else {
-                console.error(`Invalid tuner watchdog still active when it should have been stopped!`)
+                clearInterval(timer)
             }
         }, 60000)
+        watchdog_tuners[device.id] = timer
     }
     // Watches device for the loss of port forwarding
     async function deviceWatcher(device) {
