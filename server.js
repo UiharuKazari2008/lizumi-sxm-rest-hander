@@ -1217,7 +1217,7 @@
                 })
             }
             if (f.notify) {
-                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1).map(e => {
+                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     const channelData = getChannelbyId(e.channelId);
                     sendDiscord('alert', (channelData) ? channelData.name : 'SiriusXM', `🆕 ${e.filename}`, e.guid)
                 })
