@@ -608,20 +608,13 @@
                         timeout: 5000
                     }, async function (err, resReq, body) {
                         if (!err) {
-                            resolve({
-                                body,
-                                ok: !err
-                            })
+                            resolve(!err)
                         } else {
-                            resolve({
-                                err,
-                                body,
-                                ok: !err
-                            })
+                            resolve(false)
                         }
                     })
                 });
-                if (res.statusCode < 400 && guid) {
+                if (res && guid) {
                     sentNotificatons.push(guid)
                 }
             }
