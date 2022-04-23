@@ -1,7 +1,6 @@
 (async () => {
     let config = require('./config.json')
     let cookies = require("./cookie.json");
-    //const { sqlPromiseSafe } = require('./sql-client');
     const moment = require('moment');
     const fs = require('fs');
     const path = require("path");
@@ -9,7 +8,6 @@
     const { spawn, exec } = require("child_process");
     const cron = require('node-cron');
     const request = require('request').defaults({ encoding: null });
-    const fetch = require('node-fetch');
     const express = require("express");
     const app = express();
     const net = require('net');
@@ -597,14 +595,30 @@
     async function sendDiscord(channel, name, content, guid) {
         try {
             if (config.notifications && config.notifications[channel] && (!guid || guid && sentNotificatons.indexOf(guid) === -1)) {
-                const res = await fetch(config.notifications[channel], {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        "username": name,
-                        "content": content
+                const res = await new Promise(resolve => {
+                    request.post({
+                        url: config.notifications[channel],
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            "username": name,
+                            "content": content
+                        }),
+                        timeout: 5000
+                    }, async function (err, resReq, body) {
+                        if (!err) {
+                            resolve({
+                                body,
+                                ok: !err
+                            })
+                        } else {
+                            resolve({
+                                err,
+                                body,
+                                ok: !err
+                            })
+                        }
                     })
                 });
                 if (res.statusCode < 400 && guid) {
