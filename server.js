@@ -2756,10 +2756,6 @@
         cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
         });
-        cron.schedule("*/5 * * * *", async () => {
-            config = require('./config.json');
-            cookies = require("./cookie.json");
-        });
 
         console.error(`Devices ###################`)
         console.log(tun)
