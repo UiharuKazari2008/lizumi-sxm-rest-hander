@@ -1693,7 +1693,7 @@
                         } else {
                             watchdogi = 0
                         }
-                        if (watchdogi >= 2) {
+                        if (watchdogi >= 4) {
                             console.error(`#########################################################################################################`)
                             console.error(`#########################################################################################################`)
                             console.error(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
@@ -1994,7 +1994,7 @@
                 } else {
                     watchdogi = 0
                 }
-                if (watchdogi >= 2) {
+                if (watchdogi >= 4) {
                     console.log(`Player/${device.id}: Tuner is no longer available and will be detuned`)
                     deTuneTuner(device)
                 }
