@@ -760,7 +760,7 @@
 
     // Get Latest Event for a channel
     function nowPlaying(channel) {
-        return metadata[channel].slice(-1).filter(e => !e.isEpisode).pop()
+        return metadata[channel].slice(-1).pop()
     }
     // List all events for a channel that are after start time
     function listEvents(channel, time, after) {
