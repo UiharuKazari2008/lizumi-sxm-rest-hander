@@ -381,7 +381,7 @@
             try {
                 // Delete metadata thats older then a month
                 for (let i in metadata) {
-                    metadata[i] = metadata[i].filter(e => (!e.isSong && e.syncStart >= moment().subtract(1, 'month').valueOf()) || (e.isSong && e.syncStart >= moment().subtract(1, 'week').valueOf()))
+                    metadata[i] = metadata[i].filter(e => (!e.isSong && e.syncStart >= moment().subtract(1, 'month').valueOf()) || (e.isSong && e.syncStart >= moment().subtract(1, 'day').valueOf()))
                 }
                 // Delete tune times that are older then a month
                 for (let k of Object.keys(channelTimes.timetable)) {
