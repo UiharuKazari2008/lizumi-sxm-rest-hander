@@ -758,9 +758,9 @@
 
     // Event Searching and Formatting
 
-    //
+    // Get Latest Event for a channel
     function nowPlaying(channel) {
-        return metadata[channel].slice(-1).pop()
+        return metadata[channel].slice(-1).filter(e => !e.isEpisode).pop()
     }
     // List all events for a channel that are after start time
     function listEvents(channel, time, after) {
@@ -1693,7 +1693,7 @@
                         } else {
                             watchdogi = 0
                         }
-                        if (watchdogi >= 2) {
+                        if (watchdogi >= 4) {
                             console.error(`#########################################################################################################`)
                             console.error(`#########################################################################################################`)
                             console.error(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
@@ -1994,7 +1994,7 @@
                 } else {
                     watchdogi = 0
                 }
-                if (watchdogi >= 2) {
+                if (watchdogi >= 4) {
                     console.log(`Player/${device.id}: Tuner is no longer available and will be detuned`)
                     deTuneTuner(device)
                 }
@@ -2755,10 +2755,6 @@
         });
         cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
-        });
-        cron.schedule("*/5 * * * *", async () => {
-            config = require('./config.json');
-            cookies = require("./cookie.json");
         });
 
         console.error(`Devices ###################`)
