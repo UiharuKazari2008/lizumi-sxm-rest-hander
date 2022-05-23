@@ -381,11 +381,11 @@
             try {
                 // Delete metadata thats older then a month
                 for (let i in metadata) {
-                    metadata[i] = metadata[i].filter(e => e.syncStart >= moment().subtract(1, 'month').valueOf())
+                    metadata[i] = metadata[i].filter(e => (!e.isSong && e.syncStart >= moment().subtract(1, 'week').valueOf()) || (e.isSong && e.syncStart >= moment().subtract(1, 'day').valueOf()))
                 }
                 // Delete tune times that are older then a month
                 for (let k of Object.keys(channelTimes.timetable)) {
-                    const newtable = channelTimes.timetable[k].filter(e => e['time'] >= moment().subtract(1, 'month').valueOf())
+                    const newtable = channelTimes.timetable[k].filter(e => e['time'] >= moment().subtract(1, 'week').valueOf())
                     if (newtable.length > 0)
                         channelTimes.timetable[k] = newtable
                 }
@@ -760,7 +760,7 @@
 
     // Get Latest Event for a channel
     function nowPlaying(channel) {
-        return metadata[channel].slice(-1).filter(e => !e.isEpisode).pop()
+        return metadata[channel].slice(-1).pop()
     }
     // List all events for a channel that are after start time
     function listEvents(channel, time, after) {
