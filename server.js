@@ -2641,7 +2641,7 @@
                     const tuners = listTuners().map(e => {
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
-                        const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
+                        const channelMeta = (!j.guid) ? false : (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
                         return {
                             id: e.id,
                             name: e.name,
@@ -2679,8 +2679,8 @@
                                 jobCount: jobQueue[activeJob[0].queue].length,
                                 startTime: activeJob[0].start,
                                 elapsedTime: Math.abs(Date.now() - activeJob[0].start),
-                                duration: (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
-                                timeLeft: (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
+                                duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
+                                timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
                             history: (!e.record_only && e.record_prefix),
                             nowPlaying: (() => {
