@@ -2679,7 +2679,7 @@
                                 jobCount: jobQueue[activeJob[0].queue].length,
                                 startTime: activeJob[0].start,
                                 elapsedTime: Math.abs(Date.now() - activeJob[0].start),
-                                duration: (channelMeta.duration && channelMeta.duration > 1) ? ((parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
+                                duration: (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                                 timeLeft: (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
                             history: (!e.record_only && e.record_prefix),
