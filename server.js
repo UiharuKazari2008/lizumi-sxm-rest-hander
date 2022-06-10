@@ -1190,7 +1190,7 @@
         const all = listEventsValidated(false, undefined, 25)
         config.autosearch_terms.map(f => {
             if (!f.onlyTune) {
-                events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                events.filter(e => channelTimes.completed && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
                     channelTimes.completed.push(e.guid)
                     channelTimes.pending.push({
