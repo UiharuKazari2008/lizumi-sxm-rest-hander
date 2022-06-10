@@ -1189,9 +1189,9 @@
         const all = listEventsValidated(false, undefined, 25)
         config.autosearch_terms.map(f => {
             if (!f.onlyTune) {
-                events.filter(e => completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
-                    completed.push(e.guid)
+                    channelTimes.completed.push(e.guid)
                     channelTimes.pending.push({
                         ch: e.channelId,
                         guid: e.guid,
@@ -1209,19 +1209,19 @@
                 })
             }
             if (f.tuneToChannel) {
-                all.filter(e => completed.indexOf(e.guid) === -1 && tunedEvents.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
+                all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && tunedEvents.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
                     console.log(`Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`)
                     tuneToChannel({
                         channelId: e.channelId,
                         tuner: (f.tuneToChannel !== true) ? e.tuneToChannel : undefined
                     })
                     if (f.onlyTune)
-                        completed.push(e.guid)
+                        channelTimes.completed.push(e.guid)
                     tunedEvents.push(e.guid);
                 })
             }
             if (f.notify) {
-                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     const channelData = getChannelbyId(e.channelId);
                     sendDiscord('alert', (channelData) ? channelData.name : 'SiriusXM', `🆕 ${e.filename}`, e.guid)
                 })
@@ -2174,8 +2174,8 @@
                         console.error(e)
                     }
                     await postExtraction(trimEventFile, eventFilename, job.post_directorys);
-                    if (completed.indexOf(eventItem.guid) === -1)
-                        completed.push(eventItem.guid)
+                    if (channelTimes.completed.indexOf(eventItem.guid) === -1)
+                        channelTimes.completed.push(eventItem.guid)
                     if (job.index) {
                         const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                         channelTimes.pending[index].inprogress = false
