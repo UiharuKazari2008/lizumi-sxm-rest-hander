@@ -1617,7 +1617,9 @@
                 await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
                 console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
                 await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
-                console.log(`${device.id}: (4/6) Starting Audio Interface...`)
+                console.log(`${device.id}: (4/6) Connecting Local Audio Socket @ TCP ${device.audioPort}...`)
+                await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy_play"])
+                console.log(`${device.id}: (5/6) Starting Audio Interface...`)
                 await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
                 await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
                 console.log(`${device.id}: Ready`)
@@ -1643,7 +1645,7 @@
                     console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
                     return tuner.audio_interface
                 }
-                return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${(tuner.hasOwnProperty("relay_audio") && tuner.relay_audio) ? tuner.audioPort : tuner.localAudioPort}`]
+                return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.localAudioPort}`]
             })()
             if (!input) {
                 console.error(`Record/${tuner.id}: No Audio Interface is available for ${tuner.id}`)
