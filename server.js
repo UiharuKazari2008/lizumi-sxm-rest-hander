@@ -390,6 +390,7 @@
                     if (newtable.length > 0)
                         channelTimes.timetable[k] = newtable
                 }
+                channelTimes.completed.splice(0, channelTimes.completed.length - 100)
             } catch (e) {
                 console.error(e);
                 console.error(`Fault saving metadata`);
