@@ -2829,6 +2829,16 @@
         if (tun.filter(e => !e.digital).length > 0)
             satelliteAvailable = true
 
+        await updateMetadata();
+        registerSchedule();
+        cron.schedule("* * * * *", async () => {
+            updateMetadata();
+        });
+        cron.schedule("*/5 * * * *", async () => {
+            saveMetadata()
+        });
+
+        channelTimes.queues = [];
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
             for (const a of channelTimes.queues) {
@@ -2843,15 +2853,6 @@
         } else {
             jobQueue['extract'] = [];
         }
-        channelTimes.queues = [];
-        await updateMetadata();
-        registerSchedule();
-        cron.schedule("* * * * *", async () => {
-            updateMetadata();
-        });
-        cron.schedule("*/5 * * * *", async () => {
-            saveMetadata()
-        });
 
         console.error(`Devices ###################`)
         console.log(tun)
