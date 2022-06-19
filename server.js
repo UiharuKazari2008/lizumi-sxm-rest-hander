@@ -653,7 +653,7 @@
     // Get Channel by ID
     function getChannelbyId(id) {
         const channels = listChannels()
-        const index = channels.ids.indexOf(id)
+        const index = channels.ids.indexOf(id.toString())
         return (index !== -1) ? channels.channels[index] : false
     }
 
@@ -2718,13 +2718,13 @@
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
                         const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
+                        console.log(channelMeta)
                         return {
                             id: e.id,
                             name: e.name,
                             channel: (() => {
                                 if (channelMeta) {
                                     const ch = getChannelbyId(channelMeta.channelId)
-                                    console.log(ch)
                                     return {
                                         id: e.activeCh.ch,
                                         name: ch.name,
