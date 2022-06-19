@@ -2323,7 +2323,7 @@
             const channel = getChannelbyId(event.channelId)
             const tuner = availableTuners(channel.number, true, true);
             if (tuner) {
-                console.log(tuner.id)
+                console.log(tuner)
                 playDigitalEvent(event, tuner);
                 res.status(200).send(`Starting playback of event`)
             } else {
