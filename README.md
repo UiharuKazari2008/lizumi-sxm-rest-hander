@@ -1,4 +1,4 @@
-# Seriously Commander Server for SiriusXM
+# SXM Commander Server for SiriusXM
 Seriously Commander is a SiriusXM (SXM) Radio Automation and Recorder system designed to make life easier.
 
 #NOTICE
@@ -6,12 +6,13 @@ This is very early in a public release things may break or not work and may not 
 The project name on github will be updated in due time
 
 ## Features
-* Allows remote tuning of radio from local API
+* Allows remote tuning of radio from API
 * Radio Prioritisation for tuning based on priority and locks
 * Tracks what radio is tuned to what channel
 * Extracts recordings from radios (Requires external allways running recorder, see below)
-* Records Events and Songs 100% digitally via a digital radio (see below)
+* Records Events and Songs 100% digitally via an android tuner device (see below)
 * Manages AirFoil Audio Sources when changing radios
+* Manages AirFoil Speakers for multi-room distribution of audio.
 * Automatically extract or record events by keyword, cron, or manual API call (see below)
 * Handles file naming
 * Can manage multiple satellite and digital radios at the same time.
@@ -21,7 +22,7 @@ The project name on github will be updated in due time
 * macOS or Linux (UIs are macOS Only at this time and will be moved completely to REST and an Android App very soon)
 * Satellite Radio or Dedicated Android Device / Emulator via USB (Automatic Wireless is soon, At this time you have to set up Wireless ADB)
   * Very little testing has been done with an emulator and I can not really give to many promises
-* Valid SiriusXM Login and Subscription
+* Valid SiriusXM Login and Subscription (1 streaming account per android device)
 * Storage for extracted recording
 * ffmpeg
 * adb
@@ -29,9 +30,10 @@ The project name on github will be updated in due time
 ### Other Requirements
 These are required to fully use the application
 * AirFoil
-  * Automated Source Switching
+  * Automated Source Switching and Output/Room management
 * Audio Hijack
   * Automated Recording for Satellite Radios
+  * You can use any other method as long as your files are saved in a way they can be parsed
   
 ## Setup
 ### Hardware Configuration
