@@ -2738,7 +2738,7 @@
                                         image: channelsImages[ch.id],
                                     }
                                 }
-                                if (channelMeta.ch)
+                                if (channelMeta.ch) {
                                     const ch = getChannelbyId(channelMeta.ch);
                                     return {
                                         id: e.activeCh.ch,
