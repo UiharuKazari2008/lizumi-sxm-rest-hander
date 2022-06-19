@@ -2315,10 +2315,13 @@
         })
     });
     app.get("/play/:channelNum/:eventId", async (req, res, next) => {
-       const event = getEvent(req.params.channelNum, req.params.eventId);
+        const event = getEvent(req.params.channelNum, req.params.eventId);
         const tuner = availableTuners(req.params.channelNum, true, true);
+
         if (event) {
+            console.log(tuner.id)
             if (tuner) {
+                console.log(tuner.id)
                 playDigitalEvent(event, tuner);
                 res.status(200).send(`Starting playback of event`)
             } else {
