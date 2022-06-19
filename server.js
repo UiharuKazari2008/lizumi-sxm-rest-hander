@@ -2684,6 +2684,9 @@
                         }
                     }))
                     break;
+                case 'metadata':
+                    res.status(200).json(metadata)
+                    break;
                 case 'jobs':
                     let pendingJobs = []
                     Object.keys(jobQueue).map(k => {
