@@ -631,7 +631,7 @@
     function listChannels() {
         const c = Object.keys(config.channels).map(e => {
             return {
-                number: e,
+                number: e + '',
                 ...config.channels[e],
                 ...channelsAvailable[e]
             }
@@ -647,13 +647,13 @@
     // Get Channel by Number
     function getChannelbyNumber(number) {
         const channels = listChannels()
-        const index = channels.numbers.indexOf(number)
+        const index = channels.numbers.indexOf(number + '')
         return (index !== -1) ? channels.channels[index] : false
     }
     // Get Channel by ID
     function getChannelbyId(id) {
         const channels = listChannels()
-        const index = channels.ids.indexOf(id)
+        const index = channels.ids.indexOf(id + '')
         return (index !== -1) ? channels.channels[index] : false
     }
 
