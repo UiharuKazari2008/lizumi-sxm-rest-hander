@@ -2113,7 +2113,7 @@
     // Record an event on a digital tuner
     async function playDigitalEvent(event, tuner) {
         console.log(`Player/${tuner.id}: Preparing for digital playback...`)
-        let eventItem = getEvent(event.metadata.channelId, event.metadata.guid)
+        let eventItem = getEvent(event..channelId, event..guid)
         if (!eventItem)
             eventItem = event.metadata
         await deTuneTuner(tuner, true)
