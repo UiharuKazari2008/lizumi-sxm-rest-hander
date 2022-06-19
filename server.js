@@ -2792,7 +2792,7 @@
             if (t.digital) {
                 await initDigitalRecorder(t);
                 //deviceWatcher(t)
-                watchdog_tuners[t] = {
+                watchdog_tuners[t.id] = {
                     watchdog: null,
                     connectivity: null,
                     tuner_timeout: null,
