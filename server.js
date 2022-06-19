@@ -2838,7 +2838,6 @@
             saveMetadata()
         });
 
-        channelTimes.queues = [];
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
             for (const a of channelTimes.queues) {
@@ -2853,6 +2852,7 @@
         } else {
             jobQueue['extract'] = [];
         }
+        channelTimes.queues = [];
 
         console.error(`Devices ###################`)
         console.log(tun)
