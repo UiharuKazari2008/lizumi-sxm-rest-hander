@@ -1928,9 +1928,10 @@
                     lastTune.end = moment().valueOf()
                 channelTimes.timetable[tuner.id].push(lastTune)
             }
-            watchdog_tuners[tuner.id].player_guid = null;
-            if (tuner.digital)
+            if (tuner.digital) {
+                watchdog_tuners[tuner.id].player_guid = null;
                 watchdog_tuners[tuner.id].watchdog = null
+            }
             return true
         } else {
             return false
@@ -2122,7 +2123,8 @@
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.conditions.indexOf('tune') !== -1)
                 await setAirOutput(tuner, false)
             digitalTunerWatcher(tuner);
-            watchdog_tuners[tuner.id].player_guid = event.guid
+            if (tuner.digital)
+                watchdog_tuners[tuner.id].player_guid = event.guid
             const startTime = Date.now();
             function setTimer(eventData) {
                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
