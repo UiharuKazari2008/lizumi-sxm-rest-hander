@@ -2778,6 +2778,7 @@
                                 if (channelMeta.title)
                                     list.push(channelMeta.title)
                                 return {
+                                    guid: channelMeta.guid,
                                     song: channelMeta.isSong,
                                     episode: channelMeta.isEpisode,
                                     text: list
