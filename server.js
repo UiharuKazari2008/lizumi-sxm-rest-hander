@@ -2748,6 +2748,7 @@
                                         color: ch.color,
                                         imageUrl: ch.image,
                                         image: channelsImages[ch.id]
+                                    }
                                 }
                                 return false
                             })(),
