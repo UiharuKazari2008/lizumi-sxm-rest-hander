@@ -2321,9 +2321,8 @@
         const event = getEvent(req.params.channelNum, req.params.eventId);
         if (event) {
             const channel = getChannelbyId(event.channelId)
-            const tuner = availableTuners(channel.number, true, true);
+            const tuner = availableTuners(channel.number, true, true)[0];
             if (tuner) {
-                console.log(tuner)
                 playDigitalEvent(event, tuner);
                 res.status(200).send(`Starting playback of event`)
             } else {
