@@ -2319,8 +2319,8 @@
     });
     app.get("/play/:channelNum/:eventId", async (req, res, next) => {
         const event = getEvent(req.params.channelNum, req.params.eventId);
-
         if (event) {
+            console.log(event)
             const tuner = availableTuners(event.channel.number, true, true);
             if (tuner) {
                 console.log(tuner.id)
