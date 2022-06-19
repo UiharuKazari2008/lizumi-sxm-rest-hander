@@ -2722,16 +2722,14 @@
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
                         const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
-                        console.log(e)
-                        console.log(channelMeta)
                         return {
                             id: e.id,
                             name: e.name,
                             channel: (() => {
-                                if (channelMeta) {
-                                    const ch = getChannelbyId(channelMeta.channelId)
+                                if (channelMeta.channelId) {
+                                    const ch = getChannelbyId(channelMeta.channelId);
                                     return {
-                                        id: ch.id,
+                                        id: channelMeta.channelId,
                                         name: ch.name,
                                         number: ch.number,
                                         description: ch.description,
@@ -2740,18 +2738,18 @@
                                         image: channelsImages[ch.id],
                                     }
                                 }
-                                if (!meta)
-                                    return false
-                                const ch = getChannelbyId(e.activeCh.ch)
-                                return {
-                                    id: ch.id,
-                                    name: ch.name,
-                                    number: ch.number,
-                                    description: ch.description,
-                                    color: ch.color,
-                                    imageUrl: ch.image,
-                                    image: channelsImages[ch.id]
+                                if (channelMeta.ch)
+                                    const ch = getChannelbyId(channelMeta.ch);
+                                    return {
+                                        id: e.activeCh.ch,
+                                        name: ch.name,
+                                        number: ch.number,
+                                        description: ch.description,
+                                        color: ch.color,
+                                        imageUrl: ch.image,
+                                        image: channelsImages[ch.id]
                                 }
+                                return false
                             })(),
                             digital: e.digital,
                             active: (e.airfoil_source && e.airfoil_source.name === source),
