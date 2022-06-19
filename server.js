@@ -773,7 +773,7 @@
     function getEvent(channel, guid) {
         let events = [];
         const dt = listTuners(true)
-        if (channel) {
+        if (channel && getChannelbyId(channel)) {
             metadata[channel]
                 .slice(0)
                 .filter(f => f.guid === guid ).map((f, i, a) => {
