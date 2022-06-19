@@ -2727,9 +2727,9 @@
                             name: e.name,
                             channel: (() => {
                                 if (channelMeta.channelId) {
-                                    const ch = getChannelbyId(channelMeta.channelId);
+                                    const ch = getChannelbyId(channelMeta.channelId)
                                     return {
-                                        id: channelMeta.channelId,
+                                        id: ch.id,
                                         name: ch.name,
                                         number: ch.number,
                                         description: ch.description,
@@ -2738,19 +2738,18 @@
                                         image: channelsImages[ch.id],
                                     }
                                 }
-                                if (channelMeta.ch) {
-                                    const ch = getChannelbyId(channelMeta.ch);
-                                    return {
-                                        id: e.activeCh.ch,
-                                        name: ch.name,
-                                        number: ch.number,
-                                        description: ch.description,
-                                        color: ch.color,
-                                        imageUrl: ch.image,
-                                        image: channelsImages[ch.id]
-                                    }
+                                if (!meta)
+                                    return false
+                                const ch = getChannelbyId(e.activeCh.ch)
+                                return {
+                                    id: ch.id,
+                                    name: ch.name,
+                                    number: ch.number,
+                                    description: ch.description,
+                                    color: ch.color,
+                                    imageUrl: ch.image,
+                                    image: channelsImages[ch.id]
                                 }
-                                return false
                             })(),
                             digital: e.digital,
                             active: (e.airfoil_source && e.airfoil_source.name === source),
