@@ -1928,6 +1928,7 @@
                     lastTune.end = moment().valueOf()
                 channelTimes.timetable[tuner.id].push(lastTune)
             }
+            watchdog_tuners[tuner.id].player_guid = null;
             if (tuner.digital)
                 watchdog_tuners[tuner.id].watchdog = null
             return true
@@ -2121,6 +2122,7 @@
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.conditions.indexOf('tune') !== -1)
                 await setAirOutput(tuner, false)
             digitalTunerWatcher(tuner);
+            watchdog_tuners[tuner.id].player_guid = event.guid
             const startTime = Date.now();
             function setTimer(eventData) {
                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
@@ -2707,12 +2709,12 @@
                     const tuners = listTuners().map(e => {
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
-                        const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
+                        const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : (meta) ? meta : false
                         return {
                             id: e.id,
                             name: e.name,
                             channel: (() => {
-                                if (activeJob.length > 0 && channelMeta) {
+                                if (channelMeta) {
                                     const ch = getChannelbyId(channelMeta.channelId)
                                     return {
                                         id: e.activeCh.ch,
@@ -2794,6 +2796,7 @@
                     watchdog: null,
                     connectivity: null,
                     tuner_timeout: null,
+                    player_guid: null,
                     player_stopwatch: null,
                     player_controller: null,
                     timeout_sources: null
