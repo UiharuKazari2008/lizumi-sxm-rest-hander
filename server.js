@@ -653,7 +653,7 @@
     // Get Channel by ID
     function getChannelbyId(id) {
         const channels = listChannels()
-        const index = channels.ids.indexOf(id.toString())
+        const index = channels.ids.indexOf(id)
         return (index !== -1) ? channels.channels[index] : false
     }
 
@@ -759,7 +759,11 @@
 
     // Get Latest Event for a channel
     function nowPlaying(channel) {
-        return metadata[channel].slice(-1).pop()
+        const ch = getChannelbyNumber(channel)
+        return {
+            ...metadata[channel].slice(-1).pop(),
+            ...ch
+        }
     }
     // List all events for a channel that are after start time
     function listEvents(channel, time, after) {
@@ -2726,7 +2730,7 @@
                                 if (channelMeta) {
                                     const ch = getChannelbyId(channelMeta.channelId)
                                     return {
-                                        id: e.activeCh.ch,
+                                        id: ch.id,
                                         name: ch.name,
                                         number: ch.number,
                                         description: ch.description,
@@ -2739,7 +2743,7 @@
                                     return false
                                 const ch = getChannelbyId(e.activeCh.ch)
                                 return {
-                                    id: e.activeCh.ch,
+                                    id: ch.id,
                                     name: ch.name,
                                     number: ch.number,
                                     description: ch.description,
