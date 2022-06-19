@@ -1930,6 +1930,7 @@
                 channelTimes.timetable[tuner.id].push(lastTune)
             }
             if (tuner.digital) {
+                watchdog_tuners[tuner.id].player_start = null;
                 watchdog_tuners[tuner.id].player_guid = null;
                 watchdog_tuners[tuner.id].watchdog = null
             }
@@ -2124,9 +2125,9 @@
             if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.conditions.indexOf('tune') !== -1)
                 await setAirOutput(tuner, false)
             digitalTunerWatcher(tuner);
-            if (tuner.digital)
-                watchdog_tuners[tuner.id].player_guid = event.guid
             const startTime = Date.now();
+            watchdog_tuners[tuner.id].player_guid = event.guid
+            watchdog_tuners[tuner.id].player_start = startTime;
             function setTimer(eventData) {
                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
                 console.log(`Player ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Stop Timer for ${((termTime / 1000) / 60).toFixed(0)}m`);
@@ -2723,6 +2724,7 @@
                             channel: (() => {
                                 if (channelMeta) {
                                     const ch = getChannelbyId(channelMeta.channelId)
+                                    console.log(ch)
                                     return {
                                         id: e.activeCh.ch,
                                         name: ch.name,
@@ -2756,6 +2758,13 @@
                                 elapsedTime: Math.abs(Date.now() - activeJob[0].start),
                                 duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                                 timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
+                            } : false,
+                            player: (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? {
+                                guid: watchdog_tuners[e.id].player_guid,
+                                startTime: watchdog_tuners[e.id].player_start,
+                                elapsedTime: Math.abs(Date.now() - watchdog_tuners[e.id].player_start),
+                                duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
+                                timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - watchdog_tuners[e.id].player_start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
                             history: (!e.record_only && e.record_prefix),
                             nowPlaying: (() => {
@@ -2803,6 +2812,7 @@
                     watchdog: null,
                     connectivity: null,
                     tuner_timeout: null,
+                    player_start: null,
                     player_guid: null,
                     player_stopwatch: null,
                     player_controller: null,
