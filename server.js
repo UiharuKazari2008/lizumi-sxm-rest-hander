@@ -985,7 +985,7 @@
                 return false
             })()
             const queued = pendingJobs.filter(q => e.guid && (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
-            const active = activeJob.filter(q => e.guid && (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
+            const active = activeJob.filter(q => e.guid && (q.id === e.guid)).map(q => q.k)[0]
             return {
                 tunerId: tun.id,
                 tuner: tun,
