@@ -2790,6 +2790,14 @@
             if (t.digital) {
                 await initDigitalRecorder(t);
                 //deviceWatcher(t)
+                watchdog_tuners[t] = {
+                    watchdog: null,
+                    connectivity: null,
+                    tuner_timeout: null,
+                    player_stopwatch: null,
+                    player_controller: null,
+                    timeout_sources: null
+                };
             }
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
