@@ -634,7 +634,6 @@
                 number: e + '',
                 ...config.channels[e],
                 ...channelsAvailable[e],
-                imageUrl: e.image,
                 image: channelsImages[e.id]
             }
         })
@@ -2682,8 +2681,8 @@
                             id: e.id,
                             description: e.description,
                             color: e.color,
-                            imageUrl: e.image,
-                            image: channelsImages[e.id],
+                            imageUrl: e.imageUrl,
+                            image: e.image,
                             supportedDevices
                         }
                     }))
