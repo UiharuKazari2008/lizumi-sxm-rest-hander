@@ -633,7 +633,9 @@
             return {
                 number: e + '',
                 ...config.channels[e],
-                ...channelsAvailable[e]
+                ...channelsAvailable[e],
+                imageUrl: e.image,
+                image: channelsImages[e.id]
             }
         })
         const cn = c.map(e => e.number)
