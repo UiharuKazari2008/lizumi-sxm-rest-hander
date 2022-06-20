@@ -1910,21 +1910,18 @@
     // End the tuners timeline for the active channel
     async function deTuneTuner(tuner, force, noOutputSet) {
         if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
-            if (tuner.digital)
+            if (tuner.digital) {
                 clearInterval(watchdog_tuners[tuner.id].watchdog)
+                clearInterval(watchdog_tuners[tuner.id].player_controller);
+                watchdog_tuners[tuner.id].player_controller = null;
+                clearTimeout(watchdog_tuners[tuner.id].player_stopwatch);
+                watchdog_tuners[tuner.id].player_stopwatch = null;
+            }
             if (!noOutputSet && !force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
                 setAirOutput(tuner, true)
             if (tuner.digital) {
                 await releaseDigitalTuner(tuner)
                 startDeviceTimeout(tuner)
-            }
-            if (watchdog_tuners[tuner.id].player_controller) {
-                clearInterval(watchdog_tuners[tuner.id].player_controller);
-                watchdog_tuners[tuner.id].player_controller = null;
-            }
-            if (watchdog_tuners[tuner.id].player_stopwatch) {
-                clearTimeout(watchdog_tuners[tuner.id].player_stopwatch);
-                watchdog_tuners[tuner.id].player_stopwatch = null;
             }
             if (channelTimes.timetable[tuner.id].length > 0) {
                 let lastTune = channelTimes.timetable[tuner.id].pop()
