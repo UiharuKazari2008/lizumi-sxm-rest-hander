@@ -635,7 +635,7 @@
                 ...config.channels[e],
                 ...channelsAvailable[e],
                 imageUrl: channelsAvailable[e].image,
-                image: channelsImages[e]
+                image: channelsImages[channelsAvailable[e].id]
             }
         })
         const cn = c.map(e => e.number)
