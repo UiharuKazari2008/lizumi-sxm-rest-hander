@@ -633,8 +633,7 @@
             return {
                 number: e + '',
                 ...config.channels[e],
-                ...channelsAvailable[e],
-                image: channelsImages[e.id]
+                ...channelsAvailable[e]
             }
         })
         const cn = c.map(e => e.number)
@@ -2681,8 +2680,8 @@
                             id: e.id,
                             description: e.description,
                             color: e.color,
-                            imageUrl: e.imageUrl,
-                            image: e.image,
+                            imageUrl: e.image,
+                            image: channelsImages[e.id],
                             supportedDevices
                         }
                     }))
