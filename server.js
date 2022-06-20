@@ -2709,6 +2709,8 @@
                         activeJob: activeJobs,
                         pendingJobs: pendingJobs,
                         requestedJobs: channelTimes.pending,
+                        completed,
+                        tunedEvents
                     }
                     res.status(200).json(results)
                     break;
