@@ -1624,7 +1624,7 @@
             console.log(`Setting up USB Audio Interface for "${device.name}"...`)
             async function start() {
                 console.log(`${device.id}: (1/6) Installing USB Interface...`)
-                await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
+                await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"], true)
                 console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
                 await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
                 console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
