@@ -28,10 +28,7 @@
         active_output: null
     };
     let locked_tuners = new Map();
-    let watchdog_tuners = {}
-    let watchdog_connectivity = {}
-    let timeout_tuners = {}
-    let timeout_sources = {}
+    let watchdog_tuners = {};
     let adblog_tuners = new Map();
     let device_logs = {};
     let audio_servers = new Map();
@@ -43,6 +40,7 @@
     let eventListCache = [];
     let sentNotificatons = [];
     let tunedEvents = [];
+    let completed = [];
     const sxmMaxRewind = 14400000;
 
     const findClosest = (arr, num) => {
@@ -389,6 +387,7 @@
                     if (newtable.length > 0)
                         channelTimes.timetable[k] = newtable
                 }
+                channelTimes.completed.splice(0, channelTimes.completed.length - 100)
             } catch (e) {
                 console.error(e);
                 console.error(`Fault saving metadata`);
@@ -637,9 +636,11 @@
     function listChannels() {
         const c = Object.keys(config.channels).map(e => {
             return {
-                number: e,
+                number: e + '',
                 ...config.channels[e],
-                ...channelsAvailable[e]
+                ...channelsAvailable[e],
+                imageUrl: channelsAvailable[e].image,
+                image: channelsImages[channelsAvailable[e].id]
             }
         })
         const cn = c.map(e => e.number)
@@ -653,13 +654,13 @@
     // Get Channel by Number
     function getChannelbyNumber(number) {
         const channels = listChannels()
-        const index = channels.numbers.indexOf(number)
+        const index = channels.numbers.indexOf(number + '')
         return (index !== -1) ? channels.channels[index] : false
     }
     // Get Channel by ID
     function getChannelbyId(id) {
         const channels = listChannels()
-        const index = channels.ids.indexOf(id)
+        const index = channels.ids.indexOf(id + '')
         return (index !== -1) ? channels.channels[index] : false
     }
 
@@ -721,7 +722,7 @@
     }
     // Return list if tuners that are available for tuning
     // Tuners that are locked due to recordings or manual lockout are omitted obviously
-    function availableTuners(channel, preferDigital) {
+    function availableTuners(channel, preferDigital, onlyDigital) {
         const ch = getChannelbyId(channel)
         function sortPriority(arrayItemA, arrayItemB) {
             if (arrayItemA.priority < arrayItemB.priority)
@@ -730,7 +731,7 @@
                 return 1
             return 0
         }
-        return listTuners()
+        return listTuners(onlyDigital)
             .map(e => {
                 return {
                     ...e,
@@ -765,7 +766,11 @@
 
     // Get Latest Event for a channel
     function nowPlaying(channel) {
-        return metadata[channel].slice(-1).pop()
+        const ch = getChannelbyNumber(channel)
+        return {
+            ...metadata[channel].slice(-1).pop(),
+            ...ch
+        }
     }
     // List all events for a channel that are after start time
     function listEvents(channel, time, after) {
@@ -775,7 +780,7 @@
     function getEvent(channel, guid) {
         let events = [];
         const dt = listTuners(true)
-        if (channel) {
+        if (channel && getChannelbyId(channel)) {
             metadata[channel]
                 .slice(0)
                 .filter(f => f.guid === guid ).map((f, i, a) => {
@@ -864,8 +869,11 @@
                                     if (guidMap.indexOf(f.guid) === -1 && (i !== a.length - 1 || (i === a.length - 1 && !tc.hasOwnProperty('end')))) {
                                         if (!f.duration && f.isEpisode) {
                                             f.duration = 1
-                                        } else if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1].syncStart && (!a[i + 1].isEpisode || (a[i + 1].isEpisode && (i - (a.length - 1)) > 4)))) {
+                                        } else if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 1] && a[i + 1].syncStart && !a[i + 1].isEpisode)) {
                                             f.syncEnd = a[i + 1].syncStart
+                                            f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0)) + 1
+                                        } else  if ((!f.duration || f.duration === 1 || f.duration === "0") && (i !== a.length - 1) && (a[i + 2] && a[i + 2].syncStart && !a[i + 2].isEpisode)) {
+                                            f.syncEnd = a[i + 2].syncStart
                                             f.duration = parseInt(((f.syncEnd - f.syncStart) / 1000).toFixed(0)) + 1
                                         } else if ((!f.duration || f.duration === 0 || f.duration === "0") && (i !== a.length - 1) && Math.abs(f.syncEnd - f.syncStart) > 2) {
                                             f.duration = 1
@@ -983,7 +991,7 @@
                 return false
             })()
             const queued = pendingJobs.filter(q => e.guid && (q.ids.indexOf(e.guid) !== -1)).map(q => q.k)[0]
-            const active = activeJob.filter(q => e.guid && (q.id.indexOf(e.guid) !== -1)).map(q => q.k)[0]
+            const active = activeJob.filter(q => e.guid && (q.id === e.guid)).map(q => q.k)[0]
             return {
                 tunerId: tun.id,
                 tuner: tun,
@@ -1190,7 +1198,7 @@
         const all = listEventsValidated(false, undefined, 25)
         config.autosearch_terms.map(f => {
             if (!f.onlyTune) {
-                events.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                events.filter(e => channelTimes.completed && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
                     channelTimes.completed.push(e.guid)
                     channelTimes.pending.push({
@@ -1308,15 +1316,15 @@
                     console.info(`Last tuner is currently locked`)
                 } else {
                     console.info(`Last tuner is not in use anymore, starting timeout...`)
-                    timeout_sources[currentTuner.id] = setTimeout(() => {
+                    watchdog_tuners[currentTuner.id].timeout_sources = setTimeout(() => {
                         deTuneTuner(currentTuner, false, true)
-                        delete timeout_sources[currentTuner.id]
+                        watchdog_tuners[currentTuner.id].timeout_sources = null;
                     }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
                 }
-            } else if (!release && tuner.airfoil_source.auto_release && timeout_sources[tuner.id]) {
+            } else if (!release && tuner.airfoil_source.auto_release && watchdog_tuners[tuner.id].timeout_sources) {
                 console.info(`Tuner regained focus, stopping timeout`)
-                clearTimeout(timeout_sources[tuner.id])
-                delete timeout_sources[tuner.id]
+                clearTimeout(watchdog_tuners[tuner.id].timeout_sources)
+                watchdog_tuners[tuner.id].timeout_sources = null;
             }
 
             const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
@@ -1658,8 +1666,8 @@
                 console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
                 sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`)
                 try {
-                    clearInterval(watchdog_tuners[tuner.id])
-                    watchdog_tuners[tuner.id] = null
+                    clearInterval(watchdog_tuners[tuner.id].watchdog)
+                    watchdog_tuners[tuner.id].watchdog = null
                     const startTime = Date.now()
                     const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
                     console.log(ffmpeg.join(' '))
@@ -1768,7 +1776,7 @@
     // Return to the home screen after a timeout of inactivity
     function startDeviceTimeout(device) {
         if (device.timeout) {
-            timeout_tuners[device.id] = setTimeout(async() => {
+            watchdog_tuners[device.id].tuner_timeout = setTimeout(async() => {
                 // adb shell am force-stop com.sirius
                 // adb shell am start -a android.intent.action.MAIN -c android.intent.category.HOME
                 await adbCommand(device.serial, ["shell", "am", "start", "-a", "android.intent.action.MAIN", '-c', 'android.intent.category.HOME'])
@@ -1909,8 +1917,13 @@
     // End the tuners timeline for the active channel
     async function deTuneTuner(tuner, force, noOutputSet) {
         if (force || (!activeQueue[`REC-${tuner.id}`] && !locked_tuners.has(tuner.id))) {
-            if (tuner.digital)
-                clearInterval(watchdog_tuners[tuner.id])
+            if (tuner.digital) {
+                clearInterval(watchdog_tuners[tuner.id].watchdog)
+                clearInterval(watchdog_tuners[tuner.id].player_controller);
+                watchdog_tuners[tuner.id].player_controller = null;
+                clearTimeout(watchdog_tuners[tuner.id].player_stopwatch);
+                watchdog_tuners[tuner.id].player_stopwatch = null;
+            }
             if (!noOutputSet && !force && tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.return_source)
                 setAirOutput(tuner, true)
             if (tuner.digital) {
@@ -1923,8 +1936,11 @@
                     lastTune.end = moment().valueOf()
                 channelTimes.timetable[tuner.id].push(lastTune)
             }
-            if (tuner.digital)
-                watchdog_tuners[tuner.id] = null
+            if (tuner.digital) {
+                watchdog_tuners[tuner.id].player_start = null;
+                watchdog_tuners[tuner.id].player_guid = null;
+                watchdog_tuners[tuner.id].watchdog = null
+            }
             return true
         } else {
             return false
@@ -1945,8 +1961,8 @@
     // Tune to Digital Channel on Android Device
     async function tuneDigitalChannel(channel, time, device) {
         console.log(`Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
-        if (timeout_tuners[device.id])
-            clearInterval(timeout_tuners[device.id])
+        if (watchdog_tuners[device.id].tuner_timeout)
+            clearInterval(watchdog_tuners[device.id].tuner_timeout)
         return new Promise(async (resolve) => {
             let k = -1
             let tuneReady = false
@@ -1993,7 +2009,7 @@
     async function digitalTunerWatcher(device) {
         let watchdogi = 0
         const timer = setInterval(async () => {
-            if (watchdog_tuners[device.id] !== null) {
+            if (watchdog_tuners[device.id].watchdog !== null) {
                 const state = await checkPlayStatus(device)
                 if (!state) {
                     watchdogi = watchdogi + 1
@@ -2009,11 +2025,11 @@
                 clearInterval(timer)
             }
         }, 60000)
-        watchdog_tuners[device.id] = timer
+        watchdog_tuners[device.id].watchdog = timer
     }
     // Watches device for the loss of port forwarding
     async function deviceWatcher(device) {
-        watchdog_connectivity[device.id] = setInterval(async () => {
+        watchdog_tuners[device.id].connectivity = setInterval(async () => {
             const portlist = await adbCommand(device.serial, ['forward', '--list'])
             if (!portlist.ok || !portlist.log.includes(`localabstract:sndcpy`)) {
                 console.error(`Player/${device.id}: Device has lost audio connectivity with the server, attempting to reconfigure...`)
@@ -2102,6 +2118,48 @@
                 channelTimes.pending[index].done = false
                 channelTimes.pending[index].failedRec = true
             }
+        }
+        return false
+    }
+    // Record an event on a digital tuner
+    async function playDigitalEvent(event, tuner) {
+        console.log(`Player/${tuner.id}: Preparing for digital playback...`)
+        let eventItem = getEvent(event.channelId, event.guid)
+        if (!eventItem)
+            eventItem = event.metadata
+        await deTuneTuner(tuner, true)
+        if (await tuneDigitalChannel(eventItem.channelId, eventItem.syncStart, tuner)) {
+            if (tuner.airfoil_source !== undefined && tuner.airfoil_source && tuner.airfoil_source.conditions.indexOf('tune') !== -1)
+                await setAirOutput(tuner, false)
+            digitalTunerWatcher(tuner);
+            const startTime = Date.now();
+            watchdog_tuners[tuner.id].player_guid = event.guid
+            watchdog_tuners[tuner.id].player_start = startTime;
+            function setTimer(eventData) {
+                const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
+                console.log(`Player ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Stop Timer for ${((termTime / 1000) / 60).toFixed(0)}m`);
+                watchdog_tuners[tuner.id].player_stopwatch = setTimeout(async () => {
+                    deTuneTuner(tuner);
+                }, termTime);
+                clearInterval(watchdog_tuners[tuner.id].player_controller)
+                watchdog_tuners[tuner.id].player_controller = null
+            }
+
+            if (event && event.duration && parseInt(event.duration.toString()) > 1) {
+                setTimer(event);
+            } else {
+                watchdog_tuners[tuner.id].player_controller = setInterval(() => {
+                    const eventData = getEvent(event.channelId, event.guid)
+                    if (!(watchdog_tuners[tuner.id].player_controller)) {
+                        clearInterval(watchdog_tuners[tuner.id].player_controller)
+                    } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 1) {
+                        setTimer(event);
+                    }
+                }, 60000);
+            }
+            return true;
+        } else {
+            console.error(`Player/${tuner.id}: Failed to tune to channel, Canceled!`)
         }
         return false
     }
@@ -2266,6 +2324,21 @@
             digital: (req.query.digital) ? req.query.digital : undefined,
             res
         })
+    });
+    app.get("/play/:channelNum/:eventId", async (req, res, next) => {
+        const event = getEvent(req.params.channelNum, req.params.eventId);
+        if (event) {
+            const channel = getChannelbyId(event.channelId)
+            const tuner = availableTuners(channel.number, true, true)[0];
+            if (tuner) {
+                playDigitalEvent(event, tuner);
+                res.status(200).send(`Starting playback of event`)
+            } else {
+                res.status(500).send(`No tuner is available!`)
+            }
+        } else {
+            res.status(404).send(`Event was not found!`)
+        }
     });
     app.get("/detune/:tuner", async (req, res, next) => {
         const tuner = getTuner(req.params.tuner);
@@ -2620,6 +2693,9 @@
                         }
                     }))
                     break;
+                case 'metadata':
+                    res.status(200).json(metadata)
+                    break;
                 case 'jobs':
                     let pendingJobs = []
                     Object.keys(jobQueue).map(k => {
@@ -2640,23 +2716,25 @@
                         activeJob: activeJobs,
                         pendingJobs: pendingJobs,
                         requestedJobs: channelTimes.pending,
+                        completed,
+                        tunedEvents
                     }
                     res.status(200).json(results)
                     break;
                 case 'devices':
                     const source = await getAirOutput()
                     const tuners = listTuners().map(e => {
-                        const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : false
+                        const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
                         const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
                         return {
                             id: e.id,
                             name: e.name,
                             channel: (() => {
-                                if (activeJob.length > 0 && channelMeta) {
+                                if (channelMeta.channelId) {
                                     const ch = getChannelbyId(channelMeta.channelId)
                                     return {
-                                        id: e.activeCh.ch,
+                                        id: ch.id,
                                         name: ch.name,
                                         number: ch.number,
                                         description: ch.description,
@@ -2669,7 +2747,7 @@
                                     return false
                                 const ch = getChannelbyId(e.activeCh.ch)
                                 return {
-                                    id: e.activeCh.ch,
+                                    id: ch.id,
                                     name: ch.name,
                                     number: ch.number,
                                     description: ch.description,
@@ -2689,6 +2767,13 @@
                                 duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                                 timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - activeJob[0].start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
+                            player: (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? {
+                                guid: watchdog_tuners[e.id].player_guid,
+                                startTime: watchdog_tuners[e.id].player_start,
+                                elapsedTime: Math.abs(Date.now() - watchdog_tuners[e.id].player_start),
+                                duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
+                                timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - watchdog_tuners[e.id].player_start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
+                            } : false,
                             history: (!e.record_only && e.record_prefix),
                             nowPlaying: (() => {
                                 if (!channelMeta)
@@ -2699,6 +2784,7 @@
                                 if (channelMeta.title)
                                     list.push(channelMeta.title)
                                 return {
+                                    guid: channelMeta.guid,
                                     song: channelMeta.isSong,
                                     episode: channelMeta.isEpisode,
                                     text: list
@@ -2732,6 +2818,16 @@
             if (t.digital) {
                 await initDigitalRecorder(t);
                 //deviceWatcher(t)
+                watchdog_tuners[t.id] = {
+                    watchdog: null,
+                    connectivity: null,
+                    tuner_timeout: null,
+                    player_start: null,
+                    player_guid: null,
+                    player_stopwatch: null,
+                    player_controller: null,
+                    timeout_sources: null
+                };
             }
             if (!channelTimes.timetable[t.id])
                 channelTimes.timetable[t.id] = []
@@ -2740,6 +2836,15 @@
             digitalAvailable = true
         if (tun.filter(e => !e.digital).length > 0)
             satelliteAvailable = true
+
+        await updateMetadata();
+        registerSchedule();
+        cron.schedule("* * * * *", async () => {
+            updateMetadata();
+        });
+        cron.schedule("*/5 * * * *", async () => {
+            saveMetadata()
+        });
 
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
@@ -2756,14 +2861,6 @@
             jobQueue['extract'] = [];
         }
         channelTimes.queues = [];
-        await updateMetadata();
-        registerSchedule();
-        cron.schedule("* * * * *", async () => {
-            updateMetadata();
-        });
-        cron.schedule("*/5 * * * *", async () => {
-            saveMetadata()
-        });
 
         console.error(`Devices ###################`)
         console.log(tun)
