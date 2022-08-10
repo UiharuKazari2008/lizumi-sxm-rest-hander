@@ -751,7 +751,7 @@
         }
         return Object.keys(jobQueue).filter(e => e.startsWith('REC-')).map(e => {
             return {
-                length: jobQueue[e].length,
+                length: (jobQueue[e].length && jobQueue[e].length <= 1) ? 0 : jobQueue[e].length,
                 id: e
             }
         }).sort(sortcb)[0].id
