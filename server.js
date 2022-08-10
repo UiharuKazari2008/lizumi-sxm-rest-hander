@@ -503,7 +503,12 @@
     // ADB Command Runner
     function adbCommand(device, commandArray, noTimeout) {
         return new Promise(function (resolve) {
-            const adblaunch = [(config.adb_command) ? config.adb_command : 'adb', '-s', device, ...commandArray]
+            let adblaunch = [(config.adb_command) ? config.adb_command : 'adb']
+            if (device) {
+                adblaunch.push('-s')
+                adblaunch.push(device)
+            }
+            adblaunch.push(...commandArray)
             exec(adblaunch.join(' '), {
                 encoding: 'utf8',
                 timeout: (noTimeout) ? undefined : 10000
@@ -1619,7 +1624,7 @@
             console.log(`Setting up USB Audio Interface for "${device.name}"...`)
             async function start() {
                 console.log(`${device.id}: (1/6) Installing USB Interface...`)
-                await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"])
+                await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"], true)
                 console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
                 await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
                 console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
@@ -2802,6 +2807,7 @@
     if (!cookies.authenticate) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
+        await adbCommand(undefined, ["kill-server"])
         await initializeChannels();
         console.error(`Channels ###################`)
         console.log(listChannels())
