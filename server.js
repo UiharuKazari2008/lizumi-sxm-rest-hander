@@ -2759,6 +2759,7 @@
                             digital: e.digital,
                             active: (e.airfoil_source && e.airfoil_source.name === source),
                             locked: e.locked,
+                            record_only: e.record_only,
                             working: (activeJob.length > 0) ? {
                                 guid: activeJob[0].guid,
                                 jobCount: jobQueue[activeJob[0].queue].length,
