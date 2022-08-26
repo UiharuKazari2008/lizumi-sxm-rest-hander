@@ -1061,7 +1061,7 @@
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
                         console.log(`The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
-                        sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
+                        sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.liveRec = true
                         pendingEvent.done = true
@@ -1078,7 +1078,7 @@
                     } else if (tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && tuner.hasOwnProperty("record_prefix")) {
                         // If specific tuner is set, not set to require digital or has failed to extract via digital
                         console.log(`The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
-                        sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
+                        sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.done = true
                         pendingEvent.inprogress = true
@@ -1095,7 +1095,7 @@
                 } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     console.log(`${thisEvent.filename} is live extractable!`)
-                    sendDiscord('info', 'SiriusXM', `❌ The event "${thisEvent.filename}" will be extracted live`)
+                    sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" will be extracted live`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
                     pendingEvent.done = true
@@ -1197,6 +1197,12 @@
         const events = listEventsValidated(true, undefined, 15)
         const all = listEventsValidated(false, undefined, 25)
         config.autosearch_terms.map(f => {
+            if (f.notify) {
+                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
+                    const channelData = getChannelbyId(e.channelId);
+                    sendDiscord('alert', (channelData) ? channelData.name : 'SiriusXM', `🆕 ${e.filename}`, e.guid)
+                })
+            }
             if (!f.onlyTune) {
                 events.filter(e => channelTimes.completed && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
                     console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
@@ -1227,12 +1233,6 @@
                     if (f.onlyTune)
                         channelTimes.completed.push(e.guid)
                     tunedEvents.push(e.guid);
-                })
-            }
-            if (f.notify) {
-                all.filter(e => sentNotificatons.indexOf(e.guid) === -1 && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
-                    const channelData = getChannelbyId(e.channelId);
-                    sendDiscord('alert', (channelData) ? channelData.name : 'SiriusXM', `🆕 ${e.filename}`, e.guid)
                 })
             }
         })
