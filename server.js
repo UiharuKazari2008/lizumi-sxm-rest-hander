@@ -1071,7 +1071,7 @@
                                 channelId: pendingEvent.ch,
                                 ...thisEvent
                             },
-                            post_directorys: pendingEvent.post_directorys,
+                            destination: pendingEvent.destination,
                             switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                             index: true
                         })
@@ -1088,7 +1088,7 @@
                                 ...thisEvent,
                                 tuner: tuner
                             },
-                            post_directorys: pendingEvent.post_directorys,
+                            destination: pendingEvent.destination,
                             index: true
                         })
                     }
@@ -1105,7 +1105,7 @@
                             channelId: pendingEvent.ch,
                             ...thisEvent
                         },
-                        post_directorys: pendingEvent.post_directorys,
+                        destination: pendingEvent.destination,
                         switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
                         index: true
                     })
@@ -1139,7 +1139,7 @@
                             digitalOnly: (e.digitalOnly) ? e.digitalOnly : undefined,
                             addTime: 0,
                             restrict: (e.restrict) ? e.restrict : undefined,
-                            post_directorys: (e.post_directorys) ? e.post_directorys : undefined,
+                            destination: (e.destination) ? e.destination : undefined,
                             switch_source: (e.hasOwnProperty("switch_source")) ? e.switch_source : false
                         })
                     })
@@ -1215,7 +1215,7 @@
                         tunerId: e.tunerId,
                         digitalOnly: (f.digitalOnly),
                         allow_events: (f.allow_events),
-                        post_directorys: (f.post_directorys) ? f.post_directorys : undefined,
+                        destination: (f.destination) ? f.destination : undefined,
                         switch_source: (f.switch_source) ? f.switch_source : false,
                         automatic: true,
                         inprogress: false,
@@ -1286,7 +1286,7 @@
                 guid: (event) ? event.guid : undefined,
                 restrict: (options.restrict) ? options.restrict : undefined,
                 time,
-                post_directorys: (options.post_directorys) ? options.post_directorys : undefined,
+                destination: (options.destination) ? options.destination : undefined,
                 switch_source: (options.switch_source) ? options.switch_source : false,
                 inprogress: false,
                 done: false,
@@ -2087,7 +2087,7 @@
                     console.error(e)
                 }
                 const eventData = getEvent(eventItem.channelId, eventItem.guid)
-                await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${(eventData) ? eventData.filename.trim() : eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.post_directorys)
+                await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${(eventData) ? eventData.filename.trim() : eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.destination)
             } else if (fs.existsSync(completedFile)) {
                 rimraf(completedFile, () => {})
             }
@@ -2232,7 +2232,7 @@
                         console.error(`Failed to write tags`)
                         console.error(e)
                     }
-                    await postExtraction(trimEventFile, eventFilename, job.post_directorys);
+                    await postExtraction(trimEventFile, eventFilename, job.destination);
                     if (channelTimes.completed.indexOf(eventItem.guid) === -1)
                         channelTimes.completed.push(eventItem.guid)
                     if (job.index) {
@@ -2262,9 +2262,9 @@
         }
     }
     // Move extracted files to the upload and backup folder
-    async function postExtraction(extractedFile, eventFilename, overrides) {
-        const upload_dir = (overrides && overrides.upload_dir) ? overrides.upload_dir : config.upload_dir
-        const backup_dir = (overrides && overrides.backup_dir) ? overrides.backup_dir : config.backup_dir
+    async function postExtraction(extractedFile, eventFilename, destination) {
+        const upload_dir = (destination) ? destination : config.upload_dir
+        const backup_dir = config.backup_dir
 
         try {
             if (backup_dir) {
@@ -2465,7 +2465,7 @@
                             guid: pendingJob.metadata.guid,
                             start: pendingJob.metadata.syncStart,
                             name: pendingJob.metadata.filename,
-                            post_directorys: pendingJob.post_directorys,
+                            destination: pendingJob.destination,
                             switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
                             isRequested: pendingJob.index
                         }
@@ -2632,7 +2632,7 @@
                     guid: pendingJob.metadata.guid,
                     start: pendingJob.metadata.syncStart,
                     name: pendingJob.metadata.filename,
-                    post_directorys: pendingJob.post_directorys,
+                    destination: pendingJob.destination,
                     switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
                     isRequested: pendingJob.index
                 }
@@ -2706,7 +2706,7 @@
                                 guid: pendingJob.metadata.guid,
                                 start: pendingJob.metadata.syncStart,
                                 name: pendingJob.metadata.filename,
-                                post_directorys: pendingJob.post_directorys,
+                                destination: pendingJob.destination,
                                 switch_source: (pendingJob.switch_source) ? pendingJob.switch_source : true,
                                 isRequested: pendingJob.index
                             })
