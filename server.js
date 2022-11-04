@@ -622,7 +622,7 @@
                         data.append('payload_json', JSON.stringify({
                             "username": name,
                             "content": content,
-                            "file": [
+                            "attachments": [
                                 {
                                     "id": 0,
                                     "description": "Device Screenshot",
