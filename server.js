@@ -607,9 +607,7 @@
                             await adbCommand(deviceScreenshot, ["shell", "screencap", "-p", "/sdcard/screen.png"]);
                             await adbCommand(deviceScreenshot, ["pull", "/sdcard/screen.png", `${deviceScreenshot}.png`]);
                             await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
-                            const image = fs.readFileSync(`${deviceScreenshot}.png`, {encoding: null})
-                            fs.unlinkSync(`${deviceScreenshot}.png`);
-                            resolve(image);
+                            resolve(`${deviceScreenshot}.png`);
                         } catch (err) {
                             console.error(err);
                             resolve(false);
@@ -621,16 +619,9 @@
                         let data = new FormData();
                         data.append('payload_json', JSON.stringify({
                             "username": name,
-                            "content": content,
-                            "attachments": [
-                                {
-                                    "id": 0,
-                                    "description": "Device Screenshot",
-                                    "filename": `${deviceScreenshot}.png`
-                                }
-                            ]
+                            "content": content
                         }))
-                        data.append('file', attachemnt)
+                        data.append('file', fs.createReadStream(`${deviceScreenshot}.png`))
                         request.post({
                             url: config.notifications[channel],
                             headers: {
@@ -645,6 +636,7 @@
                                 console.error(err);
                                 resolve(false)
                             }
+                            fs.unlinkSync(`${deviceScreenshot}.png`);
                         })
                     } else {
                         request.post({
