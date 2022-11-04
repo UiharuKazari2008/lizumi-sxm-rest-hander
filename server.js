@@ -728,7 +728,7 @@
                     ...config.digital_radios[e],
                     digital: true,
                     activeCh: (a) ? a : null,
-                    locked: (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
+                    locked: locked_tuners.has(e) || (Object.keys(activeQueue).indexOf(`REC-${e}`) !== -1)
                 }
             }) : []),
             ...((digitalOnly === true) ? [] : (config.satellite_radios && Object.keys(config.digital_radios).length > 0) ? Object.keys(config.satellite_radios).map((e, i) => {
