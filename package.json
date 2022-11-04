@@ -5,6 +5,7 @@
     "bee-queue": "^1.4.0",
     "better-sqlite3": "^7.4.5",
     "express": "^4.17.1",
+    "form-data": "^4.0.0",
     "limiter": "^2.1.0",
     "moment": "^2.29.1",
     "mysql2": "^2.3.3",

@@ -14,6 +14,7 @@
     const rimraf = require("rimraf");
     const NodeID3 = require('node-id3');
     const stream = require('stream');
+    cost FormData = require('form-data');
 
     let metadata = {};
     let channelsAvailable = {};
@@ -618,11 +619,11 @@
                 const res = await new Promise(resolve => {
                     if (attachemnt) {
                         let data = new FormData();
+                        data.append('file', attachemnt)
                         data.append('payload_json', JSON.stringify({
                             "username": name,
                             "content": content
                         }))
-                        data.append('file', attachemnt)
                         request.post({
                             url: config.notifications[channel],
                             headers: {
