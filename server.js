@@ -629,7 +629,7 @@
                             headers: {
                                 "Content-Type": "multipart/form-data"
                             },
-                            data,
+                            body: data,
                             timeout: 5000
                         }, async function (err, resReq, body) {
                             if (!err) {
