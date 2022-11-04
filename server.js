@@ -606,7 +606,7 @@
                             await adbCommand(deviceScreenshot, ["shell", "screencap", "-p", "/sdcard/screen.png"]);
                             await adbCommand(deviceScreenshot, ["pull", "/sdcard/screen.png", `${deviceScreenshot}.png`]);
                             await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
-                            const image = fs.readFileSync(`${deviceScreenshot}.png`);
+                            const image = fs.readFileSync(`${deviceScreenshot}.png`, {encoding: "base64"}).toString();
                             fs.unlinkSync(`${deviceScreenshot}.png`);
                             resolve(image);
                         } catch (err) {
