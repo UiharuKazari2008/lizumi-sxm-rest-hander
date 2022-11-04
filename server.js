@@ -635,6 +635,7 @@
                             if (!err) {
                                 resolve(!err)
                             } else {
+                                console.error(err);
                                 resolve(false)
                             }
                         })
@@ -653,6 +654,7 @@
                             if (!err) {
                                 resolve(!err)
                             } else {
+                                console.error(err);
                                 resolve(false)
                             }
                         })
@@ -2649,7 +2651,7 @@
                 if (t.digital) {
                     res.status(200).send("Operation inprogress");
                     await initDigitalRecorder(t)
-                    await sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
+                    sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
                     startRecQueue("REC-" + t.id)
                 } else {
                     res.status(400).send('No Digital Tuner was found')
@@ -2671,7 +2673,7 @@
                     res.status(200).send("Device Restarted, Operation inprogress");
                     setTimeout(async () => {
                         await initDigitalRecorder(t);
-                        await sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
+                        sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
                         startRecQueue("REC-" + t.id);
                     }, 300000)
                 } else {
