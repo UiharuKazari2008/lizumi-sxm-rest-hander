@@ -14,7 +14,7 @@
     const rimraf = require("rimraf");
     const NodeID3 = require('node-id3');
     const stream = require('stream');
-    cost FormData = require('form-data');
+    const FormData = require('form-data');
 
     let metadata = {};
     let channelsAvailable = {};
