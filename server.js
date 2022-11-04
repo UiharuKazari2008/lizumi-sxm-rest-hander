@@ -596,27 +596,67 @@
         })
     }
     // Send Notification to Discord
-    async function sendDiscord(channel, name, content, guid) {
+    async function sendDiscord(channel, name, content, guid, deviceScreenshot) {
         try {
             if (config.notifications && config.notifications[channel] && (!guid || guid && sentNotificatons.indexOf(guid) === -1)) {
-                const res = await new Promise(resolve => {
-                    request.post({
-                        url: config.notifications[channel],
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            "username": name,
-                            "content": content
-                        }),
-                        timeout: 5000
-                    }, async function (err, resReq, body) {
-                        if (!err) {
-                            resolve(!err)
-                        } else {
-                            resolve(false)
+                let attachemnt = false;
+                if (deviceScreenshot) {
+                    attachemnt = await new Promise(async (resolve) => {
+                        try {
+                            await adbCommand(deviceScreenshot, ["shell", "screencap", "-p", "/sdcard/screen.png"]);
+                            await adbCommand(deviceScreenshot, ["pull", "/sdcard/screen.png", `${deviceScreenshot}.png`]);
+                            await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
+                            const image = fs.readFileSync(`${deviceScreenshot}.png`);
+                            fs.unlinkSync(`${deviceScreenshot}.png`);
+                            resolve(image);
+                        } catch (err) {
+                            console.error(err);
+                            resolve(false);
                         }
                     })
+                }
+                const res = await new Promise(resolve => {
+                    if (attachemnt) {
+                        request.post({
+                            url: config.notifications[channel],
+                            headers: {
+                                "Content-Type": "multipart/form-data"
+                            },
+                            body: {
+                                file: attachemnt,
+                                payload_json: JSON.stringify({
+                                    "username": name,
+                                    "content": content
+                                })
+                            },
+                            timeout: 5000
+                        }, async function (err, resReq, body) {
+                            if (!err) {
+                                resolve(!err)
+                            } else {
+                                resolve(false)
+                            }
+                        })
+                    } else {
+                        request.post({
+                            url: config.notifications[channel],
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                "username": name,
+                                "content": content
+                            }),
+                            timeout: 5000
+                        }, async function (err, resReq, body) {
+                            if (!err) {
+                                resolve(!err)
+                            } else {
+                                resolve(false)
+                            }
+                        })
+                    }
+
                 });
                 if (res && guid) {
                     sentNotificatons.push(guid)
@@ -1487,7 +1527,7 @@
         if (!locked_tuners.has(q.slice(4))) {
             activeQueue[q] = true
             const tuner = getTuner(q.slice(4))
-            while (jobQueue[q].length !== 0) {
+            while (jobQueue[q].length !== 0 && !locked_tuners.has(q.slice(4))) {
                 const job = jobQueue[q][0]
                 let i = (job.retry) ? job.retry : -1
                 i++
@@ -1512,7 +1552,7 @@
                 }
             }
             delete activeQueue[q]
-            if (tuner.hasOwnProperty('stop_after_record') && !tuner.stop_after_record) {
+            if (tuner.hasOwnProperty('stop_after_record') && !tuner.stop_after_record && !locked_tuners.has(q.slice(4))) {
                 reTuneTuner(tuner)
             }
             return true
@@ -1664,7 +1704,7 @@
                 resolve(false)
             } else {
                 console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
-                sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`)
+                sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`, undefined, tuner.serial)
                 try {
                     clearInterval(watchdog_tuners[tuner.id].watchdog)
                     watchdog_tuners[tuner.id].watchdog = null
@@ -1690,7 +1730,7 @@
                             clearInterval(watchdog)
 
                             if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed || fault) {
-                                sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Failed Digital Dubbing of "${event.filename}"`)
+                                sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Failed Digital Dubbing of "${event.filename}"`, undefined, tuner.serial)
                             } else {
                                 sendDiscord('info', 'SiriusXM', `✅ ${tuner.name} Completed Digital Dubbing of "${event.filename}"`)
                             }
@@ -1718,7 +1758,7 @@
                             fault = true
                             clearTimeout(stopwatch)
                             clearInterval(controller)
-                            sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Audio Session failed to detect active playback of "${event.filename}"`)
+                            sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Audio Session failed to detect active playback of "${event.filename}"`, undefined, tuner.serial)
                             recorder.stdin.write('q')
                         }
                     }, 5000)
@@ -2594,6 +2634,76 @@
                 } else {
                     res.status(400).send('Channel nunber not found')
                 }
+            } else {
+                res.status(400).send('Invalid Tuner ID')
+            }
+        } else {
+            res.status(400).send('Missing Tuner ID')
+        }
+    });
+    app.get("/configure/setup/:tuner", async (req, res, next) => {
+        if (req.params.tuner) {
+            const t = getTuner(req.params.tuner)
+            if (t) {
+                if (t.digital) {
+                    res.status(200).send("Operation inprogress");
+                    await initDigitalRecorder(t)
+                    await sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
+                    startRecQueue("REC-" + t.id)
+                } else {
+                    res.status(400).send('No Digital Tuner was found')
+                }
+            } else {
+                res.status(400).send('Invalid Tuner ID')
+            }
+        } else {
+            res.status(400).send('Missing Tuner ID')
+        }
+    });
+    app.get("/configure/reboot/:tuner", async (req, res, next) => {
+        if (req.params.tuner) {
+            const t = getTuner(req.params.tuner)
+            if (t) {
+                if (t.digital) {
+                    locked_tuners.set(t.id, true)
+                    await adbCommand(t.serial, ["reboot"])
+                    res.status(200).send("Device Restarted, Operation inprogress");
+                    setTimeout(async () => {
+                        await initDigitalRecorder(t);
+                        await sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
+                        startRecQueue("REC-" + t.id);
+                    }, 300000)
+                } else {
+                    res.status(400).send('No Digital Tuner was found')
+                }
+            } else {
+                res.status(400).send('Invalid Tuner ID')
+            }
+        } else {
+            res.status(400).send('Missing Tuner ID')
+        }
+    });
+    app.get("/configure/lock/:tuner", async (req, res, next) => {
+        if (req.params.tuner) {
+            const t = getTuner(req.params.tuner)
+            if (t) {
+                locked_tuners.set(t.id, true)
+                res.status(200).send("Device Disabled");
+            } else {
+                res.status(400).send('Invalid Tuner ID')
+            }
+        } else {
+            res.status(400).send('Missing Tuner ID')
+        }
+    });
+    app.get("/configure/unlock/:tuner", async (req, res, next) => {
+        if (req.params.tuner) {
+            const t = getTuner(req.params.tuner)
+            if (t) {
+                locked_tuners.delete(t.id);
+                if (t.digital)
+                    startRecQueue("REC-" + t.id);
+                res.status(200).send("Device Enabled");
             } else {
                 res.status(400).send('Invalid Tuner ID')
             }
