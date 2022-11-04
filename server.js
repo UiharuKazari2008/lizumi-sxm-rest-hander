@@ -636,6 +636,7 @@
                                 console.error(err);
                                 resolve(false)
                             }
+                            console.log(body);
                             fs.unlinkSync(`${deviceScreenshot}.png`);
                         })
                     } else {
