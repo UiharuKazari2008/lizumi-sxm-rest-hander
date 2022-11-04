@@ -622,21 +622,14 @@
                             "content": content
                         }))
                         data.append('file', fs.createReadStream(`${deviceScreenshot}.png`))
-                        request.post({
-                            url: config.notifications[channel],
-                            headers: {
-                                "Content-Type": "multipart/form-data"
-                            },
-                            data,
-                            timeout: 5000
-                        }, async function (err, resReq, body) {
+                        data.submit(config.notifications[channel], (err, res) => {
                             if (!err) {
                                 resolve(!err)
                             } else {
                                 console.error(err);
                                 resolve(false)
                             }
-                            console.log(body.toString());
+                            console.log(res.toString());
                             fs.unlinkSync(`${deviceScreenshot}.png`);
                         })
                     } else {
