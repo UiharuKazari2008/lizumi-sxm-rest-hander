@@ -619,11 +619,18 @@
                 const res = await new Promise(resolve => {
                     if (attachemnt) {
                         let data = new FormData();
-                        data.append('file', attachemnt)
                         data.append('payload_json', JSON.stringify({
                             "username": name,
-                            "content": content
+                            "content": content,
+                            "file": [
+                                {
+                                    "id": 0,
+                                    "description": "Device Screenshot",
+                                    "filename": `${deviceScreenshot}.png`
+                                }
+                            ]
                         }))
+                        data.append('file', attachemnt)
                         request.post({
                             url: config.notifications[channel],
                             headers: {
