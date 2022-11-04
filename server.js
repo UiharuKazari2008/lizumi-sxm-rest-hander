@@ -606,7 +606,7 @@
                             await adbCommand(deviceScreenshot, ["shell", "screencap", "-p", "/sdcard/screen.png"]);
                             await adbCommand(deviceScreenshot, ["pull", "/sdcard/screen.png", `${deviceScreenshot}.png`]);
                             await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
-                            const image = fs.readFileSync(`${deviceScreenshot}.png`, {encoding: "base64"}).toString();
+                            const image = fs.readFileSync(`${deviceScreenshot}.png`, {encoding: null})
                             fs.unlinkSync(`${deviceScreenshot}.png`);
                             resolve(image);
                         } catch (err) {
@@ -617,18 +617,18 @@
                 }
                 const res = await new Promise(resolve => {
                     if (attachemnt) {
+                        let data = new FormData();
+                        data.append('payload_json', JSON.stringify({
+                            "username": name,
+                            "content": content
+                        }))
+                        data.append('file', attachemnt)
                         request.post({
                             url: config.notifications[channel],
                             headers: {
                                 "Content-Type": "multipart/form-data"
                             },
-                            body: {
-                                file: attachemnt,
-                                payload_json: JSON.stringify({
-                                    "username": name,
-                                    "content": content
-                                })
-                            },
+                            data,
                             timeout: 5000
                         }, async function (err, resReq, body) {
                             if (!err) {
