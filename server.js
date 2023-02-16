@@ -2868,6 +2868,7 @@
                             id: e.id,
                             name: e.name,
                             active: (e.airfoil_source && e.airfoil_source.name === source),
+                            always_active: (e.always_active),
                             actions: (e.actions) ? e.actions : undefined
                         }
                     })
