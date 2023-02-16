@@ -2422,6 +2422,15 @@
             res.status(404).send("Input not found")
         }
     })
+    app.get("/direct_action/:id/:action", async (req, res, next) => {
+        const t = getInput(req.params.id)
+        if (t && t.actions && t.actions[req.params.action]) {
+            await webRequest(t.actions[req.params.action])
+            res.status(200).send("OK")
+        } else {
+            res.status(404).send("Action or Input not found")
+        }
+    })
     app.get("/output/:action/:zone/:index", async (req, res, next) => {
         res.status(200).send(await setAirSpeakers(req.params.zone, parseInt(req.params.index), req.params.action));
     })
@@ -2859,6 +2868,7 @@
                             id: e.id,
                             name: e.name,
                             active: (e.airfoil_source && e.airfoil_source.name === source),
+                            actions: (e.actions) ? e.actions : undefined
                         }
                     })
                     const tuners = listTuners().map(e => {
