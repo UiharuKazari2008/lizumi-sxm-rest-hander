@@ -740,9 +740,25 @@
             }) : [])
         ].sort(sortRadios)
     }
+    // List all virtual devices aka dumb audio inputs
+    function listInputs() {
+        // name
+        // airfoil_source
+        return Object.entries(config.audio_inputs).map(e => {
+            return {
+                id: e[0],
+                ...e[1],
+            }
+        })
+    }
     // Get tuner by id
     function getTuner(id) {
         const t = listTuners().filter(e => e.id === id)
+        return (t && t.length > 0) ? t.slice(-1).pop() : false
+    }
+    // Get virtual device by id
+    function getInput(id) {
+        const t = listInputs().filter(e => e.id === id)
         return (t && t.length > 0) ? t.slice(-1).pop() : false
     }
     // Return the best radio that is currently tuned to channel else false
@@ -1347,7 +1363,7 @@
             const currentSource = await getAirOutput()
             const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
 
-            if (!release && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
+            if (!release && currentTuner !== undefined && currentTuner.airfoil_source !== undefined && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
                 if (currentTuner.locked) {
                     console.info(`Last tuner is currently locked`)
                 } else {
@@ -1357,7 +1373,7 @@
                         watchdog_tuners[currentTuner.id].timeout_sources = null;
                     }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
                 }
-            } else if (!release && tuner.airfoil_source.auto_release && watchdog_tuners[tuner.id].timeout_sources) {
+            } else if (!release && tuner.airfoil_source !== undefined && tuner.airfoil_source.auto_release && watchdog_tuners[tuner.id].timeout_sources) {
                 console.info(`Tuner regained focus, stopping timeout`)
                 clearTimeout(watchdog_tuners[tuner.id].timeout_sources)
                 watchdog_tuners[tuner.id].timeout_sources = null;
@@ -2397,6 +2413,15 @@
             res.status(404).send("Tuner not found")
         }
     })
+    app.get("/direct_source/:id", async (req, res, next) => {
+        const t = getInput(req.params.id)
+        if (t && t.airfoil_source && t.airfoil_source.name) {
+            await setAirOutput(t, false)
+            res.status(200).send("OK")
+        } else {
+            res.status(404).send("Input not found")
+        }
+    })
     app.get("/output/:action/:zone/:index", async (req, res, next) => {
         res.status(200).send(await setAirSpeakers(req.params.zone, parseInt(req.params.index), req.params.action));
     })
@@ -2829,6 +2854,13 @@
                     break;
                 case 'devices':
                     const source = await getAirOutput()
+                    const inputs = listInputs().map(e => {
+                        return {
+                            id: e.id,
+                            name: e.name,
+                            active: (e.airfoil_source && e.airfoil_source.name === source),
+                        }
+                    })
                     const tuners = listTuners().map(e => {
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
@@ -2899,7 +2931,7 @@
                             })()
                         }
                     })
-                    res.json(tuners);
+                    res.json({tuners, inputs});
                     break;
                 default:
                     res.status(400).send("Unknown Request")
