@@ -1359,7 +1359,7 @@
     // Set AirFoil Interface
     async function setAirOutput(tuner, release) {
         return await new Promise(async (resolve) => {
-            const input = (release && tuner.airfoil_source.return_source) ? tuner.airfoil_source.return_source : tuner.airfoil_source.name
+            const input = (release && tuner.airfoil_source !== undefined && tuner.airfoil_source.return_source) ? tuner.airfoil_source.return_source : tuner.airfoil_source.name
             const currentSource = await getAirOutput()
             const currentTuner = listTuners().filter(e => e.airfoil_source && e.airfoil_source.name && e.airfoil_source.name === currentSource.trim())[0]
 
