@@ -671,14 +671,20 @@
     // channels has number added to reference the channel numbers
     function listChannels() {
         const c = Object.keys(config.channels).map(e => {
-            return {
-                number: e + '',
-                ...config.channels[e],
-                ...channelsAvailable[e],
-                imageUrl: channelsAvailable[e].image,
-                image: channelsImages[channelsAvailable[e].id]
+            try {
+                return {
+                    number: e + '',
+                    ...config.channels[e],
+                    ...channelsAvailable[e],
+                    imageUrl: channelsAvailable[e].image,
+                    image: channelsImages[channelsAvailable[e].id]
+                }
+            } catch (err) {
+                console.error("Failed to load channel data", err)
+                console.error(e, channelsAvailable[e])
+                return false
             }
-        })
+        }).filter(e => !!e)
         const cn = c.map(e => e.number)
         const id = c.map(e => e.id)
         return {
