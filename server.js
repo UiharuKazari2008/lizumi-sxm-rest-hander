@@ -2930,7 +2930,7 @@
                                 duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                                 timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - watchdog_tuners[e.id].player_start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
-                            history: (!e.record_only && e.record_prefix),
+                            history: !!(!e.record_only && e.record_prefix),
                             nowPlaying: (() => {
                                 if (!channelMeta)
                                     return false
