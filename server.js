@@ -799,7 +799,7 @@
             .sort(sortPriority)
             .filter(e =>
                 !e.locked &&
-                (e.digital || (!e.digital && ch && ch.tuneUrl[e.id])) &&
+                (e.digital || (!e.digital && ch && ch.tuneUrl && ch.tuneUrl[e.id])) &&
                 !e.record_only
             )
     }
