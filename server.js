@@ -2958,6 +2958,8 @@
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
         await adbCommand(undefined, ["kill-server"])
+        if (config.remote_connections)
+            await Promise.all(config.remote_connections.map(async ip => await adbCommand(undefined, ["connect", ip])))
         await initializeChannels();
         console.error(`Channels ###################`)
         console.log(listChannels())
