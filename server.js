@@ -671,14 +671,20 @@
     // channels has number added to reference the channel numbers
     function listChannels() {
         const c = Object.keys(config.channels).map(e => {
-            return {
-                number: e + '',
-                ...config.channels[e],
-                ...channelsAvailable[e],
-                imageUrl: channelsAvailable[e].image,
-                image: channelsImages[channelsAvailable[e].id]
+            try {
+                return {
+                    number: e + '',
+                    ...config.channels[e],
+                    ...channelsAvailable[e],
+                    imageUrl: channelsAvailable[e].image,
+                    image: channelsImages[channelsAvailable[e].id]
+                }
+            } catch (err) {
+                console.error("Failed to load channel data", err)
+                console.error(e, channelsAvailable[e])
+                return false
             }
-        })
+        }).filter(e => !!e)
         const cn = c.map(e => e.number)
         const id = c.map(e => e.id)
         return {
@@ -2924,7 +2930,7 @@
                                 duration: (!channelMeta) ? false : (channelMeta.duration && channelMeta.duration > 1) ? (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000)) : false,
                                 timeLeft: (!channelMeta) ? false :  (channelMeta.duration && channelMeta.duration > 1) ? Math.abs((Date.now() - watchdog_tuners[e.id].player_start) - (parseInt(channelMeta.duration.toString()) * 1000)) + (((channelMeta.isEpisode) ? 300 : 10) * 1000) : false
                             } : false,
-                            history: (!e.record_only && e.record_prefix),
+                            history: !!(!e.record_only || e.record_prefix),
                             nowPlaying: (() => {
                                 if (!channelMeta)
                                     return false
