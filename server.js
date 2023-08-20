@@ -2969,8 +2969,12 @@
     } else {
         await adbCommand(undefined, ["kill-server"])
         if (config.remote_connections) {
-            console.log(`Connecting to remote android device/workstation(s)...`)
-            await Promise.all(config.remote_connections.map(async ip => await adbCommand(undefined, ["connect", ip])))
+            console.log(`Connecting to remote android device/workstation(s) now!`)
+            for (ip of config.remote_connections) {
+                console.log(`-- Connecting to ${ip}...`)
+                await adbCommand(undefined, ["connect", ip])
+                await sleep (1000);
+            }
         }
         await initializeChannels();
         console.error(`Channels ###################`)
