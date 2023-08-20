@@ -15,6 +15,7 @@
     const NodeID3 = require('node-id3');
     const stream = require('stream');
     const FormData = require('form-data');
+    const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 
     let metadata = {};
     let channelsAvailable = {};
@@ -597,13 +598,15 @@
         })
     }
     // Send Notification to Discord
-    async function sendDiscord(channel, name, content, guid, deviceScreenshot) {
+    async function sendDiscord(channel, name, content, guid, deviceScreenshot, delay) {
         try {
             if (config.notifications && config.notifications[channel] && (!guid || guid && sentNotificatons.indexOf(guid) === -1)) {
                 let attachemnt = false;
                 if (deviceScreenshot) {
                     attachemnt = await new Promise(async (resolve) => {
                         try {
+                            if (delay)
+                                await sleep(delay);
                             await adbCommand(deviceScreenshot, ["shell", "screencap", "-p", "/sdcard/screen.png"]);
                             await adbCommand(deviceScreenshot, ["pull", "/sdcard/screen.png", `${deviceScreenshot}.png`]);
                             await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
@@ -1150,7 +1153,7 @@
                             index: true
                         })
                     }
-                } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || config.live_extract)) {
+                } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || pendingEvent.live || config.live_extract)) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
                     console.log(`${thisEvent.filename} is live extractable!`)
                     sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" will be extracted live`)
@@ -1272,6 +1275,7 @@
                         tuner: undefined,
                         tunerId: e.tunerId,
                         digitalOnly: (f.digitalOnly),
+                        live: (f.allow_live),
                         allow_events: (f.allow_events),
                         destination: (f.destination) ? f.destination : undefined,
                         switch_source: (f.switch_source) ? f.switch_source : false,
@@ -1722,7 +1726,7 @@
                 resolve(false)
             } else {
                 console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
-                sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`, undefined, tuner.serial)
+                sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`, undefined, tuner.serial, 5000)
                 try {
                     clearInterval(watchdog_tuners[tuner.id].watchdog)
                     watchdog_tuners[tuner.id].watchdog = null
@@ -2708,7 +2712,7 @@
                         await initDigitalRecorder(t);
                         sendDiscord('info', 'SiriusXM', `${t.name} is ready!`, undefined, t.serial);
                         startRecQueue("REC-" + t.id);
-                    }, 300000)
+                    }, t.boot_time || 300000)
                 } else {
                     res.status(400).send('No Digital Tuner was found')
                 }
@@ -2964,8 +2968,10 @@
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
         await adbCommand(undefined, ["kill-server"])
-        if (config.remote_connections)
+        if (config.remote_connections) {
+            console.log(`Connecting to remote android device/workstation(s)...`)
             await Promise.all(config.remote_connections.map(async ip => await adbCommand(undefined, ["connect", ip])))
+        }
         await initializeChannels();
         console.error(`Channels ###################`)
         console.log(listChannels())
