@@ -2250,8 +2250,8 @@
 
                 let trimEventFile = false;
                 if (trueTime.valueOf() > eventFiles[0].date.valueOf()) {
-                    const startTrim = Math.abs(trueTime.valueOf() - eventFiles[0].date.valueOf()))
-                    const endTrim = parseInt(eventItem.duration.toString()) * 1000) + 10000)
+                    const startTrim = Math.abs(trueTime.valueOf() - eventFiles[0].date.valueOf())
+                    const endTrim = (parseInt(eventItem.duration.toString()) + 10000)
 
                     trimEventFile = await new Promise(function (resolve) {
                         console.log(`Extract: Trimming Live Recording File "${eventItem.filename.trim()}" @ ${startTrim}-${endTrim} ...`)
