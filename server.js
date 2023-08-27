@@ -1061,7 +1061,7 @@
                 isExtractedDigitally: (moment.utc(e.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind :  sxmMaxRewind))),
                 date: moment.utc(e.syncStart).local().format("MMM D HH:mm"),
                 niceDate: moment.utc(e.syncStart).local().fromNow(),
-                time: parseInt(e.duration.toString()),
+                time: msToTime(parseInt(e.duration.toString()) * 1000).split('.')[0],
                 queued,
                 active,
                 exists: ex,
@@ -2119,8 +2119,7 @@
                 if (eventItem.duration && parseInt(eventItem.duration.toString()) > 1 && tuner.audio_interface)
                     return parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)
                 if (eventItem.duration && parseInt(eventItem.duration.toString()) > 1)
-                    return (parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10))
-                    //return msToTime((parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)) * 1000).split('.')[0]
+                    return msToTime((parseInt(eventItem.duration.toString()) + ((eventItem.isEpisode) ? 300 : 10)) * 1000).split('.')[0]
                 return undefined
             })()
             const recording = await recordDigitalAudioInterface(tuner, time, eventItem)
@@ -2250,8 +2249,8 @@
 
                 let trimEventFile = false;
                 if (trueTime.valueOf() > eventFiles[0].date.valueOf()) {
-                    const startTrim = Math.abs(trueTime.valueOf() - eventFiles[0].date.valueOf())
-                    const endTrim = (parseInt(eventItem.duration.toString()) + 10000)
+                    const startTrim = msToTime(Math.abs(trueTime.valueOf() - eventFiles[0].date.valueOf())).split('.')[0]
+                    const endTrim = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000).split('.')[0]
 
                     trimEventFile = await new Promise(function (resolve) {
                         console.log(`Extract: Trimming Live Recording File "${eventItem.filename.trim()}" @ ${startTrim}-${endTrim} ...`)
