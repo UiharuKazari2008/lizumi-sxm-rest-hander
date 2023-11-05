@@ -321,8 +321,8 @@
                                 console.error(`FAULT Updating metadata for channel ${channelInfo.number}`);
                                 resolve(false);
                             } else {
-                                resolve(parseJson(JSON.parse(body)));
                                 await sleep(2000);
+                                resolve(parseJson(JSON.parse(body)));
                             }
                         })
                     })
