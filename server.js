@@ -322,6 +322,7 @@
                                 resolve(false);
                             } else {
                                 resolve(parseJson(JSON.parse(body)));
+                                await sleep(2000);
                             }
                         })
                     })
