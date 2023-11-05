@@ -322,7 +322,13 @@
                                 resolve(false);
                             } else {
                                 await sleep(2000);
-                                resolve(parseJson(JSON.parse(body)));
+                                try {
+                                    const resJSON = JSON.parse(body)
+                                    resolve(parseJson(resJSON));
+                                } catch (e) {
+                                    console.log(body);
+                                    resolve(false);
+                                }
                             }
                         })
                     })
