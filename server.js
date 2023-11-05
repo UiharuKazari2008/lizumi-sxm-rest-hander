@@ -297,6 +297,7 @@
                     const channel_metadata = await new Promise(resolve => {
                         const timestamp = new moment().utc().subtract(8, "hours").valueOf()
                         const channelURL = `https://player.siriusxm.com/rest/v4/experience/modules/tune/now-playing-live?channelId=${(channelInfo.id) ? channelInfo.id : channelInfo.number}&adsEligible=true&hls_output_mode=none&fbSXMBroadcast=false&marker_mode=all_separate_cue_points&ccRequestType=AUDIO_VIDEO&result-template=radio&time=${timestamp}`
+                        console.log(`Load Channel Data: ${channelURL}`);
                         request.get({
                             url: channelURL,
                             headers: {
@@ -2602,7 +2603,8 @@
                         config.autosearch_terms = []
                     config.autosearch_terms.push({
                         search: req.query.search.trim(),
-                        duration: (req.query.duration) ? parseInt(req.query.duration) : undefined
+                        duration: (req.query.duration) ? parseInt(req.query.duration) : undefined,
+                        ...req.body
                     })
                     fs.writeFileSync('./config.json', JSON.stringify(config))
                     res.status(200).send("OK")
@@ -2953,6 +2955,9 @@
                         }
                     })
                     res.json({tuners, inputs});
+                    break;
+                case 'config':
+                    res.status(200).json(config)
                     break;
                 default:
                     res.status(400).send("Unknown Request")
