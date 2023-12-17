@@ -102,7 +102,8 @@
             return false
         if (l.fast_trigger && !((m.duration && m.duration > 60) || (!m.duration && (Date.now() - m.syncStart)) > 60000))
             return false
-        if (l.channel && l.channel.toString() !== m.number.toString())
+        console.log(l, m)
+        if (l.channel && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
             return false
         if (l.duration && (m.duration < l.duration || (Date.now() - moment.utc(m.syncStart).local().valueOf() / 1000) < l.duration))
             return false
@@ -3224,7 +3225,7 @@
 
         inflateRoomConfig();
 
-        for (let k of Object.keys(channelsAvailable)) {
+        /*for (let k of Object.keys(channelsAvailable)) {
             // 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/'
             // {"key":"aem/d5/d54196330c8019cd91015f71ddd899c5_1699375386.jpeg","edits":[{"format":{"type":"jpeg"}},{"resize":{"width":600,"height":600}}]}
             if (channelsAvailable[k].image) {
@@ -3250,7 +3251,7 @@
                     request.get({
                         url,
                         headers: {
-                            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+                            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*!/!*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                             'accept-language': 'en-US,en;q=0.9',
                             'cache-control': 'max-age=0',
                             'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
@@ -3279,7 +3280,7 @@
                     console.error(`No Image Data for ${k}`)
                 }
             }
-        }
+        }*/
         console.log("Images Loaded OK")
     }
 })()
