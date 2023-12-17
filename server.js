@@ -3263,7 +3263,6 @@
                             'referer': "https://siriusxm.com/",
                             'upgrade-insecure-requests': '1',
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
-                            'cookie': cookies.authenticate
                         },
                     }, async function (err, res, body) {
                         if (err) {
