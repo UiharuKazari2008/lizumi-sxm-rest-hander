@@ -359,8 +359,6 @@
         return false;
     }
     // Get All Metadata For Channels
-    // 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/'
-    // {"key":"aem/d5/d54196330c8019cd91015f71ddd899c5_1699375386.jpeg","edits":[{"format":{"type":"jpeg"}},{"resize":{"width":600,"height":600}}]}
     async function initializeChannels() {
         try {
             const allChannels = await searchResults(allChannelsEntity);
@@ -3228,6 +3226,8 @@
         inflateRoomConfig();
 
         for (let k of Object.keys(channelsAvailable)) {
+            // 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/'
+            // {"key":"aem/d5/d54196330c8019cd91015f71ddd899c5_1699375386.jpeg","edits":[{"format":{"type":"jpeg"}},{"resize":{"width":600,"height":600}}]}
             if (channelsAvailable[k].image) {
                 const image = await new Promise(resolve => {
                     let url = 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/';
@@ -3248,6 +3248,7 @@
                         ]
                     }
                     url += (JSON.stringify(reqImage)).toString('base64');
+                    console.log(url)
                     request.get({
                         url,
                         headers: {
