@@ -3248,7 +3248,6 @@
                         ]
                     }
                     url += Buffer.from(JSON.stringify(reqImage)).toString('base64');
-                    console.log(url)
                     request.get({
                         url,
                         headers: {
