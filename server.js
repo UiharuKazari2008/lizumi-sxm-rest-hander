@@ -98,6 +98,7 @@
         })
     }
     function isWantedEvent(l, m) {
+        console.log(l, m)
         if (!l.fast_trigger && !((m.duration && m.duration > 15 * 60) || (!m.duration && (Date.now() - m.syncStart)) > 15 * 60000))
             return false
         if (l.fast_trigger && !((m.duration && m.duration > 60) || (!m.duration && (Date.now() - m.syncStart)) > 60000))
