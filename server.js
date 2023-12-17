@@ -864,7 +864,7 @@
             }
         }).filter(e => !!e)
         const cn = c.map(e => e.number)
-        const id = c.map(e => e.id || e.number)
+        const id = c.map(e => e.id || e.number.toString())
         return {
             channels: c,
             numbers: cn,
