@@ -102,7 +102,7 @@
             return false
         if (l.fast_trigger && !((m.duration && m.duration > 60) || (!m.duration && (Date.now() - m.syncStart)) > 60000))
             return false
-        if (l.channel && m.channelId && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
+        if (l.channel && m.channelId && getChannelbyId(m.channelId) && l.channel.toString() !== getChannelbyId(m.channelId).number.toString())
             return false
         if (l.duration && (m.duration < l.duration || (Date.now() - moment.utc(m.syncStart).local().valueOf() / 1000) < l.duration))
             return false
