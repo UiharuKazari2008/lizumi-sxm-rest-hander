@@ -370,7 +370,6 @@
                         allChannels.map(e => {
                             const data = {
                                 number: e.decorations.channelNumber,
-                                id: null,
                                 channelGuid: e.entity.id,
                                 name: e.entity.texts.title.default,
                                 description: e.entity.texts.description.default,
