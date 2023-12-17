@@ -1,6 +1,6 @@
 (async () => {
     let config = require('./config.json')
-    let cookies = require("./cookie.json");
+    let auth = require("./auth.json");
     const moment = require('moment');
     const fs = require('fs');
     const path = require("path");
@@ -153,31 +153,238 @@
         channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
     }
 
+    // SiriusXM OAuth 2.0 Flow=
+    const defaultHeaders = {
+        'Accept': 'application/json; charset=utf-8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Baggage': 'sentry-environment=prod,sentry-release=release-sxm-player-7.0',
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Dnt': '1',
+        'Origin': 'https://www.siriusxm.com',
+        'Referer': 'https://www.siriusxm.com/',
+        'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Microsoft Edge";v="120"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"macOS"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0',
+        'X-Sxm-Clock': '[0,0]',
+        'X-Sxm-Platform': 'browser',
+        'X-Sxm-Tenant': 'sxm',
+    };
+    let deviceSession = null;
+    let accountSession = null;
+
+    // Prepare Device
+    async function generateDevice() {
+        deviceSession = await new Promise(resolve => {
+            const deviceGen = `https://api.edge-gateway.siriusxm.com/device/v1/devices`
+            request.post({
+                url: deviceGen,
+                headers: {
+                    ...defaultHeaders
+                },
+                json: {
+                    "devicePlatform": "web-desktop",
+                    "deviceAttributes": {
+                        "browser": {
+                            "browserVersion":"120.0.0.0",
+                            "browser":"Edge",
+                            "userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+                            "sdk":"web",
+                            "app":"web",
+                            "sdkVersion":"120.0.0.0",
+                            "appVersion":"120.0.0.0"
+                        }
+                    }
+                }
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Device Data");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        return deviceSession.grant
+    }
+    // Prepare Anonymous Session
+    async function generateAnonymousSession() {
+        accountSession = await new Promise(resolve => {
+            const deviceGen = `https://api.edge-gateway.siriusxm.com/session/v1/sessions/anonymous`
+            request.post({
+                url: deviceGen,
+                headers: {
+                    ...defaultHeaders,
+                    "Authorization": `Bearer ${deviceSession.grant}`
+                },
+                json: true
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Anonymous Session Data");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        return accountSession
+    }
+    // Get Account Auth Types
+    async function queryAccount() {
+        const accountQuery = await new Promise(resolve => {
+            const deviceGen = `https://api.edge-gateway.siriusxm.com/identity/v1/identities/status?handle=${auth.username}`
+            request.get({
+                url: deviceGen,
+                headers: {
+                    ...defaultHeaders,
+                    "Authorization": `Bearer ${accountSession.accessToken}`
+                },
+                json: true
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Account Data");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        return accountQuery;
+    }
+    // Login with Password
+    async function passwordLogin() {
+        accountSession = await new Promise(resolve => {
+            const deviceGen = `https://api.edge-gateway.siriusxm.com/identity/v1/identities/authenticate/password`
+            request.post({
+                url: deviceGen,
+                headers: {
+                    ...defaultHeaders,
+                    "Authorization": `Bearer ${accountSession.accessToken}`
+                },
+                json: {
+                    handle: auth.username,
+                    password: auth.password
+                }
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Logon Respose");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        return accountSession
+    }
+    // Login with Password
+    async function finalizeLogin() {
+        accountSession = await new Promise(resolve => {
+            const deviceGen = `https://api.edge-gateway.siriusxm.com/session/v1/sessions/authenticated`
+            request.post({
+                url: deviceGen,
+                headers: {
+                    ...defaultHeaders,
+                    "Authorization": `Bearer ${accountSession.grant}`
+                },
+                json: true
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Logon Respose");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        return accountSession
+    }
+    // Login Flow to Full Bearer
+    async function loginToAccount() {
+        const _device = await generateDevice();
+        if (!_device) {
+            return false;
+        }
+        const _anon = await generateAnonymousSession();
+        if (!_anon) {
+            return false;
+        }
+        const _account = await queryAccount();
+        if (!_account.hasPassword) {
+            return false;
+        }
+        const _password = await passwordLogin();
+        if (!_password) {
+            return false;
+        }
+        return await finalizeLogin();
+    }
+
     // Metadata Retrieval and Parsing
 
+    // Query Search Results
+    const allChannelsEntity = ''
+    async function searchResults(entity) {
+        // https://api.edge-gateway.siriusxm.com/relationship/v1/container/all-channels?useCuratedContext=false&entityType=curated-grouping&entityId=403ab6a5-d3c9-4c2a-a722-a94a6a5fd056&offset=0&size=100&setStyle=small_list
+        const c = await new Promise(resolve => {
+            const searchURL = `https://api.edge-gateway.siriusxm.com/relationship/v1/container/all-channels?useCuratedContext=false&entityType=curated-grouping&entityId=${entity}&offset=0&size=1000&setStyle=small_list`
+            request.get({
+                url: searchURL,
+                headers: {
+                    ...defaultHeaders,
+                    "Authorization": `Bearer ${accountSession.accessToken}`
+                },
+                json: true
+            }, async function (err, res, body) {
+                if (err) {
+                    console.error(err.message);
+                    console.error("FAULT Getting Logon Respose");
+                    resolve(false);
+                } else {
+                    resolve(body);
+                }
+            })
+        })
+        console.log(c)
+        if (c && c.container && c.container.sets && c.container.sets.length === 1)
+            return c.container.sets[0].items.filter(e => e.decorations.unentitled === false);
+        return false;
+    }
     // Get All Metadata For Channels
+    // 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/'
+    // {"key":"aem/d5/d54196330c8019cd91015f71ddd899c5_1699375386.jpeg","edits":[{"format":{"type":"jpeg"}},{"resize":{"width":600,"height":600}}]}
     async function initializeChannels() {
-        // https://player.siriusxm.com/rest/v4/experience/carousels?page-name=channels_all&result-template=everest%7Cweb&cacheBuster=1649613776453
         try {
-            function parseJson(_json) {
+            const allChannels = await searchResults(allChannelsEntity);
+            function parseJson() {
                 try {
                     // Check if messages and successful response
-                    if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
+                    if (allChannels.length > 0) {
                         let chItems = {}
-                        _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['carousel'][0]['carouselTiles'].filter(e => e['tileContentType'] === 'channel').map(e => {
+                        allChannels.map(e => {
                             const data = {
-                                number: e['tileMarkup']['tileText'].filter(f => f['textValue'] && f['textValue'].startsWith('Ch '))[0]['textValue'].slice(3),
-                                id: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelId').map(f => f['assetInfoValue'])[0],
-                                name: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'channelName').map(f => f['assetInfoValue'])[0],
-                                description: e['tileMarkup']['tileText'].filter(f => f['textClass'] === 'line3' && f['textValue']).map(f => f['textValue'])[0],
-                                color: e['tileAssetInfo'].filter(f => f['assetInfoKey'] === 'backgroundColor').map(f => f['assetInfoValue'])[0] || e['tileMarkup']['backgroundColor'],
-                                image: e['tileMarkup']['tileImage'].filter(f => f['imageLink']).map(f => 'http://siriusxm-art-dd.akamaized.net' +  f['imageLink'].slice(7))[0],
+                                number: e.decorations.channelNumber,
+                                id: null,
+                                channelGuid: e.entity.id,
+                                name: e.entity.texts.title.default,
+                                description: e.entity.texts.description.default,
+                                color: e.decorations.hexcode.dark,
+                                image: e.entity.images.tile.aspect_1x1.default.url,
+                                lookaround: e.decorations.lookaroundChannelId,
                             }
                             chItems[data.number] = data
                         })
                         return chItems
                     } else {
-                        console.log("FAULT: XM did not give a valid API response for initialise data");
+                        console.log("FAULT: Did not get any Entitled channels");
                         return false;
                     }
                 } catch (e) {
@@ -186,37 +393,8 @@
                     return false;
                 }
             }
-            const init_metadata = await new Promise(resolve => {
-                const refreshURL = `https://player.siriusxm.com/rest/v4/experience/carousels?page-name=channels_all&result-template=everest%7Cweb&cacheBuster=${Date.now()}`
-                request.get({
-                    url: refreshURL,
-                    headers: {
-                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                        'accept-language': 'en-US,en;q=0.9',
-                        'cache-control': 'max-age=0',
-                        'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
-                        'sec-ch-ua-mobile': '?0',
-                        'sec-fetch-dest': 'document',
-                        'sec-fetch-mode': 'navigate',
-                        'sec-fetch-site': 'none',
-                        'sec-fetch-user': '?1',
-                        'referer': "https://player.siriusxm.com/all-channels",
-                        'upgrade-insecure-requests': '1',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
-                        'cookie': cookies.authenticate
-                    },
-                }, async function (err, res, body) {
-                    if (err) {
-                        console.error(err.message);
-                        console.error("FAULT Getting Response Data");
-                        resolve(false);
-                    } else {
-                        resolve(parseJson(JSON.parse(body)));
-                    }
-                })
-            })
-            if (init_metadata) {
-                channelsAvailable = init_metadata;
+            if (allChannels) {
+                channelsAvailable = parseJson();
                 console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
                 return true
             } else {
@@ -236,41 +414,40 @@
             function parseJson(_json) {
                 try {
                     // Check if messages and successful response
-                    if (_json['ModuleListResponse']['messages'].length > 0 && _json['ModuleListResponse']['messages'][0]['message'].toLowerCase() === 'successful') {
-                        const json = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['markerLists'].filter(e => e['layer'] === 'cut')[0]['markers']
-                        const delay = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['liveDelay']
+                    if (_json.episodes && _json.items) {
+                        const delay = 0;
                         // For each track that is longer then 65 Seconds
-                        let items = json.filter(e => (parseInt(e.duration.toString()) >= 65 || !e.duration)).map(e => {
+                        let items = _json.items.filter(e => (parseInt(e.duration.toString()) >= (65 * 1000) || !e.duration)).map(e => {
                             // Get localized timecode
-                            const time = moment(e['time'])
+                            const time = moment(e['timestamp'])
                             // Format to Lizumi Meta Format v2
                             return {
-                                guid: e.assetGUID,
+                                guid: e.id,
                                 syncStart: time.valueOf(),
-                                syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
-                                duration: parseInt(e.duration.toString()),
+                                syncEnd: time.add((parseInt(e.duration.toString()) / 1000), "seconds").valueOf(),
+                                duration: (parseInt(e.duration.toString()) / 1000),
                                 delay,
 
-                                title: e.cut.title,
-                                artist: e.cut.artists.map(f => f.name).join('/'),
-                                album: (e.cut.album) ? e.cut.album.title : undefined,
-                                isSong: (e.cut.cutContentType === "Song"),
+                                title: e.name,
+                                artist: e.artistName,
+                                album: (e.albumName) ? e.albumName : undefined,
+                                isSong: ((parseInt(e.duration.toString()) / 1000) <= 900),
                                 isEpisode: false
                             }
                         })
                         // Append Missing Episodes that are not registering as cuts
-                        const episodes = _json['ModuleListResponse']['moduleList']['modules'][0]['moduleResponse']['liveChannelData']['markerLists'].filter(e => e['layer'] === 'episode')[0]['markers'].filter(e => !e['episode']['show']['isPlaceholderShow'] && !(items.filter(f => !f.isSong)[findClosest(items.filter(f => !f.isSong).map(f => f.syncStart), e.time - 60000)] && e.time - items.filter(f => !f.isSong)[findClosest(items.filter(f => !f.isSong).map(f => f.syncStart), e.time - 60000)].syncStart < 900000))
+                        const episodes = _json.episodes.filter(e => !(items.filter(f => !f.isSong)[findClosest(items.filter(f => !f.isSong).map(f => f.syncStart), (moment(e['startTimestamp']).valueOf()) - 60000)] && (moment(e['startTimestamp']).valueOf()) - items.filter(f => !f.isSong)[findClosest(items.filter(f => !f.isSong).map(f => f.syncStart), (moment(e['startTimestamp']).valueOf()) - 60000)].syncStart < 900000))
                         if (episodes.length > 0) {
                             items.push(...episodes.map(e => {
-                                const time = moment(e['time'])
+                                const time = moment(e['startTimestamp'])
                                 return {
-                                    guid: e.assetGUID,
+                                    guid: e.id,
                                     syncStart: time.valueOf(),
-                                    syncEnd: time.add(parseInt(e.duration.toString()), "seconds").valueOf(),
-                                    duration: parseInt(e.duration.toString()),
+                                    syncEnd: time.add((parseInt(e.duration.toString()) / 1000), "seconds").valueOf(),
+                                    duration: (parseInt(e.duration.toString()) / 1000),
                                     delay,
 
-                                    title: e['episode']['longTitle'],
+                                    title: e.name,
                                     isSong: false,
                                     isEpisode: true
                                 }
@@ -295,36 +472,28 @@
                 try {
                     const id = (channelInfo.id) ? channelInfo.id : channelInfo.number
                     const channel_metadata = await new Promise(resolve => {
-                        const timestamp = new moment().utc().subtract(8, "hours").valueOf()
-                        const channelURL = `https://player.siriusxm.com/rest/v4/experience/modules/tune/now-playing-live?channelId=${(channelInfo.id) ? channelInfo.id : channelInfo.number}&adsEligible=true&hls_output_mode=none&fbSXMBroadcast=false&marker_mode=all_separate_cue_points&ccRequestType=AUDIO_VIDEO&result-template=radio&time=${timestamp}`
-                        //console.log(`Load Channel Data: ${channelURL}`);
-                        request.get({
+                        const timestamp = new moment().utc().subtract(8, "hours")
+                        const channelURL = `https://api.edge-gateway.siriusxm.com/playback/play/v1/liveUpdate`
+                        request.post({
                             url: channelURL,
                             headers: {
-                                'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-                                'accept-language': 'en-US,en;q=0.9',
-                                'cache-control': 'max-age=0',
-                                'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Microsoft Edge";v="92"',
-                                'sec-ch-ua-mobile': '?0',
-                                'sec-fetch-dest': 'document',
-                                'sec-fetch-mode': 'navigate',
-                                'sec-fetch-site': 'none',
-                                'sec-fetch-user': '?1',
-                                'referer': "https://player.siriusxm.com/now-playing",
-                                'upgrade-insecure-requests': '1',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
-                                'cookie': cookies.authenticate
+                                ...defaultHeaders,
+                                "Authorization": `Bearer ${accountSession.accessToken}`
                             },
+                            json: {
+                                channelId: channelInfo.channelGuid,
+                                endTimestamp: timestamp.toISOString(),
+                                startTimestamp: (new moment().utc()).toISOString()
+                            }
                         }, async function (err, res, body) {
                             if (err) {
                                 console.error(err.message);
                                 console.error(`FAULT Updating metadata for channel ${channelInfo.number}`);
                                 resolve(false);
                             } else {
-                                await sleep(2000);
+                                await sleep(1000);
                                 try {
-                                    const resJSON = JSON.parse(body)
-                                    resolve(parseJson(resJSON));
+                                    resolve(parseJson(body));
                                 } catch (e) {
                                     console.log(body);
                                     resolve(false);
@@ -2976,9 +3145,15 @@
         }
     })
 
-    if (!cookies.authenticate) {
+    if (!auth.username || !auth.password) {
         console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
     } else {
+        if (!(await loginToAccount())) {
+            console.error(`Failed to login to SXM!`);
+            process.exit(0);
+        } else {
+            console.log(accountSession);
+        }
         await adbCommand(undefined, ["kill-server"])
         if (config.remote_connections) {
             console.log(`Connecting to remote android device/workstation(s) now!`)
@@ -3055,8 +3230,26 @@
         for (let k of Object.keys(channelsAvailable)) {
             if (channelsAvailable[k].image) {
                 const image = await new Promise(resolve => {
+                    let url = 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/';
+                    let reqImage = {
+                        "key": channelsAvailable[k].image,
+                        "edits":[
+                            {
+                                "format":{
+                                    "type":"jpeg"
+                                }
+                            },
+                            {
+                                "resize":{
+                                    "width":600,
+                                    "height":600
+                                }
+                            }
+                        ]
+                    }
+                    url += (JSON.stringify(reqImage)).toString('base64');
                     request.get({
-                        url: channelsAvailable[k].image,
+                        url,
                         headers: {
                             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
                             'accept-language': 'en-US,en;q=0.9',
@@ -3067,7 +3260,7 @@
                             'sec-fetch-mode': 'navigate',
                             'sec-fetch-site': 'none',
                             'sec-fetch-user': '?1',
-                            'referer': "https://player.siriusxm.com/",
+                            'referer': "https://siriusxm.com/",
                             'upgrade-insecure-requests': '1',
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36 Edg/92.0.902.73',
                             'cookie': cookies.authenticate
