@@ -327,6 +327,23 @@
         }
         return await finalizeLogin();
     }
+    async function checkLogin() {
+        if (moment(accountSession.accessTokenExpiresAt).valueOf() - Date.now() <= 300000) {
+            const _anon = await generateAnonymousSession();
+            if (!_anon) {
+                return false;
+            }
+            const _account = await queryAccount();
+            if (!_account.hasPassword) {
+                return false;
+            }
+            const _password = await passwordLogin();
+            if (!_password) {
+                return false;
+            }
+            return await finalizeLogin();
+        }
+    }
 
     // Metadata Retrieval and Parsing
 
@@ -3281,5 +3298,7 @@
             }
         }
         console.log("Images Loaded OK")
+
+        setInterval(checkLogin, 60000)
     }
 })()
