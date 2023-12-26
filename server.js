@@ -2222,8 +2222,8 @@
             while (!tuneReady) {
                 k++
                 await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
-                const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/sxmp.app.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
-                if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/sxmp.app.welcome.WelcomeActivity (has extras) }')) {
+                const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'sxmp.app.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
+                if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=sxmp.app.welcome.WelcomeActivity (has extras) }')) {
                     let i = -1;
                     while (!tuneReady) {
                         i++
