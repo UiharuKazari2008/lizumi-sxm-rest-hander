@@ -379,7 +379,6 @@
     async function initializeChannels() {
         try {
             const allChannels = await searchResults(allChannelsEntity);
-            console.log(allChannels)
             function parseJson() {
                 try {
                     // Check if messages and successful response
