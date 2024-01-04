@@ -386,13 +386,21 @@
                     if (allChannels.length > 0) {
                         let chItems = {}
                         allChannels.map(e => {
+                            let image = undefined;
+                            if (e.entity.images.logo) {
+                                const k = Object.keys(e.entity.images.logo)[0];
+                                image = e.entity.images.logo[k].default.url;
+                            } else if (e.entity.images.tile) {
+                                const k = Object.keys(e.entity.images.tile).pop();
+                                image = e.entity.images.tile[k].default.url;
+                            }
                             const data = {
                                 number: e.decorations.channelNumber.toString(),
                                 channelGuid: e.entity.id,
                                 name: e.entity.texts.title.default,
                                 description: e.entity.texts.description.default,
                                 color: e.decorations.hexcode.dark,
-                                image: e.entity.images.tile.aspect_1x1.default.url,
+                                image,
                                 lookaround: e.decorations.lookaroundChannelId,
                             }
                             chItems[data.number] = data
