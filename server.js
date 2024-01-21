@@ -3038,7 +3038,7 @@
                             description: e.description,
                             color: null,
                             imageUrl: null,
-                            image: channelsImages[e.id],
+                            image: null,
                             supportedDevices
                         }
                     }))
@@ -3099,7 +3099,7 @@
                                         description: ch.description,
                                         color: null,
                                         imageUrl: null,
-                                        image: channelsImages[ch.id],
+                                        image: null,
                                     }
                                 }
                                 if (!meta)
@@ -3112,7 +3112,7 @@
                                     description: ch.description,
                                     color: null,
                                     imageUrl: null,
-                                    image: channelsImages[ch.id]
+                                    image: null
                                 }
                             })(),
                             digital: e.digital,
@@ -3249,7 +3249,7 @@
 
         inflateRoomConfig();
 
-        for (let k of Object.keys(channelsAvailable)) {
+        /*for (let k of Object.keys(channelsAvailable)) {
             // 'https://imgsrv-sxm-prod-device.streaming.siriusxm.com/'
             // {"key":"aem/d5/d54196330c8019cd91015f71ddd899c5_1699375386.jpeg","edits":[{"format":{"type":"jpeg"}},{"resize":{"width":600,"height":600}}]}
             if (channelsAvailable[k].image) {
@@ -3305,7 +3305,7 @@
                 }
             }
         }
-        console.log("Images Loaded OK")
+        console.log("Images Loaded OK")*/
 
         setInterval(checkLogin, 60000)
     }
