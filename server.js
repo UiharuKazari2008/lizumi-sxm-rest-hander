@@ -3036,8 +3036,8 @@
                             name: e.name,
                             id: e.id,
                             description: e.description,
-                            color: e.color,
-                            imageUrl: e.image,
+                            color: null,
+                            imageUrl: null,
                             image: channelsImages[e.id],
                             supportedDevices
                         }
@@ -3097,8 +3097,8 @@
                                         name: ch.name,
                                         number: ch.number,
                                         description: ch.description,
-                                        color: ch.color,
-                                        imageUrl: ch.image,
+                                        color: null,
+                                        imageUrl: null,
                                         image: channelsImages[ch.id],
                                     }
                                 }
@@ -3110,8 +3110,8 @@
                                     name: ch.name,
                                     number: ch.number,
                                     description: ch.description,
-                                    color: ch.color,
-                                    imageUrl: ch.image,
+                                    color: null,
+                                    imageUrl: null,
                                     image: channelsImages[ch.id]
                                 }
                             })(),
