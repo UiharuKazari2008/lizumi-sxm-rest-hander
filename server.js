@@ -1779,6 +1779,7 @@
             return true
         } else {
             console.error(`Record/${q.slice(4)}: Unable to start the job queue because the tuner is locked!`)
+            sendDiscord('error', 'SiriusXM', `❌ Unable to start the job queue because the tuner is locked!`)
         }
     }
 
