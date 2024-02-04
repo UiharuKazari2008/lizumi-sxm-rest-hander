@@ -3183,7 +3183,6 @@
                                 return `${ch.number} - ${ch.name}`
                             })(),
                             state: (e.airfoil_source && e.airfoil_source.name === activeSource) ? "Active" : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? 'Recording (' + jobQueue[activeJob[0].queue].length + ')' : (e.locked) ? "Locked" : "Standby",
-                            percent,
                             nowPlaying: (() => {
                                 if (!channelMeta)
                                     return "---"
@@ -3192,7 +3191,10 @@
                                     list.push(channelMeta.artist)
                                 if (channelMeta.title)
                                     list.push(channelMeta.title)
-                                return list.join(' - ')
+                                let text = list.join(' - ');
+                                if (percent > 0)
+                                    text += ` (${percent.toFixed()}%)`
+                                return text
                             })()
                         }
                     })
