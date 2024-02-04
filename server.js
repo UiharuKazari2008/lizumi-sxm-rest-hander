@@ -3155,6 +3155,48 @@
                     })
                     res.json({tuners, inputs});
                     break;
+                case 'homepage':
+                    const tunerList = listTuners().map(e => {
+                        const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
+                        const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
+                        const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
+                        const percent = (() => {
+                            if (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid && channelMeta && channelMeta.duration && channelMeta.duration > 1) {
+                                return (Math.abs(Date.now() - watchdog_tuners[e.id].player_start) / (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000))) * 100
+                            }
+                            if (activeJob.length > 0 && channelMeta && channelMeta.duration && channelMeta.duration > 1) {
+                                return (Math.abs(Date.now() - activeJob[0].start) / (channelMeta.duration && (parseInt(channelMeta.duration.toString()) * 1000) + (((channelMeta.isEpisode) ? 300 : 10) * 1000))) * 100
+                            }
+                        })()
+                        return {
+                            id: e.id,
+                            name: e.name,
+                            channel: (() => {
+                                if (channelMeta.channelId) {
+                                    const ch = getChannelbyId(channelMeta.channelId)
+                                    return `${ch.number} - ${ch.name}`
+                                }
+                                if (!meta)
+                                    return "---"
+                                const ch = getChannelbyId(e.activeCh.ch)
+                                return `${ch.number} - ${ch.name}`
+                            })(),
+                            state: (e.airfoil_source && e.airfoil_source.name === source) ? "Active" : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? 'Recording (' + jobQueue[activeJob[0].queue].length + ')' : (e.locked) ? "Locked" : "Standby",
+                            percent,
+                            nowPlaying: (() => {
+                                if (!channelMeta)
+                                    return "---"
+                                let list = [];
+                                if (channelMeta.artist)
+                                    list.push(channelMeta.artist)
+                                if (channelMeta.title)
+                                    list.push(channelMeta.title)
+                                return list.join(' - ')
+                            })()
+                        }
+                    })
+                    res.json(tunerList);
+                    break;
                 case 'config':
                     res.status(200).json(config)
                     break;
