@@ -3156,6 +3156,7 @@
                     res.json({tuners, inputs});
                     break;
                 case 'homepage':
+                    const activeSource = await getAirOutput()
                     const tunerList = listTuners().map(e => {
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
@@ -3181,7 +3182,7 @@
                                 const ch = getChannelbyId(e.activeCh.ch)
                                 return `${ch.number} - ${ch.name}`
                             })(),
-                            state: (e.airfoil_source && e.airfoil_source.name === source) ? "Active" : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? 'Recording (' + jobQueue[activeJob[0].queue].length + ')' : (e.locked) ? "Locked" : "Standby",
+                            state: (e.airfoil_source && e.airfoil_source.name === activeSource) ? "Active" : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? 'Recording (' + jobQueue[activeJob[0].queue].length + ')' : (e.locked) ? "Locked" : "Standby",
                             percent,
                             nowPlaying: (() => {
                                 if (!channelMeta)
