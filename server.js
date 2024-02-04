@@ -3157,7 +3157,7 @@
                     break;
                 case 'homepage':
                     const activeSource = await getAirOutput()
-                    const tunerList = getTuner(req.query.device).map(e => {
+                    const tunerList = [getTuner(req.query.device)].map(e => {
                         const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
                         const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
                         const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
@@ -3199,7 +3199,7 @@
                             })()
                         }
                     })
-                    res.json(tunerList);
+                    res.json(tunerList[0]);
                     break;
                 case 'config':
                     res.status(200).json(config)
