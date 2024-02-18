@@ -1192,9 +1192,15 @@
                                 if (f.isEpisode) {
                                     return `${cleanText(f.title)}`
                                 } else if (f.isSong) {
-                                    return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                    if (f.artist) {
+                                        return `${cleanText(f.artist)} - ${cleanText(f.title)}`
+                                    }
+                                    return `${cleanText(f.title)}`
                                 } else {
-                                    return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                    if (f.artist) {
+                                        return `${cleanText(f.title)} - ${cleanText(f.artist)}`
+                                    }
+                                    return `${cleanText(f.title)}`
                                 }
                             })()
                         }
