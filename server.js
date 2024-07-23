@@ -436,7 +436,6 @@
             function parseJson(_json) {
                 try {
                     // Check if messages and successful response
-                    console.log(_json);
                     if (_json.episodes && _json.items) {
                         const delay = 0;
                         // For each track that is longer then 65 Seconds
@@ -480,6 +479,7 @@
                         return items
                     } else {
                         console.log("FAULT: XM did not give a valid API response");
+                        fs.writeFileSync("./lastFailedResponse.dat", _json);
                         return false;
                     }
                 } catch (e) {
@@ -516,7 +516,7 @@
                             } else {
                                 await sleep(1000);
                                 try {
-                                    resolve(parseJson(body.toString()));
+                                    resolve(parseJson(body));
                                 } catch (e) {
                                     console.log(body);
                                     resolve(false);
