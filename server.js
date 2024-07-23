@@ -516,7 +516,7 @@
                             } else {
                                 await sleep(1000);
                                 try {
-                                    resolve(parseJson(body));
+                                    resolve(parseJson(body.toString()));
                                 } catch (e) {
                                     console.log(body);
                                     resolve(false);
