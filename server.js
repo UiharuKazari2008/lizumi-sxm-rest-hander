@@ -156,7 +156,6 @@
     // SiriusXM OAuth 2.0 Flow=
     const defaultHeaders = {
         'Accept': 'application/json; charset=utf-8',
-        'Accept-Encoding': 'gzip, deflate, br',
         'Accept-Language': 'en-US,en;q=0.9',
         'Baggage': 'sentry-environment=prod,sentry-release=release-sxm-player-7.0',
         'Content-Type': 'application/json; charset=UTF-8',
@@ -479,7 +478,6 @@
                         return items
                     } else {
                         console.log("FAULT: XM did not give a valid API response");
-                        fs.writeFileSync("./lastFailedResponse.dat", _json);
                         return false;
                     }
                 } catch (e) {
