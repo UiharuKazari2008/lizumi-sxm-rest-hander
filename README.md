@@ -65,8 +65,17 @@ Your device must be running Android 10+
 ### Software Configuration
 1. Install NodeJS and PM2
 2. `git clone https://github.com/UiharuKazari2008/lizumi-sxm-rest-hander`
-3. Setup Configuration File (below)
+3. Setup Configuration and Auth File (below)
 4. `pm2 start server.js`
+
+### Authentication File
+Your account login to SiriusXM, This uses the new OAuth2 Login proccess that was enforced a while ago. Very much loved cause it makes things much simpler then the cookie way. 
+```json
+{
+  "username": "",
+  "password": ""
+}
+```
 
 ### Configuration File
 |key|value|description|
