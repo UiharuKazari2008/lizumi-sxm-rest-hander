@@ -1,9 +1,15 @@
 # SXM Commander Server for SiriusXM
-Seriously Commander is a SiriusXM (SXM) Radio Automation and Recorder system designed to make life easier.
+Device Manager and Automated Recorder for SiriusXM.
 
-#NOTICE
+![image](https://github.com/user-attachments/assets/3af0c012-afe1-4bf8-abc2-eb9e831bb7b5)
+
+
+# NOTICE
 This is very early in a public release things may break or not work and may not be happy with any configuration errors<br>
 The project name on github will be updated in due time
+
+## Possible issue in future
+Currently the previous android app is in use to record and play audio, the newer version of the app has been obvusated from easy decompiling (doable just not in my score of care). What i do need is the santax for the new notification intent to launch the app to the channel and timecode so if you find it open a issue 
 
 ## Features
 * Allows remote tuning of radio from API
