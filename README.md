@@ -53,14 +53,35 @@ NOTE: Your method for setting the channels on the radios via IR is currently not
    4. If you want to use ffmpeg (have fun on mac) or something else then thats still out of scope at this time
 
 #### Digital Radios
-I currently use and recommend the TCL A3 phone as a good baseline device as its $40 (at this time) and is not something you would feel bad dedicated to to this task<br>
+![image](https://github.com/user-attachments/assets/f2a4ad2a-e65b-421b-9423-27ae33da9fce)
+
+I currently use the AVD thats part of the android SDK(Android Studio), i used to recommend the TCL A3 phone as a good baseline device as its $40 (at this time) but the batteries will expand and destroy the phone after a year...<br>
 Your device must be running Android 10+
 1. Disable all apps and system apps that are not required
 2. Enable Do Not Disturb mode
 3. Mute all system sounds and notifications
-4. Connect device via USB
+4. Connect device via USB or if emulator connect via network if remotely
 5. Install the SiriusXM App
 6. Login and verify its functionality
+
+##### Startup Scrupt for Emulators on Mac
+```shell
+killall socat
+/Users/kazari/Library/Android/sdk/emulator/emulator -list-avds
+echo "Starting Recorder 1..."
+nohup /Users/kazari/Library/Android/sdk/emulator/emulator -avd Lizumi-Recorder-1 -noaudio -no-snapshot -port 5670 &
+sleep 5
+echo "Opening Ports..."
+nohup socat TCP-LISTEN:5670,fork,reuseaddr TCP4:127.0.0.1:5670 &
+nohup socat TCP-LISTEN:5671,fork,reuseaddr TCP4:127.0.0.1:5671 &
+sleep 30
+echo "Starting Recorder 2..."
+nohup /Users/kazari/Library/Android/sdk/emulator/emulator -avd Lizumi-Recorder-2 -no-snapshot -port 5672 &
+sleep 5
+echo "Opening Ports..."
+nohup socat TCP-LISTEN:5672,fork,reuseaddr TCP4:127.0.0.1:5672 &
+nohup socat TCP-LISTEN:5673,fork,reuseaddr TCP4:127.0.0.1:5673 &
+```
 
 ### Software Configuration
 1. Install NodeJS and PM2
