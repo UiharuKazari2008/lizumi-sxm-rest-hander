@@ -1,6 +1,188 @@
 (async () => {
     let config = require('./config.json')
+    // {
+    //   "record_dir": "/Users/kaz/Music/SiriusXM/",
+    //   "upload_dir": "/Users/kaz/Workspace/kanmi/upload/Recordings/",
+    //   "extract_format": "mp3",
+    //   "notifications": {
+    //     "alert": "https://discord.com/api/webhooks/xxx/xxxx",
+    //     "info": "https://discord.com/api/webhooks/xxx/xxxx",
+    //     "error": "https://discord.com/api/webhooks/xxx/xxxx"
+    //   },
+    //   "schedule": {
+    //     "Evening": {
+    //       "tune_cron": "00 18 * * *",
+    //       "ch": "53",
+    //       "switch_source": true
+    //     },
+    //     "Day": {
+    //       "tune_cron": "00 08 * * *",
+    //       "ch": "52",
+    //       "switch_source": true
+    //     },
+    //     "MidDay": {
+    //       "tune_cron": "00 15 * * *",
+    //       "ch": "736",
+    //       "switch_source": true
+    //     },
+    //     "Friday": {
+    //       "tune_cron": "00 16 * * 5",
+    //       "ch": "53",
+    //       "switch_source": true
+    //     }
+    //   },
+    //   "autosearch_terms": [
+    //     {
+    //       "search": "Wavelength",
+    //       "channel": 53,
+    //       "switch_source": false,
+    //       "allow_live": true,
+    //       "tuneToChannel": true,
+    //       "notify": true,
+    //       "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    //     },
+    //     {
+    //       "search": "PhoenixRadio",
+    //       "channel": 53,
+    //       "dayOfWeek": "Mon",
+    //       "switch_source": false,
+    //       "allow_live": true,
+    //       "tuneToChannel": true
+    //     }
+    //   ],
+    //   "satellite_radios": {
+    //     "sat": {
+    //       "priority": 11,
+    //       "name": "Satellite",
+    //       "lock_on_events": true,
+    //       "record_prefix": "SXM_SAT1_",
+    //       "record_date_format": "YYYYMMDD-HHmmss",
+    //       "airfoil_source": {
+    //         "name": "SiriusXM Satellite Radio",
+    //         "conditions": ["tune","record"]
+    //       }
+    //     }
+    //   },
+    //   "live_extract": false,
+    //   "adb_command": "/Users/kaz/android-sdk-macosx/platform-tools/adb",
+    //   "remote_connections": [
+    //     "192.168.100.00:5671",
+    //     "192.168.100.00:5673"
+    //   ],
+    //   "digital_radios": {
+    //     "stream-1": {
+    //       "priority": 1,
+    //       "serial": "192.168.100.00:5671",
+    //       "name": "Digital 1",
+    //       "record_only": true,
+    //       "stop_after_record": true,
+    //       "airfoil_source": false
+    //     },
+    //     "stream-2": {
+    //       "priority": 2,
+    //       "serial": "192.168.100.00:5673",
+    //       "name": "Digital 2",
+    //       "stop_after_record": true,
+    //       "airfoil_source": {
+    //         "name": "SiriusXM Digital Radio",
+    //         "conditions": ["tune","record"],
+    //         "return_source": "SiriusXM Satellite Radio"
+    //       }
+    //     }
+    //   },
+    //   "audio_inputs": {
+    //     "minidisc": {
+    //       "name": "MiniDisc Recorder",
+    //       "airfoil_source": {
+    //         "name": "MiniDisc Deck"
+    //       },
+    //       "always_active": true,
+    //       "actions": {
+    //         "power" : "http://192.168.100.00:3001/button-minidisc-controller-1?event=single-press",
+    //         "play" : "http://192.168.100.00:3001/button-minidisc-controller-1?event=double-press",
+    //         "stop" : "http://192.168.100.00:3001/button-minidisc-controller-1?event=long-press",
+    //         "pause" : "http://192.168.100.00:3001/button-minidisc-controller-2?event=single-press",
+    //         "next" : "http://192.168.100.00:3001/button-minidisc-controller-2?event=double-press",
+    //         "prev" : "http://192.168.100.00:3001/button-minidisc-controller-2?event=long-press",
+    //         "repeat" : "http://192.168.100.00:3001/button-minidisc-controller-3?event=single-press",
+    //         "shuffle" : "http://192.168.100.00:3001/button-minidisc-controller-3?event=double-press",
+    //         "mscan" : "http://192.168.100.00:3001/button-minidisc-controller-3?event=long-press",
+    //         "record" : "http://192.168.100.00:3001/button-minidisc-controller-4?event=single-press",
+    //         "scroll" : "http://192.168.100.00:3001/button-minidisc-controller-4?event=double-press"
+    //       }
+    //     }
+    //   },
+    //   "rooms": {
+    //     "Bedroom": ["Bedroom HomePod", "[Display] Bedroom", "Bedroom TV", "Workstation PC"],
+    //     "Studio": ["[Display] Studio", "MacBook Pro"],
+    //     "Bathroom": ["Bathroom Speaker"]
+    //   },
+    //   "channels": {
+    //     "52": {
+    //       "id": "thebeat",
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck1?event=double-press"
+    //       }
+    //     },
+    //     "53": {
+    //       "id": "9472",
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck1?event=single-press"
+    //       }
+    //     },
+    //     "736": {
+    //       "id": "9527"
+    //     },
+    //     "55": {
+    //       "id": "chill",
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck1?event=long-press"
+    //       }
+    //     },
+    //     "10": {
+    //       "id": "8363",
+    //       "updateOnTune": true,
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck2?event=single-press"
+    //       }
+    //     },
+    //     "11": {
+    //       "id": "9556",
+    //       "updateOnTune": true,
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck2?event=double-press"
+    //       }
+    //     },
+    //     "99": {
+    //       "id": "rawdog",
+    //       "updateOnTune": true,
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck2?event=long-press"
+    //       }
+    //     },
+    //     "704": {
+    //       "updateOnTune": true,
+    //       "tuneUrl": {
+    //         "sat": "http://192.168.100.00:3001/button-streamdeck5?event=single-press"
+    //       }
+    //     },
+    //     "46": {"updateOnTune": true},
+    //     "2": {"updateOnTune": true},
+    //     "341": {},
+    //     "735": {
+    //        "id": "9526"
+    //     },
+    //     "5": {"updateOnTune": true}
+    //   },
+    //   "ignoredWords": [],
+    //   "refreshMetadataInterval": 60000
+    // }
     let auth = require("./auth.json");
+    // {
+    //   "username": "",
+    //   "password": ""
+    // }
+
     const moment = require('moment');
     const fs = require('fs');
     const path = require("path");
@@ -16,6 +198,7 @@
     const stream = require('stream');
     const FormData = require('form-data');
     const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+    const { printLine } = require('./log');
 
     let metadata = {};
     let channelsAvailable = {};
@@ -153,7 +336,8 @@
         channelTimes = require(path.join(config.record_dir, `accesstimes.json`))
     }
 
-    // SiriusXM OAuth 2.0 Flow=
+    // SiriusXM OAuth 2.0 Flow
+    // Honestly this is pretty lit, no more cookies just login like normal! Thanks XM!
     const defaultHeaders = {
         'Accept': 'application/json; charset=utf-8',
         'Accept-Language': 'en-US,en;q=0.9',
@@ -201,8 +385,7 @@
                 }
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Device Data");
+                    printLine("XMAPIFetch", `Getting Device Data: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -224,8 +407,7 @@
                 json: true
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Anonymous Session Data");
+                    printLine("XMAPIFetch", `Getting Anonymous Session Data: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -247,8 +429,7 @@
                 json: true
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Account Data");
+                    printLine("XMAPIFetch", `Getting Account Data: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -273,8 +454,7 @@
                 }
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Logon Respose");
+                    printLine("XMAPIFetch", `Getting Login Response: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -296,8 +476,7 @@
                 json: true
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Logon Respose");
+                    printLine("XMAPIFetch", `Getting Login Response: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -361,8 +540,7 @@
                 json: true
             }, async function (err, res, body) {
                 if (err) {
-                    console.error(err.message);
-                    console.error("FAULT Getting Logon Respose");
+                    printLine("XMAPIFetch", `Getting Login Response: ${err.message}`, 'error');
                     resolve(false);
                 } else {
                     resolve(body);
@@ -405,30 +583,28 @@
                         })
                         return chItems
                     } else {
-                        console.log("FAULT: Did not get any Entitled channels");
+                        printLine("XMAPIFetch", ` Did not get any Entitled channels`, 'critical');
                         return false;
                     }
                 } catch (e) {
-                    console.error(`FAULT: Failed to parse initialization data!`)
-                    console.error(e);
+                    printLine("XMAPIFetch", `Failed to parse initialization data: ${e.message}`, 'error');
                     return false;
                 }
             }
             if (allChannels) {
                 channelsAvailable = parseJson();
-                console.log(`${Object.keys(channelsAvailable).length} Channels are Available`)
+                printLine("XMAPIFetch", `${Object.keys(channelsAvailable).length} Channels are Available`, 'debug');
                 return true
             } else {
-                console.error(`Failed to initialise the application base metadata from SiriusXM`)
+                printLine("XMAPIFetch", `Failed to initialise the application base metadata from SiriusXM`, 'critical');
                 return false
             }
         } catch (e) {
-            console.error(e);
-            console.error(`Failed to pull metadata`)
+            printLine("XMAPIFetch", `Failed to pull metadata: ${e.message}`, 'critical');
         }
     }
     // Update Metadata for Channels
-    // All Channels will be updated every minute unless "updateOnTune: true" is set
+    // All Channels will be updated every minute unless "updateOnTune: true" is set (2x slower than the real web app lol)
     // In that case the metadata is only pulled if the channel is active on a tunner
     async function updateMetadata() {
         try {
@@ -477,12 +653,11 @@
                         //const times = itemsSorted.map(e => e['syncStart'])
                         return items
                     } else {
-                        console.log("FAULT: XM did not give a valid API response");
+                        printLine("XMAPIFetch", `XM did not give a valid API response`, 'error');
                         return false;
                     }
                 } catch (e) {
-                    console.error(`FAULT: Failed to parse metadata!`)
-                    console.error(e);
+                    printLine("XMAPIFetch", `Failed to parse metadata: ${e.message}`, 'error');
                     return false;
                 }
             }
@@ -508,8 +683,7 @@
                             }
                         }, async function (err, res, body) {
                             if (err) {
-                                console.error(err.message);
-                                console.error(`FAULT Updating metadata for channel ${channelInfo.number}`);
+                                printLine("XMAPIFetch", `Failed updating metadata for channel ${channelInfo.number}: ${err.message}`, 'error');
                                 resolve(false);
                             } else {
                                 await sleep(1000);
@@ -558,8 +732,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error(e);
-                    console.error(`Failed to pull metadata`)
+                    printLine("XMAPIFetch", `Failed to pull metadata: ${e.message}`, 'error');
                 }
             }
             await cacheEventsValidated()
@@ -568,8 +741,7 @@
             await searchEvents();
             setTimeout(processPendingBounces, 2500);
         } catch (e) {
-            console.error(e);
-            console.error("FAULT Updating Metadata");
+            printLine("XMAPIFetch", `Failed Updating Metadata: ${e.message}`, 'error');
         }
     }
     // Sync metadata and timetables to disk
@@ -589,8 +761,7 @@
                 }
                 channelTimes.completed.splice(0, channelTimes.completed.length - 100)
             } catch (e) {
-                console.error(e);
-                console.error(`Fault saving metadata`);
+                printLine("Metadata", `Failed to save metadata: ${e.message}`, 'error');
             }
             resolve(null);
         })
@@ -637,7 +808,7 @@
                     }
                 })()
                 const ch = channels.channels[channels.ids.indexOf(t.activeCh.ch)]
-                console.log(`Now Playing: ${t.name}:${t.activeCh.ch} - ${eventText}`)
+                printLine("NowPlaying", `${t.name}:${t.activeCh.ch} - ${eventText}`, 'alert');
                 publishMetaIcecast(t, eventText, (ch.name) ? ch.name : "SiriusXM");
                 publishMetadataFile(t, n, (ch.name) ? ch.name : "SiriusXM");
             }
@@ -714,15 +885,14 @@
                 timeout: (noTimeout) ? undefined : 10000
             }, (err, stdout, stderr) => {
                 if (err) {
-                    console.error(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
-                    console.error(err)
+                    printLine("AndroidComm", `${stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n')}`, 'error');
                     resolve({
                         log: stdout.toString().split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== '').join('\n'),
                         error: true
                     })
                 } else {
                     if (stderr.toString().length > 1)
-                        console.error(stderr.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
+                        printLine("AndroidComm", `${stderr.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n')}`, 'error');
                     //console.log(stdout.toString().trim().split('\n').map(e => `${device}: ${e}`).join('\n'))
                     resolve({
                         log: stdout.toString().split('\n').map(e => e.trim()).filter(e => e.length > 0 && e !== '').join('\n'),
@@ -746,7 +916,7 @@
         })
         logWawtcher.stderr.on('data', (data) => {
             if (data.toString().includes('com.sirius' || 'com.rom1v.sndcpy')) {
-                console.error(`${device} : ${data}`)
+                printLine("AndroidLogcat", `${device} : ${data}`, 'error');
                 device_logs[device] += data.toString()
             }
         })
@@ -761,7 +931,7 @@
                 timeout: 1000
             }, (err, stdout, stderr) => {
                 if (err) {
-                    console.error(`${device.serial} : ${err.message}`)
+                    printLine("AndroidPlayState", `${device.serial} : ${err.message}`, 'error');
                     resolve(false)
                 } else {
                     const log = stdout.toString().split('\r').join('').split('\n')
@@ -810,7 +980,7 @@
                             await adbCommand(deviceScreenshot, ["shell", "rm", "/sdcard/screen.png"]);
                             resolve(`${deviceScreenshot}.png`);
                         } catch (err) {
-                            console.error(err);
+                            printLine("Discord", `${err.message}`, 'error');
                             resolve(false);
                         }
                     })
@@ -827,7 +997,7 @@
                             if (!err) {
                                 resolve(!err)
                             } else {
-                                console.error(err);
+                                printLine("Discord", `${err.message}`, 'error');
                                 resolve(false)
                             }
                             console.log(res.toString());
@@ -848,7 +1018,7 @@
                             if (!err) {
                                 resolve(!err)
                             } else {
-                                console.error(err);
+                                printLine("Discord", `${err.message}`, 'error');
                                 resolve(false)
                             }
                         })
@@ -860,8 +1030,7 @@
                 }
             }
         } catch (e) {
-            console.error(e)
-            console.error(`Failed to send discord message`)
+            printLine("Discord", `Failed to send discord message: ${e.message}`, 'error');
         }
     }
 
@@ -881,7 +1050,7 @@
                     image: channelsImages[channelsAvailable[e].id]
                 }
             } catch (err) {
-                console.error("Failed to load channel data", err)
+                printLine("ChannelData", `Failed to load channel data: ${err.message}`, 'error', channelsAvailable[e]);
                 console.error(e, channelsAvailable[e])
                 return false
             }
@@ -1330,12 +1499,12 @@
                 }
 
                 if (!thisEvent && pendingEvent.time && pendingEvent.time <= (Date.now() - (4 * 3600000))) {
-                    console.error(`Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`)
+                    printLine("PendingBounce", `Pending Request Expired: ${pendingEvent.time} was not found with in 4 hours`, 'notice', pendingEvent);
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                     sendDiscord('error', 'SiriusXM', `❌ The pending request from ${moment.utc(pendingEvent.time).local().format('MMM D HH:mm"')} has expired!`)
                 } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
-                    console.error(`Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`)
+                    printLine("PendingBounce", `Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`, 'warn');
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                 } else if (thisEvent.duration && parseInt(thisEvent.duration.toString()) > 1 && thisEvent.syncEnd <= (moment().valueOf() + 5 * 60000)) {
@@ -1343,7 +1512,15 @@
 
                     if (!pendingEvent.failedRec && (moment.utc(thisEvent.syncStart).local().valueOf() >= (Date.now() - ((config.max_rewind) ? config.max_rewind : sxmMaxRewind))) && digitalAvailable && !config.disable_digital_extract) {
                         // If not failed event, less then 3 hours old, not directed to a specifc tuner, digital recorder ready, and enabled
-                        console.log(`The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
+                        printLine("PendingBounce", `The event "${thisEvent.filename}" is now concluded and will be recorded digitally`, 'alert', {
+                            metadata: {
+                                channelId: pendingEvent.ch,
+                                ...thisEvent
+                            },
+                            destination: pendingEvent.destination,
+                            switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
+                            index: true
+                        });
                         sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" is now concluded and will be recorded digitally`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.liveRec = true
@@ -1360,7 +1537,15 @@
                         })
                     } else if (tuner && (!pendingEvent.digitalOnly || (pendingEvent.digitalOnly && pendingEvent.failedRec)) && tuner.hasOwnProperty("record_prefix")) {
                         // If specific tuner is set, not set to require digital or has failed to extract via digital
-                        console.log(`The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
+                        printLine("PendingBounce", `The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`, 'alert', {
+                            metadata: {
+                                channelId: pendingEvent.ch,
+                                ...thisEvent,
+                                tuner: tuner
+                            },
+                            destination: pendingEvent.destination,
+                            index: true
+                        });
                         sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" is now concluded and will be cut from the satellite recordings`)
                         pendingEvent.guid = thisEvent.guid;
                         pendingEvent.done = true
@@ -1377,7 +1562,15 @@
                     }
                 } else if ((Math.abs(Date.now() - parseInt(thisEvent.syncStart.toString())) >= (((thisEvent.delay) + 60) * 1000)) && (pendingEvent.digitalOnly || pendingEvent.live || config.live_extract)) {
                     // Event is 5 min past its start (accounting for digital delay), digital only event or live extract is enabled
-                    console.log(`${thisEvent.filename} is live extractable!`)
+                    printLine("PendingBounce", `The event ${thisEvent.filename} will be recorded digitally live, Not waiting for end marker!`, 'alert', {
+                        metadata: {
+                            channelId: pendingEvent.ch,
+                            ...thisEvent
+                        },
+                        destination: pendingEvent.destination,
+                        switch_source: (pendingEvent.switch_source) ? pendingEvent.switch_source : false,
+                        index: true
+                    });
                     sendDiscord('info', 'SiriusXM', `✅ The event "${thisEvent.filename}" will be extracted live`)
                     pendingEvent.guid = thisEvent.guid;
                     pendingEvent.liveRec = true
@@ -1398,8 +1591,7 @@
             inp.push(...channelTimes.pending.filter(e => !((e.done === false && (e.time + 6000) <= Date.now()))))
             channelTimes.pending = inp.filter(e => e.done === false || e.inprogress === true)
         } catch (err) {
-            console.error(err)
-            console.error(`Error processing pending requests`)
+            printLine("PendingBounce", `Error processing pending requests: ${err.message}`, 'error');
         }
     }
     // Generate Cron Schedules for events
@@ -1412,9 +1604,9 @@
                     if (e.ch)
                         channelId = getChannelbyNumber(e.ch).id
 
-                    console.log(`Record Schedule ${k} @ ${e.record_cron} was created! `)
+                    printLine("Schedule", `Record Schedule ${k} @ ${e.record_cron} was created! `, "debug")
                     cron.schedule(e.record_cron, () => {
-                        console.log(`Automated Record for ${k}`)
+                        printLine("Schedule", `Automated Record for ${k}`, "debug")
                         registerBounce({
                             channel: channelId,
                             tuner: (e.rec_tuner) ? getTuner(e.rec_tuner) : undefined,
@@ -1427,7 +1619,7 @@
                         })
                     })
                 } else {
-                    console.error(`${e.record_cron} is not a valid cron string`)
+                    printLine("Schedule", `${e.record_cron} is not a valid cron string`, "error")
                 }
             }
 
@@ -1438,31 +1630,31 @@
                         channelId = getChannelbyNumber(e.ch).id
 
                     if (!e.hasOwnProperty('restrict') || (e.hasOwnProperty('restrict') && !e.restrict_applys_to_tune)) {
-                        console.log(`Direct Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
+                        printLine("Schedule", `Direct Tuning Schedule ${k} @ ${e.tune_cron} was created! `, "debug")
                         cron.schedule(e.tune_cron, () => {
-                            console.log(`Automated Tuning for ${k}`)
+                            printLine("Schedule", `Automated Tuning for ${k}`, "debug")
                             tuneToChannel({
                                 channelId: channelId,
                                 tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
                             })
                         })
                     } else {
-                        console.log(`Search Tuning Schedule ${k} @ ${e.tune_cron} was created! `)
+                        printLine("Schedule", `Search Tuning Schedule ${k} @ ${e.tune_cron} was created! `, "debug")
                         cron.schedule(e.tune_cron, () => {
                             let i = -1
                             function search() {
                                 i++
                                 if (!e.restrict || !e.restrict_applys_to_tune || (e.restrict && e.restrict_applys_to_tune && isWantedEvent(e.restrict, findEvent(channelId, Date.now())))) {
-                                    console.log(`Automated Tuning for ${k}`)
+                                    printLine("Schedule", `Automated Tuning for ${k}`, "debug")
                                     tuneToChannel({
                                         channelId: channelId,
                                         tuner: (e.hasOwnProperty("tune_tuner")) ? e.tune_tuner : undefined
                                     })
                                 } else if (i < ((e.tune_search_retrys) ? e.tune_search_retrys : 15) && e.tune_search) {
-                                    console.error(`Event ${k} has not started, trying again in a minute...`)
+                                    printLine("Schedule", `Event ${k} has not started, trying again in a minute...`, "warn")
                                     setTimeout(search, 60000)
                                 } else {
-                                    console.error(`Event ${k} was not found, giving up!`)
+                                    printLine("Schedule", `Event ${k} was not found, giving up!`, "notice")
                                 }
                             }
                             search()
@@ -1470,7 +1662,7 @@
                     }
 
                 } else {
-                    console.error(`${e.tune_cron} is not a valid cron string`)
+                    printLine("Schedule", `${e.tune_cron} is not a valid cron string`, "error")
                 }
             }
         })
@@ -1488,7 +1680,7 @@
             }
             if (!f.onlyTune) {
                 events.filter(e => channelTimes.completed && channelTimes.completed.indexOf(e.guid) === -1 && isWantedEvent(f, e)).map(e => {
-                    console.log(`Found Record Event ${e.filename} ${e.guid} - ${e.duration}`)
+                    printLine("SearchEvents", `Found Record Event ${e.filename} ${e.guid} - ${e.duration}`, 'info')
                     channelTimes.completed.push(e.guid)
                     channelTimes.pending.push({
                         ch: e.channelId,
@@ -1509,7 +1701,7 @@
             }
             if (f.tuneToChannel) {
                 all.filter(e => channelTimes.completed.indexOf(e.guid) === -1 && tunedEvents.indexOf(e.guid) === -1 && isWantedEvent({fast_trigger: true, ...f}, e)).map(e => {
-                    console.log(`Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`)
+                    printLine("SearchEvents", `Found Tune Event ${e.filename} ${e.guid} - ${e.duration}`, "info")
                     tuneToChannel({
                         channelId: e.channelId,
                         tuner: (f.tuneToChannel !== true) ? e.tuneToChannel : undefined
@@ -1576,14 +1768,12 @@
                 done: false,
             }
             channelTimes.pending.push(pendEvent)
-            console.log(`Pending Bounce registered!`)
-            console.log(pendEvent)
+            printLine("RegisterBounce", `Pending Bounce registered!`, "info", pendEvent);
             // Add new notification service
             saveMetadata();
             return pendEvent
         } else {
-            console.error("Missing Required data to register a pending Extraction")
-            console.error(options);
+            printLine("RegisterBounce", "Missing Required data to register a pending Extraction", "error", options)
             return false
         }
     }
@@ -1597,16 +1787,16 @@
 
             if (!release && currentTuner !== undefined && currentTuner.airfoil_source !== undefined && currentTuner.airfoil_source.auto_release && currentTuner.airfoil_source.name !== tuner.airfoil_source.name) {
                 if (currentTuner.locked) {
-                    console.info(`Last tuner is currently locked`)
+                    printLine("SetAirOutput", `Last tuner is currently locked`, 'error')
                 } else {
-                    console.info(`Last tuner is not in use anymore, starting timeout...`)
+                    printLine("SetAirOutput", `Last tuner is not in use anymore, starting timeout...`, "warn")
                     watchdog_tuners[currentTuner.id].timeout_sources = setTimeout(() => {
                         deTuneTuner(currentTuner, false, true)
                         watchdog_tuners[currentTuner.id].timeout_sources = null;
                     }, (typeof currentTuner.airfoil_source.auto_release === "number" && currentTuner.airfoil_source.auto_release >= 5000) ? currentTuner.airfoil_source.auto_release : 30000)
                 }
             } else if (!release && tuner.airfoil_source !== undefined && tuner.airfoil_source.auto_release && watchdog_tuners[tuner.id].timeout_sources) {
-                console.info(`Tuner regained focus, stopping timeout`)
+                printLine("SetAirOutput", `Tuner regained focus, stopping timeout`, "debug")
                 clearTimeout(watchdog_tuners[tuner.id].timeout_sources)
                 watchdog_tuners[tuner.id].timeout_sources = null;
             }
@@ -1614,8 +1804,8 @@
             const list = `tell application "Airfoil" to set current audio source to first device source whose name is "${input}"`
             const childProcess = osascript.execute(list, function (err, result, raw) {
                 if (err)
-                    console.error(err)
-                console.log(`airOutput: Set audio source to ${input}`)
+                    printLine("SetAirOutput", err.message, "error")
+                printLine("SetAirOutput", `airOutput: Set audio source to ${input}`, "debug")
                 clearTimeout(childKiller);
                 resolve(!(err));
             });
@@ -1738,7 +1928,7 @@
     // Queue a recorded event extraction and start the processor if inactive
     function queueRecordingExtraction(jobOptions) {
         jobQueue['extract'].push(jobOptions)
-        console.log(`Extraction Job #${jobQueue['extract'].length} Queued`)
+        printLine("PendingExtract", `Extraction Job #${jobQueue['extract'].length} Queued`, 'debug')
         //console.log(jobOptions)
         if (!activeQueue['extract'])
             startExtractQueue()
@@ -1750,7 +1940,7 @@
             const job = jobQueue['extract'][0]
             const completed = await extractRecordedEvent(job)
             jobQueue['extract'].shift()
-            console.log(`Q/Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`)
+            printLine("ExtractQ", `Extract: Last Job Result ${(completed)} - ${jobQueue['extract'].length} jobs left`, "debug")
         }
         delete activeQueue['extract']
         return true
@@ -1761,7 +1951,7 @@
         if (!best_recorder)
             return false
         jobQueue[best_recorder].push(jobOptions)
-        console.log(`Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder}`)
+        printLine("PendingDub", `Record Job #${jobQueue[best_recorder].length} Queued for ${best_recorder}`, "debug")
         //console.log(jobOptions)
         if (!activeQueue[best_recorder])
             startRecQueue(best_recorder)
@@ -1780,7 +1970,7 @@
                     const completed = await recordDigitalEvent(job, tuner)
                     if (completed)
                         await jobQueue[q].shift()
-                    console.log(`Q/${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`)
+                    printLine("DubQ", `${q.slice(4)}: Last Job Result "${(completed)}" - ${jobQueue[q].length} jobs left`, "debug")
                 } else {
                     if (job.index) {
                         console.error(`Record/${q.slice(4)}: Failed job should be picked up by the recording extractor (if available)`)
@@ -1791,7 +1981,7 @@
                         channelTimes.pending[index].failedRec = true
                     }
                     await jobQueue[q].shift()
-                    console.log(`Q/${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`)
+                    printLine("DubQ", `${q.slice(4)}: Last Job Result "Time Expired for this Job" - ${jobQueue[q].length} jobs left`, "notice")
                     sendDiscord('error', 'SiriusXM', `❌ The job "${job.metadata.filename}" has expired due to no longer being able to record`)
                 }
             }
@@ -1801,7 +1991,7 @@
             }
             return true
         } else {
-            console.error(`Record/${q.slice(4)}: Unable to start the job queue because the tuner is locked!`)
+            printLine("DubQ",`Record/${q.slice(4)}: Unable to start the job queue because the tuner is locked!`, "notice")
             sendDiscord('error', 'SiriusXM', `❌ Unable to start the job queue because the tuner is locked!`)
         }
     }
@@ -1811,13 +2001,12 @@
     // Wait for device to connect and prepare device
     async function initDigitalRecorder(device) {
         locked_tuners.set(device.id, true)
-        console.log(`Searching for digital tuner "${device.name}":${device.serial}...`)
-        console.log(`Please connect the device via USB if not already`)
+        printLine("TunerInit", `Searching for digital tuner "${device.name}":${device.serial}...\nPlease connect the device via USB if not already`, "debug");
         await adbCommand(device.serial, ["wait-for-device"], true)
-        console.log(`Tuner "${device.name}":${device.serial} was connected! Please Wait for initialization...\n!!!! DO NOT TOUCH DEVICE !!!!`)
+        printLine("TunerInit",`Tuner "${device.name}":${device.serial} was connected! Please Wait for initialization...\n!!!! DO NOT TOUCH DEVICE !!!!`, "debug");
         const socketready = await startAudioDevice(device);
         if (socketready) {
-            console.log(`Tuner "${device.name}":${device.serial} is now ready!`)
+            printLine("TunerInit",`Tuner "${device.name}":${device.serial} is now ready!`, "alert")
             const clientOk = await (async () => {
                 if (device.hasOwnProperty("relay_audio") && device.relay_audio) {
                     await createAudioServer(device);
@@ -1831,72 +2020,72 @@
             }
             locked_tuners.delete(device.id)
         } else {
-            console.error(`Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
+            printLine("TunerInit", `Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`, 'critical')
             sendDiscord('error', 'SiriusXM', `❌ Tuner "${device.name}":${device.serial} has been locked out because the audio interface did not open!`)
         }
     }
     // Start TCP Audio Server and Pipeline
     async function startAudioClient(device) {
-        console.log(`${device.id}: (6/6) Starting Audio Pipeline TCP ${device.localAudioPort} => TCP ${device.audioPort}...`)
+        printLine("AudioSocket", `${device.id}: (6/6) Starting Audio Pipeline TCP ${device.localAudioPort} => TCP ${device.audioPort}...`, "debug")
         const audioServer = audio_servers.get(device.id)
         if (audioServer.hasOwnProperty("passTrough")) {
             const passTrough = audioServer.passTrough
             let player = new net.Socket()
             async function connectDevice(port) {
                 player = net.connect(port, "127.0.0.1", function () {
-                    console.log(`Connected to device audio tcp://127.0.0.1:${port}`)
+                    printLine("AudioSocket", `Connected to device audio tcp://127.0.0.1:${port}`, 'debug')
                 });
                 player.on("data", (data) => passTrough.push(data));
                 player.on('close', function () {
-                    console.log('Device Audio Disconnect.');
+                    printLine("AudioSocket", 'Device Audio Disconnect', 'debug');
                     setTimeout(() => {
                         connectDevice(port, true)
                     }, 5000)
                 });
                 player.on('error', function (err) {
-                    console.error(JSON.stringify(err));
+                    printLine("AudioSocket", err.message, "error");
                 });
             }
             connectDevice(device.localAudioPort)
             return true
         } else {
-            console.error('No Audio Server is running!')
+            printLine("AudioSocket", 'No Audio Server is running!', 'debug')
             return false
         }
     }
     // Connect Device to TCP Audio Server Pipeline
     async function createAudioServer(device) {
         return new Promise((resolve => {
-            console.log(`${device.id}: (5/6) Starting Audio Relay @ TCP ${device.audioPort}...`)
+            printLine("AudioServer", `${device.id}: (5/6) Starting Audio Relay @ TCP ${device.audioPort}...`, "debug")
             const passTrough = new stream.PassThrough({
                 highWaterMark: 2000000
             });
             const audioServer = net.createServer(function (client) {
-                console.log(`TAS/${device.id}: Audio Client Connected ${client.localAddress} => ${client.remotePort}`);
+                printLine("AudioServer", `TAS/${device.id}: Audio Client Connected ${client.localAddress} => ${client.remotePort}`, "debug");
                 passTrough.pipe(client)
                 client.on('error', function (err) {
                     if (err.message === 'read ECONNRESET') {
                         audioServer.getConnections(function (err, count) {
                             if (!err) {
-                                console.log(`TAS/${device.id}: Audio Client Disconnected - There are ${count} connections now.`);
+                                printLine("AudioServer", `TAS/${device.id}: Audio Client Disconnected - There are ${count} connections now.`, "debug");
                             } else {
-                                console.error(JSON.stringify(err))
+                                printLine("AudioServer", err.message, 'error')
                             }
                         });
                     } else {
-                        console.error(`TAS/${device.id}: Audio Server Error: ${err.message}`);
+                        printLine("AudioServer", `TAS/${device.id}: Audio Server Error: ${err.message}`, "error");
                     }
                 })
             });
             audioServer.listen(device.audioPort, function () {
                 const serverInfo = audioServer.address();
                 const serverInfoJson = JSON.stringify(serverInfo);
-                console.log(`TCP server listen on port : ${serverInfoJson.port}`);
+                printLine("AudioServer", `TCP server listen on port : ${serverInfoJson.port}`, "debug");
                 audioServer.on('close', function () {
-                    console.log('TCP Audio Socket Closed');
+                    printLine("AudioServer", 'TCP Audio Socket Closed', "debug");
                 });
                 audioServer.on('error', function (error) {
-                    console.error(JSON.stringify(error));
+                    printLine("AudioServer", err.message, "error");
                 });
             });
             audio_servers.set(device.id, {audioServer, passTrough})
@@ -1906,20 +2095,20 @@
     // Start the USB Audio Interface
     async function startAudioDevice(device) {
         return await new Promise(async (resolve, reject) => {
-            console.log(`Setting up USB Audio Interface for "${device.name}"...`)
+            printLine("AudioSetup", `Setting up USB Audio Interface for "${device.name}"...`, "debug")
             async function start() {
-                console.log(`${device.id}: (1/6) Installing USB Interface...`)
+                printLine("AudioSetup", `${device.id}: (1/6) Installing USB Interface...`, "debug")
                 await adbCommand(device.serial, ["install", "-t", "-r", "-g", "app-release.apk"], true)
-                console.log(`${device.id}: (2/6) Enabling Audio Recording Permissions...`)
+                printLine("AudioSetup", `${device.id}: (2/6) Enabling Audio Recording Permissions...`, "debug")
                 await adbCommand(device.serial, ["shell", "appops", "set", "com.rom1v.sndcpy", "PROJECT_MEDIA", "allow"])
-                console.log(`${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`)
+                printLine("AudioSetup", `${device.id}: (3/6) Connecting Local Device Socket @ TCP ${device.localAudioPort}...`, "debug")
                 await adbCommand(device.serial, ["forward", `tcp:${device.localAudioPort}`, "localabstract:sndcpy"])
-                console.log(`${device.id}: (4/6) Connecting Local Audio Socket @ TCP ${device.audioPort}...`)
+                printLine("AudioSetup", `${device.id}: (4/6) Connecting Local Audio Socket @ TCP ${device.audioPort}...`, "debug")
                 await adbCommand(device.serial, ["forward", `tcp:${device.audioPort}`, "localabstract:sndcpy_play"])
-                console.log(`${device.id}: (5/6) Starting Audio Interface...`)
+                printLine("AudioSetup", `${device.id}: (5/6) Starting Audio Interface...`, "debug")
                 await adbCommand(device.serial, ["shell", "am", "kill", "com.rom1v.sndcpy"])
                 await adbCommand(device.serial, ["shell", "am", "start", "com.rom1v.sndcpy/.MainActivity", "--ei", "SAMPLE_RATE", "44100", "--ei", "BUFFER_SIZE_TYPE", "3"])
-                console.log(`${device.id}: Ready`)
+                printLine("AudioSetup", `${device.id}: Ready`, "debug")
                 return true
             }
             resolve((await start()))
@@ -1939,37 +2128,37 @@
             let fault = false
             const input = await (async () => {
                 if (tuner.audio_interface) {
-                    console.log(`Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`)
+                    printLine("DigitalDub", `Record/${tuner.id}: Using physical audio interface "${tuner.audio_interface.join(' ')}"`, "warn")
                     return tuner.audio_interface
                 }
                 return ["-f", "s16le", "-ar", "48k", "-ac", "2", "-i", `tcp://localhost:${tuner.localAudioPort}`]
             })()
             if (!input) {
-                console.error(`Record/${tuner.id}: No Audio Interface is available for ${tuner.id}`)
+                printLine("DigitalDub", `Record/${tuner.id}: No Audio Interface is available for ${tuner.id}`, "error")
                 resolve(false)
             } else {
-                console.log(`Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`)
+                printLine("DigitalDub", `Record/${tuner.id}: Started Digital Dubbing Event "${event.filename}"...`, "info")
                 sendDiscord('info', 'SiriusXM', `📼 Started Digital Dubbing Event "${event.filename}" using "${tuner.name}"...`, undefined, tuner.serial, 5000)
                 try {
                     clearInterval(watchdog_tuners[tuner.id].watchdog)
                     watchdog_tuners[tuner.id].watchdog = null
                     const startTime = Date.now()
                     const ffmpeg = ['-hide_banner', '-stats_period', '300', '-y', ...input, ...((time) ? ['-t', time] : []), '-b:a', '320k', `Extracted_${event.guid}.mp3`]
-                    console.log(ffmpeg.join(' '))
+                    printLine("DigitalDub", ffmpeg.join(' '), 'debug')
                     const recorder = spawn(((config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg'), ffmpeg, {
                         cwd: (tuner.record_dir) ? tuner.record_dir : config.record_dir,
                         encoding: 'utf8'
                     })
 
-                    recorder.stdout.on('data', (data) => { console.log(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) })
-                    recorder.stderr.on('data', (data) => { console.error(data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n')) });
+                    recorder.stdout.on('data', (data) => { printLine("DigitalDub", data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n'), "debug") })
+                    recorder.stderr.on('data', (data) => { printLine("DigitalDub", data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n'), "error") });
                     recorder.on('close', (code, signal) => {
                         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
                         if (code !== 0) {
-                            console.error(`Record/${tuner.id}: Digital dubbing failed: FFMPEG reported a error!`)
+                            printLine("DigitalDub", `Record/${tuner.id}: Digital dubbing failed: FFMPEG reported a error!`, "error")
                             resolve(false)
                         } else {
-                            console.log(`Record/${tuner.id}: Completed!`)
+                            printLine("DigitalDub", `Record/${tuner.id}: Completed!`, "debug")
                             clearTimeout(stopwatch)
                             clearInterval(controller)
                             clearInterval(watchdog)
@@ -1989,21 +2178,15 @@
                         const state = await checkPlayStatus(tuner)
                         if (!state) {
                             watchdogi = watchdogi + 1
-                            console.error(`Record/${tuner.id}: Device Audio Session not found!`)
+                            printLine("DigitalDub", `Record/${tuner.id}: Device Audio Session not found or responding!`, "warn")
                         } else {
                             watchdogi = 0
                         }
                         if (watchdogi >= 4) {
-                            console.error(`#########################################################################################################`)
-                            console.error(`#########################################################################################################`)
-                            console.error(`Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`)
-                            console.error(`#########################################################################################################`)
-                            console.error(`#########################################################################################################`)
-
+                            printLine("DigitalDub", `Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`, "critical")
                             fault = true
                             clearTimeout(stopwatch)
                             clearInterval(controller)
-                            sendDiscord('error', 'SiriusXM', `❌ ${tuner.name} Audio Session failed to detect active playback of "${event.filename}"`, undefined, tuner.serial)
                             recorder.stdin.write('q')
                         }
                     }, 5000)
@@ -2017,14 +2200,14 @@
                     }
 
                     if (!time) {
-                        console.log(`Record/${tuner.id}: This is a live event and has no duration, watching for closure`)
+                        printLine("DigitalDub", `Record/${tuner.id}: This is a live event and has no duration, watching for closure`, "warn")
                         controller = setInterval(() => {
                             const eventData = getEvent(event.channelId, event.guid)
                             if (!activeQueue[`REC-${tuner.id}`] || activeQueue[`REC-${tuner.id}`].closed) {
                                 clearInterval(controller)
                             } else if (eventData && eventData.duration && parseInt(eventData.duration.toString()) > 1) {
                                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
-                                console.log(`Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
+                                printLine("DigitalDub", `Event ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`, "info")
                                 sendDiscord('info', 'SiriusXM', `⏲ Event "${event.filename}" concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Termination Timer for ${((termTime / 1000) / 60).toFixed(0)}m`)
                                 stopwatch = setTimeout(() => {
                                     clearInterval(watchdog)
@@ -2052,7 +2235,7 @@
                         }
                     }
                 } catch (e) {
-                    console.error(e)
+                    printLine("DigitalDub", e.message, "error");
                     resolve(false)
                 }
             }
@@ -2144,10 +2327,10 @@
             })(options.tuner, findActiveRadioTune(channel.id))
             const tuneResult = await (async () => {
                 if (tn[0]) {
-                    console.log(`Request to tune "${tn[0].name}" to channel ${channel.name}`)
+                    printLine("Tuner", `Request to tune "${tn[0].name}" to channel ${channel.name}`, "debug")
                     return _tuneToChannel(tn[0], channel, tn[1])
                 } else {
-                    console.log(`Request available tuner to channel ${channel.name}`)
+                    printLine("Tuner", `Request available tuner to channel ${channel.name}`, "debug")
                     const _ptn = availableTuners(channel.id, (options.digital && options.digital === 'true' ))
                     if (_ptn && _ptn.length > 0) {
                         return _tuneToChannel(_ptn[0], channel, false)
@@ -2189,13 +2372,13 @@
                 })()
                 if (options.res)
                     options.res.status(500).send(response)
-                console.error(response)
+                printLine("Tuner", response, "error")
                 return false
             }
         } else {
             if (options.res)
                 options.res.status(404).send('Channel not found')
-            console.error("Channel not found")
+            printLine("Tuner", "Channel not found", "error")
             return false
         }
     }
@@ -2245,7 +2428,7 @@
     }
     // Tune to Digital Channel on Android Device
     async function tuneDigitalChannel(channel, time, device) {
-        console.log(`Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`);
+        printLine("Tuner", `Tune/${device.id}: Tuning Device to channel ${channel} @ ${moment.utc(time).local().format("YYYY-MM-DD HHmm")}...`, "debug");
         if (watchdog_tuners[device.id].tuner_timeout)
             clearInterval(watchdog_tuners[device.id].tuner_timeout)
         return new Promise(async (resolve) => {
@@ -2266,7 +2449,7 @@
                             }, 500)
                         })
                         if (i >= 60) {
-                            console.error(`Tune/${device.id}: Device did not start playing within the required timeout!`)
+                            printLine("Tuner", `Tune/${device.id}: Device did not start playing within the required timeout!`, "error")
                             break
                         }
                     }
@@ -2274,9 +2457,9 @@
                     console.error(`Tune/${device.id}: Did not receive expected response from device active manager`)
                 }
                 if (!tuneReady)
-                    console.error(`Tune/${device.id}: Device failed to tune to ${channel}!`)
+                    printLine("Tuner", `Tune/${device.id}: Device failed to tune to ${channel}!`, "error")
                 if (k >= 3) {
-                    console.error(`Tune/${device.id}: Device tuning reties exhausted, giving up!`)
+                    printLine("Tuner", `Tune/${device.id}: Device tuning reties exhausted, giving up!`, "error")
                     break
                 }
             }
@@ -2287,7 +2470,7 @@
     }
     // Stop Playback on Android Device aka Release Stream Entity
     async function releaseDigitalTuner(device) {
-        console.log(`Releasing Device ${device.serial}...`);
+        printLine("Tuner", `Releasing Device ${device.serial}...`, "debug");
         return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
     }
     // Automatically deturns a tuner if playback is stopped
@@ -2298,12 +2481,12 @@
                 const state = await checkPlayStatus(device)
                 if (!state) {
                     watchdogi = watchdogi + 1
-                    console.error(`Player/${device.id}: Device Audio Session not found!`)
+                    printLine("Tuner",`Player/${device.id}: Device Audio Session not found!`, "warn")
                 } else {
                     watchdogi = 0
                 }
                 if (watchdogi >= 4) {
-                    console.log(`Player/${device.id}: Tuner is no longer available and will be detuned`)
+                    printLine("Tuner", `Player/${device.id}: Tuner is no longer available and will be detuned`, "critical")
                     deTuneTuner(device)
                 }
             } else {
@@ -2317,7 +2500,7 @@
         watchdog_tuners[device.id].connectivity = setInterval(async () => {
             const portlist = await adbCommand(device.serial, ['forward', '--list'])
             if (!portlist.ok || !portlist.log.includes(`localabstract:sndcpy`)) {
-                console.error(`Player/${device.id}: Device has lost audio connectivity with the server, attempting to reconfigure...`)
+                printLine("Tuner", `Player/${device.id}: Device has lost audio connectivity with the server, attempting to reconfigure...`, "critical")
                 await initDigitalRecorder(device)
             }
         }, 30000)
@@ -2327,7 +2510,7 @@
 
     // Record an event on a digital tuner
     async function recordDigitalEvent(job, tuner) {
-        console.log(`Record/${tuner.id}: Preparing for digital dubbing...`)
+        printLine("DigitalDub", `Record/${tuner.id}: Preparing for digital dubbing...`, "debug")
         let eventItem = getEvent(job.metadata.channelId, job.metadata.guid)
         if (!eventItem)
             eventItem = job.metadata
@@ -2368,8 +2551,7 @@
                     }
                     const tagsWritten = NodeID3.write(tags, completedFile)
                 } catch (e) {
-                    console.error(`Failed to write tags`)
-                    console.error(e)
+                    printLine("DigitalDub", `Failed to write tags: ${e.message}`, "error")
                 }
                 const eventData = getEvent(eventItem.channelId, eventItem.guid)
                 await postExtraction(path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`), `${(eventData) ? eventData.filename.trim() : eventItem.filename.trim()} (${moment(eventItem.syncStart).format("YYYY-MM-DD HHmm")}).${(config.extract_format) ? config.extract_format : 'mp3'}`, job.destination)
@@ -2385,7 +2567,7 @@
                     channelTimes.pending[index].liveRec = false
                     channelTimes.pending[index].done = true
                 } else if (channelTimes.pending[index] && channelTimes.pending[index].hasOwnProperty("inprogress")) {
-                    console.error(`Record/${tuner.id}: Failed job should be picked up by the recording extractor (if available)`)
+                    printLine("DigitalDub", `Record/${tuner.id}: Failed job should be picked up by the recording extractor (if available)`, "error")
                     channelTimes.pending[index].inprogress = false
                     channelTimes.pending[index].liveRec = false
                     channelTimes.pending[index].done = false
@@ -2394,9 +2576,9 @@
             }
             return recording;
         } else {
-            console.error(`Record/${tuner.id}: Failed to tune to channel, Canceled!`)
+            printLine("DigitalDub", `Record/${tuner.id}: Failed to tune to channel, Canceled!`, "critical")
             if (job.index) {
-                console.error(`Record/${tuner.id}: Failed job should be picked up by the recording extractor (if available)`)
+                printLine("DigitalDub", `Record/${tuner.id}: Failed job should be picked up by the recording extractor (if available)`, "error")
                 const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                 channelTimes.pending[index].inprogress = false
                 channelTimes.pending[index].liveRec = false
@@ -2408,7 +2590,7 @@
     }
     // Record an event on a digital tuner
     async function playDigitalEvent(event, tuner) {
-        console.log(`Player/${tuner.id}: Preparing for digital playback...`)
+        printLine("DigitalPlayer", `Player/${tuner.id}: Preparing for digital playback...`, "debug")
         let eventItem = getEvent(event.channelId, event.guid)
         if (!eventItem)
             eventItem = event.metadata
@@ -2422,7 +2604,7 @@
             watchdog_tuners[tuner.id].player_start = startTime;
             function setTimer(eventData) {
                 const termTime = Math.abs((Date.now() - startTime) - (parseInt(eventData.duration.toString()) * 1000)) + (((eventData.isEpisode) ? 300 : 10) * 1000)
-                console.log(`Player ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Stop Timer for ${((termTime / 1000) / 60).toFixed(0)}m`);
+                printLine("DigitalPlayer", `Player ${event.guid} concluded with duration ${(eventData.duration / 60).toFixed(0)}m, Starting Stop Timer for ${((termTime / 1000) / 60).toFixed(0)}m`, "info");
                 watchdog_tuners[tuner.id].player_stopwatch = setTimeout(async () => {
                     deTuneTuner(tuner);
                 }, termTime);
@@ -2444,14 +2626,14 @@
             }
             return true;
         } else {
-            console.error(`Player/${tuner.id}: Failed to tune to channel, Canceled!`)
+            printLine("DigitalPlayer", `Player/${tuner.id}: Failed to tune to channel, Canceled!`, "error")
         }
         return false
     }
     // Extract Recorded Event from a persistent tuner
     async function extractRecordedEvent(job) {
         try {
-            console.log(`Extract: Preparing for recording extraction...`)
+            printLine("FileSplicer", `Extract: Preparing for recording extraction...`, "debug")
             const eventItem = job.metadata
             const recFiles = fs.readdirSync((eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir).filter(e => e.startsWith(eventItem.tuner.record_prefix) && e.endsWith(".mp3")).map(e => {
                 return {
@@ -2476,15 +2658,14 @@
                     const endTrim = msToTime((parseInt(eventItem.duration.toString()) * 1000) + 10000).split('.')[0]
 
                     trimEventFile = await new Promise(function (resolve) {
-                        console.log(`Extract: Trimming Live Recording File "${eventItem.filename.trim()}" @ ${startTrim}-${endTrim} ...`)
+                        printLine("FileSplicer", `Extract: Trimming Live Recording File "${eventItem.filename.trim()}" @ ${startTrim}-${endTrim} ...`, "info")
                         const ffmpeg = [(config.ffmpeg_exec) ? config.ffmpeg_exec : '/usr/local/bin/ffmpeg', '-hide_banner', '-y', '-i', `concat:"${eventFiles.map(e => e.file).join('|')}"`, '-ss', startTrim, '-t', endTrim, `Extracted_${eventItem.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`]
                         exec(ffmpeg.join(' '), {
                             cwd: (eventItem.tuner.record_dir) ? eventItem.tuner.record_dir : config.record_dir,
                             encoding: 'utf8'
                         }, (err, stdout, stderr) => {
                             if (err) {
-                                console.error(`Extract: FFMPEG reported a error!`)
-                                console.error(err)
+                                printLine("FileSplicer", `Extract: FFMPEG reported a error!: ${err.message}`, "error");
                                 resolve(false)
                             } else {
                                 if (stderr.length > 1)
@@ -2495,11 +2676,11 @@
                         });
                     })
                 } else {
-                    console.error("Extract: Recordings are not available for this time frame! Canceled")
+                    printLine("FileSplicer", "Extract: Recordings are not available for this time frame! Canceled", "notice")
                 }
 
                 if (trimEventFile && fs.existsSync(trimEventFile.toString())) {
-                    console.log(`Extract: Extraction complete for ${eventFilename.trim()}!`)
+                    printLine("FileSplicer", `Extract: Extraction complete for ${eventFilename.trim()}!`, "alert")
                     try {
                         let tags = {
                             title: eventItem.title,
@@ -2514,8 +2695,7 @@
                         }
                         const tagsWritten = NodeID3.write(tags, trimEventFile)
                     } catch (e) {
-                        console.error(`Failed to write tags`)
-                        console.error(e)
+                        printLine("FileSplicer", `Failed to write tags: ${e.message}`, "error")
                     }
                     await postExtraction(trimEventFile, eventFilename, job.destination);
                     if (channelTimes.completed.indexOf(eventItem.guid) === -1)
@@ -2528,7 +2708,7 @@
                     }
                     return true
                 } else {
-                    console.error(`Extraction failed: File was not generated correctly`)
+                    printLine("FileSplicer", `Extraction failed: File was not generated correctly`, "critical")
                     if (job.index) {
                         const index = channelTimes.pending.map(e => e.guid).indexOf(eventItem.guid)
                         channelTimes.pending[index].inprogress = false
@@ -2538,12 +2718,11 @@
                     return false
                 }
             } else {
-                console.error(`Extract: This event has not concluded, unable to proceed!`)
+                printLine("FileSplicer", `Extract: This event has not concluded, unable to proceed!`, "warn")
                 return false
             }
         } catch (e) {
-            console.error(`ALERT: FAULT - Extraction Failed: ${e.message}`)
-            console.error(e);
+            printLine("FileSplicer", `Extraction Failed: ${e.message}`, "critical")
         }
     }
     // Move extracted files to the upload and backup folder
@@ -2554,27 +2733,27 @@
         try {
             if (backup_dir) {
                 await new Promise(resolve => {
-                    console.log(`Copying Backup File ... "${eventFilename}"`)
+                    printLine("PostExtract", `Copying Backup File ... "${eventFilename}"`, "debug")
                     exec(`cp "${extractedFile.toString()}" "${path.join(backup_dir, eventFilename).toString()}"`, (err, result) => {
                         if (err)
-                            console.error(err)
+                            printLine("PostExtract", err.message, "error");
                         resolve((err))
                     })
                 })
             }
             if (upload_dir) {
-                console.log(`Copying File for Upload ... "${eventFilename}"`)
+                printLine("PostExtract", `Copying File for Upload ... "${eventFilename}"`, "debug")
                 await new Promise(resolve => {
                     exec(`cp "${extractedFile.toString()}" "${path.join(upload_dir, 'HOLD-' + eventFilename).toString()}"`, (err, result) => {
                         if (err)
-                            console.error(err)
+                            printLine("PostExtract", err.message, "error");
                         resolve((err))
                     })
                 })
                 await new Promise(resolve => {
                     exec(`mv "${path.join(upload_dir, 'HOLD-' + eventFilename).toString()}" "${path.join(upload_dir, eventFilename).toString()}"`, (err, result) => {
                         if (err)
-                            console.error(err)
+                            printLine("PostExtract", err.message, "error");
                         resolve((err))
                     })
                 })
@@ -2583,7 +2762,7 @@
                 const list = `display notification "✅ ${eventFilename.trim().split('.')[0]} was successful" with title "💿 Bouncer" sound name "Glass"`
                 const childProcess = osascript.execute(list, function (err, result, raw) {
                     resolve(null);
-                    if (err) return console.error(err)
+                    if (err) return printLine("PostExtract", err.message, "error");
                     clearTimeout(childKiller);
                 });
                 const childKiller = setTimeout(function () {
@@ -2594,7 +2773,7 @@
             })
             return true
         } catch (e) {
-            console.error(`Post Processing Failed: cant not be parsed because the file failed to be copied!`)
+            printLine("PostExtract", `Post Processing Failed: cant not be parsed because the file failed to be copied!`, "critical");
             return false
         }
     }
@@ -2704,7 +2883,7 @@
                         if (activeQueue[k] && activeQueue[k].guid) {
                             const activeJob = activeQueue[k]
                             if (activeJob.guid && activeJob.guid === req.query.guid) {
-                                console.log(`${req.query.guid} job is currently active and will be cancelled`)
+                                printLine("pendingAPI", `${req.query.guid} job is currently active and will be cancelled`, "warn")
                                 activeQueue[k].closed = true
                                 if (activeQueue[k].stopwatch)
                                     clearTimeout(activeQueue[k].stopwatch)
@@ -2722,7 +2901,7 @@
                     const clearJobs = Object.keys(jobQueue).map(k => {
                         const clearedPendJobs = jobQueue[k].filter(e => e.metadata.guid !== req.query.guid)
                         if (clearedPendJobs.length !== jobQueue[k].length) {
-                            console.log(`Cleared ${jobQueue[k].length - clearedPendJobs.length} Jobs from Pending Jobs`)
+                            printLine("pendingAPI", `Cleared ${jobQueue[k].length - clearedPendJobs.length} Jobs from Pending Jobs`, "alert")
                             jobQueue[k] = clearedPendJobs
                             return true
                         }
@@ -2731,7 +2910,7 @@
                     const clearPending = (() => {
                         const clearedPending = channelTimes.pending.filter(e => !e.guid || (e.guid && e.guid !== req.query.guid))
                         if (clearedPending.length !== channelTimes.pending.length) {
-                            console.log(`Cleared ${channelTimes.pending.length - clearedPending.length} Jobs from Pending Queue`)
+                            printLine("pendingAPI", `Cleared ${channelTimes.pending.length - clearedPending.length} Jobs from Pending Queue`, "alert")
                             const length = channelTimes.pending.length - clearedPending.length
                             channelTimes.pending = clearedPending
                             return (length)
@@ -3232,35 +3411,36 @@
                     break;
             }
         } catch (err) {
-            console.error(err);
+            printLine("statusAPI", err.message, "error");
             res.status(500).send(err.message);
         }
     })
 
     if (!auth.username || !auth.password) {
-        console.error(`ALERT:FAULT - Authentication|Unable to start authentication because the cookie data is missing!`)
+        printLine("Init", `Authentication: Unable to start authentication because the cookie data is missing!`, "critical")
     } else {
         if (!(await loginToAccount())) {
-            console.error(`Failed to login to SXM!`);
+            printLine("Init", `Failed to login to SXM!`, "critical");
             process.exit(0);
         } else {
-            console.log(accountSession);
+            printLine("Init", "Account Login OK", "debug", accountSession);
         }
         await adbCommand(undefined, ["kill-server"])
         if (config.remote_connections) {
-            console.log(`Connecting to remote android device/workstation(s) now!`)
+            printLine("Init", `Connecting to remote android device/workstation(s) now!`, "debug")
             for (ip of config.remote_connections) {
-                console.log(`-- Connecting to ${ip}...`)
+                printLine("Init", `-- Connecting to ${ip}...`, "debug")
                 await adbCommand(undefined, ["connect", ip])
                 await sleep (1000);
             }
         }
         await initializeChannels();
-        console.error(`Channels ###################`)
-        console.log(listChannels())
+        printLine("Init", `Channels Ready`, "debug", {
+            ...listChannels()
+        })
         const tun = listTuners()
 
-        console.log("Settings up recorder queues...")
+        printLine("Init", "Settings up recorder queues...", "debug")
         for (let t of tun) {
             if (t.digital) {
                 await initDigitalRecorder(t);
@@ -3296,7 +3476,7 @@
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
             for (const a of channelTimes.queues) {
-                console.log(`Recovering Queue "${a.k}"...`)
+                printLine("Init", `Recovering Queue "${a.k}"...`, "debug")
                 jobQueue[a.k] = a.q
                 if (a.k.startsWith("REC-") && a.q.length > 0) {
                     startRecQueue(a.k)
@@ -3309,12 +3489,14 @@
         }
         channelTimes.queues = [];
 
-        console.error(`Devices ###################`)
-        console.log(tun)
-        console.error(`Job Queues ###################`)
-        console.log(jobQueue)
+        printLine("Init", `Devices Ready`, "debug", {
+            ...tun
+        })
+        console.error(`Job Queues Ready`, "debug", {
+            ...jobQueue
+        })
         app.listen((config.listenPort) ? config.listenPort : 9080, async () => {
-            console.log("Server running");
+            printLine("Init", "Server running", "debug");
         });
 
         inflateRoomConfig();

@@ -4,6 +4,7 @@
   "dependencies": {
     "bee-queue": "^1.4.0",
     "better-sqlite3": "^7.4.5",
+    "colors": "^1.4.0",
     "express": "^4.17.1",
     "form-data": "^4.0.0",
     "limiter": "^2.1.0",
@@ -14,7 +15,10 @@
     "node-id3": "^0.2.3",
     "node-osascript": "^2.1.0",
     "node-tcp-relay": "^0.0.18",
+    "pidusage": "^3.0.2",
+    "pm2": "^5.4.2",
     "request": "^2.88.2",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "ws": "^8.18.0"
   }
 }
