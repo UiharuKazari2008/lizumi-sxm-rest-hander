@@ -198,7 +198,7 @@
     const stream = require('stream');
     const FormData = require('form-data');
     const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
-    const { printLine } = require('./log')("Lizumi");
+    const { printLine } = require('./log')("LizumiSXM");
 
     let metadata = {};
     let channelsAvailable = {};
