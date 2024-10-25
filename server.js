@@ -2151,7 +2151,7 @@
                     })
 
                     recorder.stdout.on('data', (data) => { printLine("DigitalDub", data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n'), "debug") })
-                    recorder.stderr.on('data', (data) => { printLine("DigitalDub", data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n'), "error") });
+                    recorder.stderr.on('data', (data) => { printLine("DigitalDub", data.toString().split('\n').map((line) => `Record/${tuner.id}: ` + line).join('\n'), "debug") });
                     recorder.on('close', (code, signal) => {
                         const completedFile = path.join((tuner.record_dir) ? tuner.record_dir : config.record_dir, `Extracted_${event.guid}.${(config.extract_format) ? config.extract_format : 'mp3'}`)
                         if (code !== 0) {
