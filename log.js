@@ -50,7 +50,7 @@ module.exports = function (facility, subclient) {
                 pm_id: process.env.pm_id,
                 instance: process.env.NODE_APP_INSTANCE,
                 name: (process.env.name || facility || 'default-process'),
-                server: systemglobal.system_name,
+                server: config.system_name,
                 process: {
                     cpu: processCpuPercent,  // CPU percentage as a raw number
                     memoryUsed: processMemoryMB,  // Memory in MB
