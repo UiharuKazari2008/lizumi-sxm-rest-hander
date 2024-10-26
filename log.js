@@ -21,60 +21,62 @@ function calculatePercentage(used, total) {
     return parseFloat(((used / total) * 100).toFixed(2)); // Round to 2 decimals
 }
 let metricsRunner;
-async function reportMetrics() {
-    try {
-        // Get process metrics
-        const stats = await pidusage(process.pid);
-        const processCpuPercent = parseFloat(stats.cpu.toFixed(2));
-        const processMemoryMB = bytesToMB(stats.memory);
-        const processUptime = parseInt(process.uptime().toFixed(0));
-
-        // System memory metrics
-        const totalMemory = os.totalmem();
-        const freeMemory = os.freemem();
-        const usedMemory = totalMemory - freeMemory;
-        const totalMemoryMB = bytesToMB(totalMemory);
-        const freeMemoryMB = bytesToMB(freeMemory);
-        const usedMemoryMB = bytesToMB(usedMemory);
-        const memoryUsagePercent = calculatePercentage(usedMemory, totalMemory);
-
-        const systemUptime = parseInt(os.uptime().toFixed(0));
-
-        // Prepare data for sending
-        const metrics = {
-            isPm2,
-            name: (process.env.name || 'default-process'),
-            server: config.host_name,
-            process: {
-                cpu: processCpuPercent,  // CPU percentage as a raw number
-                memoryUsed: processMemoryMB,  // Memory in MB
-                uptimeSeconds: processUptime  // Uptime in seconds
-            },
-            system: {
-                memory: {
-                    total: totalMemoryMB,   // Total memory in MB
-                    used: usedMemoryMB,     // Used memory in MB
-                    free: freeMemoryMB,     // Free memory in MB
-                    usagePercent: memoryUsagePercent  // Memory usage percentage
-                },
-                uptimeSeconds: systemUptime  // System uptime in seconds
-            },
-            time: new Date().valueOf()
-        };
-        // Send metrics to the log server
-        if (logServerConn && logServerConn.readyState === WebSocket.OPEN) {
-            logServerConn.send(JSON.stringify({ metrics }));
-        }
-        clearTimeout(metricsRunner);
-        metricsRunner = setTimeout(reportMetrics, 30000)
-    } catch (err) {
-        console.error('Error reporting metrics:', err);
-    }
-}
 
 module.exports = function (facility, subclient) {
     let module = {};
 
+    async function reportMetrics() {
+        try {
+            // Get process metrics
+            const stats = await pidusage(process.pid);
+            const processCpuPercent = parseFloat(stats.cpu.toFixed(2));
+            const processMemoryMB = bytesToMB(stats.memory);
+            const processUptime = parseInt(process.uptime().toFixed(0));
+
+            // System memory metrics
+            const totalMemory = os.totalmem();
+            const freeMemory = os.freemem();
+            const usedMemory = totalMemory - freeMemory;
+            const totalMemoryMB = bytesToMB(totalMemory);
+            const freeMemoryMB = bytesToMB(freeMemory);
+            const usedMemoryMB = bytesToMB(usedMemory);
+            const memoryUsagePercent = calculatePercentage(usedMemory, totalMemory);
+
+            const systemUptime = parseInt(os.uptime().toFixed(0));
+
+            // Prepare data for sending
+            const metrics = {
+                isPm2,
+                pm_id: process.env.pm_id,
+                instance: process.env.NODE_APP_INSTANCE,
+                name: (process.env.name || facility || 'default-process'),
+                server: systemglobal.system_name,
+                process: {
+                    cpu: processCpuPercent,  // CPU percentage as a raw number
+                    memoryUsed: processMemoryMB,  // Memory in MB
+                    uptimeSeconds: processUptime  // Uptime in seconds
+                },
+                system: {
+                    memory: {
+                        total: totalMemoryMB,   // Total memory in MB
+                        used: usedMemoryMB,     // Used memory in MB
+                        free: freeMemoryMB,     // Free memory in MB
+                        usagePercent: memoryUsagePercent  // Memory usage percentage
+                    },
+                    uptimeSeconds: systemUptime  // System uptime in seconds
+                },
+                time: new Date().valueOf()
+            };
+            // Send metrics to the log server
+            if (logServerConn && logServerConn.readyState === WebSocket.OPEN) {
+                logServerConn.send(JSON.stringify({ metrics }));
+            }
+            clearTimeout(metricsRunner);
+            metricsRunner = setTimeout(reportMetrics, 30000)
+        } catch (err) {
+            console.error('Error reporting metrics:', err);
+        }
+    }
     function connectToWebSocket(serverUrl) {
         logServerConn = new WebSocket(serverUrl);
 
@@ -86,12 +88,10 @@ module.exports = function (facility, subclient) {
         };
         logServerConn.onmessage = (event) => { handleIncomingMessage(event); };
         logServerConn.onclose = () => {
-            //console.log('[LogServer] Disconnected from the server');
             logServerisConnected = false;
             reconnectToWebSocket(serverUrl);
         };
         logServerConn.onerror = (error) => {
-            console.error('[LogServer] Error:', error);
             logServerisConnected = false;
             logServerConn.close();
         };
@@ -107,26 +107,38 @@ module.exports = function (facility, subclient) {
             const data = JSON.parse(event.data);
             if (data.ack) {
                 delete unsentLogs[data.id];
-            } else if (isPm2 && data.control) {
-                const { action, processName = (process.env.name || 'default-process') } = data.control;
-                pm2.connect((err) => {
-                    if (err) {
-                        sendLog("PM2", `Error connecting to PM2: ${err.message}`, 'error');
-                        return;
+            } else if (data.control) {
+                const { action, processName } = data.control;
+                if (isPm2) {
+                    pm2.connect((err) => {
+                        if (err) {
+                            sendLog("PM2", `Error connecting to PM2: ${err.message}`, 'error');
+                            return;
+                        }
+                        if (action === 'start') {
+                            pm2.stop(processName || process.env.name, (err) => {
+                                if (err) console.error(`Failed to stop ${processName || process.env.name}:`, err);
+                                else console.log(`Stopped ${processName || process.env.name} via PM2`);
+                            });
+                        } else if (action === 'stop') {
+                            pm2.stop(processName || process.env.name, (err) => {
+                                if (err) console.error(`Failed to stop ${processName || process.env.name}:`, err);
+                                else console.log(`Stopped ${processName || process.env.name} via PM2`);
+                            });
+                        } else if (action === 'restart') {
+                            pm2.restart(processName || process.env.name, (err) => {
+                                if (err) console.error(`Failed to restart ${processName || process.env.name}:`, err);
+                                else console.log(`Restarted ${processName || process.env.name} via PM2`);
+                            });
+                        }
+                    });
+                } else {
+                    if (action === 'restart') {
+                        process.exit(-55);
                     }
-
-                    if (action === 'stop') {
-                        pm2.stop(processName, (err) => {
-                            if (err) console.error(`Failed to stop ${processName}:`, err);
-                            else console.log(`Stopped ${processName} via PM2`);
-                        });
-                    } else if (action === 'restart') {
-                        pm2.restart(processName, (err) => {
-                            if (err) console.error(`Failed to restart ${processName}:`, err);
-                            else console.log(`Restarted ${processName} via PM2`);
-                        });
-                    }
-                });
+                }
+            } else {
+                console.log(data);
             }
         } catch (error) {
             console.error('[LogServer] Error parsing message:', error);
