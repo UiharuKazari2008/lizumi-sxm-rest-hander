@@ -2178,7 +2178,7 @@
                         const state = await checkPlayStatus(tuner)
                         if (!state) {
                             watchdogi = watchdogi + 1
-                            printLine("DigitalDub", `Record/${tuner.id}: Device Audio Session not found or responding!`, "warn")
+                            //printLine("DigitalDub", `Record/${tuner.id}: Device Audio Session not found or responding!`, "warn")
                         } else {
                             watchdogi = 0
                         }
@@ -2481,7 +2481,7 @@
                 const state = await checkPlayStatus(device)
                 if (!state) {
                     watchdogi = watchdogi + 1
-                    printLine("Tuner",`Player/${device.id}: Device Audio Session not found!`, "warn")
+                    //printLine("Tuner",`Player/${device.id}: Device Audio Session not found!`, "warn")
                 } else {
                     watchdogi = 0
                 }
