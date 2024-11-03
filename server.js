@@ -1514,7 +1514,8 @@
                 pendingJobs.push(`[${k}] ${pendingJob.metadata.channelId}: ${pendingJob.metadata.filename}`)
             })
         })
-        const events = (formatEventList(listEventsValidated(true, undefined, 15)));
+        const events = (formatEventList(listEventsValidated(true, undefined, 50)))
+            .filter(e => ((e.event.duration && e.event.duration > 15 * 60) || (!e.event.duration && (Date.now() - e.event.syncStart)) > 15 * 60000));
         sendData({
             status_data: {
                 embed: {
