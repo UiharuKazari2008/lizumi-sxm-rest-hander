@@ -1462,6 +1462,64 @@
             }
         })
     }
+    // Send Tuner Status Data to Othinus
+    async function sendTunerStatus() {
+        const activeJobs = Object.keys(activeQueue).map(k => {
+            if (activeQueue[k].guid) {
+                return {
+                    queue: k,
+                    start: activeQueue[k].startTime,
+                    guid: activeQueue[k].guid,
+                    active: !(activeQueue[k].closed),
+                    liveRec: (activeQueue[k].hasOwnProperty("controller")),
+                    isLive: !(activeQueue[k].hasOwnProperty("stopwatch")),
+                }
+            }
+            return false
+        }).filter(e => e !== false)
+        const tuners = listTuners().map(e => {
+            const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
+            const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
+            const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
+            const state = (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? ("Recording " + jobQueue[activeJob[0].queue].length + " Jobs") : "Standby"
+            const playing = (() => {
+                if (!channelMeta)
+                    return false
+                let list = [];
+                if (channelMeta.artist)
+                    list.push(channelMeta.artist)
+                if (channelMeta.title)
+                    list.push(channelMeta.title)
+                return list
+            })();
+            const number = (() => {
+                if (channelMeta.channelId) {
+                    const ch = getChannelbyId(channelMeta.channelId)
+                    return ch.number
+                }
+                if (!meta)
+                    return false
+                const ch = getChannelbyId(e.activeCh.ch)
+                return ch.number
+            })();
+            return {
+                name: `${e.locked ? "🔒 " : ""}${e.digital ? "💿" : "🛰"} ${e.name}`,
+                value: `${(number) ? number : "--"}: ${(playing.length > 0) ? playing.join(" - ") : "--"} [${state}]`
+            }
+        })
+        sendData({
+            status_data: {
+                embed: {
+                    fields: [
+                        ...tuners
+                    ],
+                    "footer": {
+                        "text": `SiriusXM Radio Manager (Lizumi)`
+                    }
+                }
+            }
+        });
+    }
 
     // Automated Event Extraction and Recording
 
@@ -3473,6 +3531,7 @@
         cron.schedule("*/5 * * * *", async () => {
             saveMetadata()
         });
+        setInterval(sendTunerStatus, 30000)
 
         if (channelTimes.queues && channelTimes.queues.length > 0) {
             jobQueue['extract'] = [];
