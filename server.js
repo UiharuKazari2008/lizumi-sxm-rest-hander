@@ -1522,11 +1522,11 @@
                         ...tuners,
                         {
                             name: "🕘 Latest Events",
-                            value: events.map(e => `${e.channel}: ${e.name}`).join("\n")
+                            value: events.length > 0 ? events.map(e => `${e.channel}: ${e.name}`).join("\n") : "No Events"
                         },
                         {
                             name: "🧾 Pending Jobs",
-                            value: pendingJobs.join("\n")
+                            value: pendingJobs.length > 0  ? pendingJobs.join("\n") : "Nothing to do"
                         }
                     ],
                     "footer": {
