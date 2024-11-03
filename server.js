@@ -1482,7 +1482,7 @@
             const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
             const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
             const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
-            const state = (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "▶️" : (activeJob.length > 0) ? ("🔴 " + jobQueue[activeJob[0].queue].length + " Jobs") : (e.airfoil_source && e.airfoil_source.name === source) ? "🔈" : "⏸"
+            const state = (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "▶️" : (activeJob.length > 0) ? ("🔴 " + jobQueue[activeJob[0].queue].length + " Jobs") : (e.airfoil_source && e.airfoil_source.name === source) ? "🔈" : "💤"
             const playing = (() => {
                 if (!channelMeta)
                     return false
@@ -1508,11 +1508,26 @@
                 value: `${(number) ? number : "--"}: ${(playing.length > 0) ? playing.join(" - ") : "--"} [${state}]`
             }
         })
+        let pendingJobs = []
+        Object.keys(jobQueue).map(k => {
+            return jobQueue[k].map(pendingJob => {
+                pendingJobs.push(`[${k}] ${pendingJob.metadata.channelId}: ${pendingJob.metadata.filename}`)
+            })
+        })
+        const events = formatEventList(listEventsValidated(undefined, undefined, (req.query.count) ? parseInt(req.query.count) : 5000));
         sendData({
             status_data: {
                 embed: {
                     fields: [
-                        ...tuners
+                        ...tuners,
+                        {
+                            name: "🕘 Latest Events",
+                            value: events.map(e => `${e.channel}: ${e.name}`).join("\n")
+                        },
+                        {
+                            name: "🧾 Pending Jobs",
+                            value: pendingJobs.join("\n")
+                        }
                     ],
                     "footer": {
                         "text": `SiriusXM Radio Manager (Lizumi)`
