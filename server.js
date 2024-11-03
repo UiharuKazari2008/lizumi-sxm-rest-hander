@@ -1515,7 +1515,8 @@
             })
         })
         const events = (formatEventList(listEventsValidated(true, undefined, 50)))
-            .filter(e => ((e.event.duration && e.event.duration > 15 * 60) || (!e.event.duration && (Date.now() - e.event.syncStart)) > 15 * 60000));
+            .slice(0)
+            .filter(e => !e.event.isEpisode && !e.event.exists && jobCompleted.indexOf(e.event.guid) === -1 && !e.event.queued && (e.event.syncStart >= (Date.now() - 14400000)) && ((e.event.duration && e.event.duration > 15 * 60) || (!e.event.duration && (Date.now() - e.event.syncStart)) > 15 * 60000))
         sendData({
             status_data: {
                 embed: {
