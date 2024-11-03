@@ -2007,8 +2007,8 @@
             await sleep (1000);
         } else {
             printLine("TunerInit", `Searching for digital tuner "${device.name}":${device.serial}...\nPlease connect the device via USB if not already`, "debug");
+            await adbCommand(device.serial, ["wait-for-device"], true)
         }
-        await adbCommand(device.serial, ["wait-for-device"], true)
         printLine("TunerInit",`Tuner "${device.name}":${device.serial} was connected! Please Wait for initialization...\n!!!! DO NOT TOUCH DEVICE !!!!`, "debug");
         const socketready = await startAudioDevice(device);
         if (socketready) {
