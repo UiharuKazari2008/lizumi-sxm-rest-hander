@@ -1,169 +1,812 @@
 {
+  "host_name": "NJA-C",
+  "log_server": "192.168.100.34:9038",
   "record_dir": "/Users/kaz/Music/SiriusXM/",
   "upload_dir": "/Users/kaz/Workspace/kanmi/upload/Recordings/",
   "extract_format": "mp3",
+  "notifications": {
+    "alert": "",
+    "info": "",
+    "error": ""
+  },
   "schedule": {
-    "RecordsOnRecords": {
-      "record_cron": "05 17 * * 5",
-      "tune_cron": "00 17 * * 5",
+    "Evening": {
+      "tune_cron": "00 18 * * *",
+      "ch": "53",
+      "switch_source": true
+    },
+    "Day": {
+      "tune_cron": "00 08 * * *",
       "ch": "52",
-      "restrict_applys_to_tune": true,
-      "tune_search" : true,
-      "restrict": {
-        "title": "Records"
-      },
-      "switch_source": false
+      "switch_source": true
+    },
+    "MidDay": {
+      "tune_cron": "00 15 * * *",
+      "ch": "736",
+      "switch_source": true
+    },
+    "Friday": {
+      "tune_cron": "00 16 * * 5",
+      "ch": "53",
+      "switch_source": true
     }
   },
   "autosearch_terms": [
     {
       "search": "Wavelength",
-      "switch_source": false
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Stagecoach",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Jimmy'z",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Jimmyz",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "libfestival",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Desert Hearts",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Aux",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "XXXRadio",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "BreakawayMichigan",
+      "channel": 53,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Miami Music Week",
+      "channel": 52,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "MiamiMusicWeek",
+      "channel": 52,
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "BlockParty",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "SeismicDance",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "#ElectricZooSXM",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "EUPHORIAMix",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "EscapeHall",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "SeismicTX",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "SplashHouse",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Splash House",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "enterGrayArea",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "GuestRoomMix",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "GuestMix",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "brooklynmirage",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Big Bootie Vol",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "indy500",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "indy500",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "UltraSXM",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "EDCLV",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "HigherGroundRadio",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "HouseOfJade",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "SeismicSpring",
+      "channel": 53,
+      "switch_source": true,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "HGHoliday",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Trancegiving",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Trancegiving",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "#Heatwave",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "@jimmyzmc",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Takeover",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "Takeover",
+      "channel": 52,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "RecordsOnRecords",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "beforeHour": 18,
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "ThrowBackHour",
+      "channel": 53,
+      "dayOfWeek": "Thu",
+      "allow_live": true,
+      "beforeHour": 21,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Rinse",
+      "channel": 52,
+      "switch_source": false,
+      "allow_live": true,
+      "dayOfWeek": "Sun",
+      "allow_episodes": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "AokisHouse",
+      "channel": 52,
+      "dayOfWeek": "Thu",
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "RulesDontApply",
+      "channel": 53,
+      "dayOfWeek": "Thu",
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Destructo",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "GoodTimesRadio",
+      "channel": 53,
+      "dayOfWeek": "Thu",
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "PhoenixRadio",
+      "channel": 53,
+      "dayOfWeek": "Mon",
+      "switch_source": false,
+      "allow_live": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "PlaygroundRadio",
+      "channel": 53,
+      "dayOfWeek": "Mon",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "DNDRadio",
+      "channel": 53,
+      "allow_live": true,
+      "dayOfWeek": "Mon",
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "NotMyTempo",
+      "channel": 53,
+      "dayOfWeek": "Thu",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true
+    },
+    {
+      "search": "InTheAir",
+      "channel": 52,
+      "allow_live": true,
+      "dayOfWeek": "Thu",
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "HotRobotRadio",
+      "channel": 53,
+      "dayOfWeek": "Tue",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "AmelieLens Pres",
+      "channel": 53,
+      "dayOfWeek": "Thu",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "GudVib",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "#ASOT",
+      "channel": 53,
+      "dayOfWeek": "Sun",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "#DirtybirdRadio",
+      "channel": 53,
+      "allow_live": true,
+      "dayOfWeek": "Fri",
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "#RadioWonderland",
+      "channel": 53,
+      "allow_live": true,
+      "dayOfWeek": "Sat",
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "thelaunch",
+      "channel": 53,
+      "dayOfWeek": "Wed",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "processradio",
+      "channel": 53,
+      "dayOfWeek": "Wed",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": false
+    },
+    {
+      "search": "#HouseOfWax",
+      "channel": 53,
+      "dayOfWeek": "Wed",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "#MartinGarrixShow",
+      "channel": 52,
+      "dayOfWeek": "Sat",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "#OffTheGrid",
+      "channel": 53,
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "#GuettaBPM",
+      "channel": 52,
+      "dayOfWeek": "Sat",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "ABGT500",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Anjunadeep",
+      "channel": 53,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "ABGT",
+      "channel": 53,
+      "dayOfWeek": "Mon",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "NightServiceOnly",
+      "channel": 53,
+      "dayOfWeek": "Tue",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "HotRobotRadio",
+      "channel": 53,
+      "dayOfWeek": "Tue",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Profound",
+      "channel": 53,
+      "dayOfWeek": "Tue",
+      "allow_episodes": true,
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "#COTWRadio",
+      "channel": 53,
+      "dayOfWeek": "Sat",
+      "switch_source": false,
+      "tuneToChannel": true,
+      "onlyTune": true
+    },
+    {
+      "search": "TwoFriendsRadio",
+      "channel": 52,
+      "dayOfWeek": "Fri",
+      "switch_source": false,
+      "tuneToChannel": false,
+      "notify": true
+    },
+    {
+      "search": "RevelationsRadio",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true
+    },
+    {
+      "search": "NoFavorsRadio",
+      "channel": 53,
+      "dayOfWeek": "Wed",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Wukileaks",
+      "channel": 53,
+      "dayOfWeek": "Wed",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "GlobalCulture",
+      "channel": 53,
+      "dayOfWeek": "Mon",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "PitchControl",
+      "channel": 52,
+      "dayOfWeek": "Sun",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "#FemmeHouseRadio",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Queen",
+      "channel": 52,
+      "dayOfWeek": "Tue",
+      "allow_episodes": true,
+      "switch_source": false,
+      "tuneToChannel": true
+    },
+    {
+      "search": "Dive",
+      "channel": 53,
+      "dayOfWeek": "Fri",
+      "allow_episodes": true,
+      "switch_source": true,
+      "tuneToChannel": true
+    },
+    {
+      "search": "JoelCorry Presents",
+      "channel": 52,
+      "dayOfWeek": "Fri",
+      "allow_live": true,
+      "switch_source": false,
+      "tuneToChannel": true,
+      "notify": true,
+      "destination": "/Users/kaz/Workspace/kanmi/upload/RecEvents"
+    },
+    {
+      "search": "#RemixRewind",
+      "channel": 52,
+      "dayOfWeek": "Sun",
+      "switch_source": false,
+      "tuneToChannel": true
     }
   ],
   "satellite_radios": {
-    "sat-1": {
-      "priority": 10,
-      "name": "Satellite 1",
-      "lock_on_events": true,
-      "record_prefix": "SXM_SAT_1_LIVE_",
-      "record_date_format": "YYYYMMDD-HHmmss",
-      "airfoil_source": {
-        "name": "SiriusXM Satellite Radio 1",
-        "conditions": ["tune"],
-        "return_source": "SiriusXM Satellite Radio 2"
-      }
-    },
-    "sat-2": {
+    "sat": {
       "priority": 11,
-      "name": "Satellite 2",
+      "name": "Satellite",
       "lock_on_events": true,
-      "record_prefix": "SXM_SAT_2_LIVE_",
+      "record_prefix": "SXM_SAT1_",
       "record_date_format": "YYYYMMDD-HHmmss",
       "airfoil_source": {
-        "name": "SiriusXM Satellite Radio 2",
+        "name": "SiriusXM Satellite Radio",
         "conditions": ["tune","record"]
       }
     }
   },
-  "live_extract": true,
+  "live_extract": false,
   "adb_command": "/Users/kaz/android-sdk-macosx/platform-tools/adb",
+  "remote_connections": [],
+  "digital_manager": "192.168.100.97",
   "digital_radios": {
     "stream-1": {
       "priority": 1,
-      "serial": "CIAMSK79SOKFBIN7",
+      "serial": "192.168.100.97:5671",
+      "remote": true,
+      "emulator_name": "Lizumi-Recorder-1",
       "name": "Digital 1",
-      "record_only": false,
+      "record_only": true,
+      "stop_after_record": true,
+      "airfoil_source": false
+    },
+    "stream-2": {
+      "priority": 2,
+      "serial": "192.168.100.97:5673",
+      "name": "Digital 2",
+      "remote": true,
+      "emulator_name": "Lizumi-Recorder-2",
       "stop_after_record": true,
       "airfoil_source": {
         "name": "SiriusXM Digital Radio",
-        "return_source": "SiriusXM Satellite Radio 2",
-        "conditions": ["tune","live_record"],
-        "auto_release": true
+        "conditions": ["tune","record"],
+        "return_source": "SiriusXM Satellite Radio"
       }
     }
   },
+  "audio_inputs": {
+    "minidisc": {
+      "name": "MiniDisc Recorder",
+      "airfoil_source": {
+        "name": "MiniDisc Deck"
+      },
+      "always_active": true,
+      "actions": {
+        "power" : "http://192.168.100.62:3001/button-minidisc-controller-1?event=single-press",
+        "play" : "http://192.168.100.62:3001/button-minidisc-controller-1?event=double-press",
+        "stop" : "http://192.168.100.62:3001/button-minidisc-controller-1?event=long-press",
+        "pause" : "http://192.168.100.62:3001/button-minidisc-controller-2?event=single-press",
+        "next" : "http://192.168.100.62:3001/button-minidisc-controller-2?event=double-press",
+        "prev" : "http://192.168.100.62:3001/button-minidisc-controller-2?event=long-press",
+        "repeat" : "http://192.168.100.62:3001/button-minidisc-controller-3?event=single-press",
+        "shuffle" : "http://192.168.100.62:3001/button-minidisc-controller-3?event=double-press",
+        "mscan" : "http://192.168.100.62:3001/button-minidisc-controller-3?event=long-press",
+        "record" : "http://192.168.100.62:3001/button-minidisc-controller-4?event=single-press",
+        "scroll" : "http://192.168.100.62:3001/button-minidisc-controller-4?event=double-press"
+      }
+    }
+  },
+  "rooms": {
+    "Bedroom": ["Bedroom HomePod", "[Display] Bedroom", "Bedroom TV", "Workstation PC"],
+    "Studio": ["[Display] Studio", "MacBook Pro"],
+    "Bathroom": ["Bathroom Speaker"]
+  },
   "channels": {
-    "51": {
-      "name": "SXM 51 - BPM (Today's Dance Hits & Remixes)",
-      "id": "thebeat",
-      "digitalIndex": "3",
-      "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=double-press"
-      }
-    },
     "52": {
-      "name": "SXM 52 - Diplo's Revolution (Global House Party)",
-      "id": "9472",
-      "digitalIndex": "4",
+      "id": "thebeat",
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=single-press"
-      }
-    },
-    "736": {
-      "name": "SXM 736 - A State of Armin (Trance & Progressive EDM)",
-      "id": "9527",
-      "updateOnTune": true,
-      "digitalIndex": "8",
-      "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=long-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck1?event=double-press"
       }
     },
     "53": {
-      "name": "SXM 53 - Chill (Smooth Electronic)",
-      "id": "chill",
-      "digitalIndex": "9",
+      "id": "9472",
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=single-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck1?event=single-press"
+      }
+    },
+    "736": {
+      "id": "9527"
+    },
+    "55": {
+      "id": "chill",
+      "tuneUrl": {
+        "sat": "http://192.168.100.62:3001/button-streamdeck1?event=long-press"
       }
     },
     "10": {
-      "name": "SXM 10 - Pop2K (Pop 2000 Hits)",
       "id": "8363",
       "updateOnTune": true,
-      "digitalIndex": "10",
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=double-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck2?event=single-press"
       }
     },
     "11": {
-      "name": "SXM 11 - 10s Spot (Pop hits from the 2010s!)",
       "id": "9556",
       "updateOnTune": true,
-      "digitalIndex": "11",
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=double-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck2?event=double-press"
       }
     },
     "99": {
-      "name": "SXM 99 - Raw Dog Comedy",
       "id": "rawdog",
       "updateOnTune": true,
-      "digitalIndex": "12",
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck5?event=long-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck2?event=long-press"
       }
     },
-    "713": {
-      "name": "SXM 713 - The Emo Project",
-      "id": "9447",
-      "digitalIndex": "13",
+    "704": {
+      "updateOnTune": true,
       "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck1?event=long-press"
+        "sat": "http://192.168.100.62:3001/button-streamdeck5?event=single-press"
       }
     },
-    "304": {
-      "name": "SXM 304 - SoulCycle Radio",
-      "id": "9500",
-      "digitalIndex": "14",
-      "tuneUrl": {
-        "sat-2": "http://192.168.100.62:3001/button-streamdeck2?event=single-press"
-      }
+    "46": {"updateOnTune": true},
+    "2": {"updateOnTune": true},
+    "341": {},
+    "735": {
+      "id": "9526"
     },
-    "46": {
-      "name": "SXM 46 - The Heat",
-      "id": "hotjamz",
-      "updateOnTune": true,
-      "digitalIndex": "15",
-      "tuneUrl": {}
-    },
-    "2": {
-      "name": "SXM 2 - Hits 1",
-      "id": "siriushits1",
-      "updateOnTune": true,
-      "digitalIndex": "16",
-      "tuneUrl": {}
-    },
-    "341": {
-      "name": "SXM 341 - Utopia",
-      "id": "9365",
-      "updateOnTune": true,
-      "digitalIndex": "16",
-      "tuneUrl": {}
-    }
+    "5": {"updateOnTune": true}
   },
-  "ignoredWords": [
-    "sxmElectro"
-  ],
+  "ignoredWords": [],
   "refreshMetadataInterval": 60000
 }

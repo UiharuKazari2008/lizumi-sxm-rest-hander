@@ -1503,7 +1503,7 @@
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
                     sendDiscord('error', 'SiriusXM', `❌ The pending request from ${moment.utc(pendingEvent.time).local().format('MMM D HH:mm"')} has expired!`)
-                } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && !pendingEvent.liveRec && !pendingEvent.automatic && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
+                } else if (thisEvent.guid && channelTimes.pending.filter(e => e.guid && e.guid === thisEvent.guid && (e.time + 6000) <= Date.now()).map(e => e.guid).length > 1) {
                     printLine("PendingBounce", `Duplicate Event Registered: ${pendingEvent.time} matches a existing bounce GUID`, 'warn');
                     pendingEvent.done = true
                     pendingEvent.inprogress = false
@@ -2001,7 +2001,13 @@
     // Wait for device to connect and prepare device
     async function initDigitalRecorder(device) {
         locked_tuners.set(device.id, true)
-        printLine("TunerInit", `Searching for digital tuner "${device.name}":${device.serial}...\nPlease connect the device via USB if not already`, "debug");
+        if (device.remote) {
+            printLine("TunerInit", `Connecting to remote device ${device.serial}...`, "debug")
+            await adbCommand(undefined, ["connect", device.serial])
+            await sleep (1000);
+        } else {
+            printLine("TunerInit", `Searching for digital tuner "${device.name}":${device.serial}...\nPlease connect the device via USB if not already`, "debug");
+        }
         await adbCommand(device.serial, ["wait-for-device"], true)
         printLine("TunerInit",`Tuner "${device.name}":${device.serial} was connected! Please Wait for initialization...\n!!!! DO NOT TOUCH DEVICE !!!!`, "debug");
         const socketready = await startAudioDevice(device);
@@ -3108,7 +3114,7 @@
             const t = getTuner(req.params.tuner)
             if (t) {
                 if (t.digital) {
-                    locked_tuners.set(t.id, true)
+                    locked_tuners.set(t.id, true);
                     await adbCommand(t.serial, ["reboot"])
                     res.status(200).send("Device Restarted, Operation inprogress");
                     setTimeout(async () => {
@@ -3426,14 +3432,6 @@
             printLine("Init", "Account Login OK", "debug", accountSession);
         }
         await adbCommand(undefined, ["kill-server"])
-        if (config.remote_connections) {
-            printLine("Init", `Connecting to remote android device/workstation(s) now!`, "debug")
-            for (ip of config.remote_connections) {
-                printLine("Init", `-- Connecting to ${ip}...`, "debug")
-                await adbCommand(undefined, ["connect", ip])
-                await sleep (1000);
-            }
-        }
         await initializeChannels();
         printLine("Init", `Channels Ready`, "debug", {
             ...listChannels()
