@@ -1477,11 +1477,12 @@
             }
             return false
         }).filter(e => e !== false)
+        const source = await getAirOutput()
         const tuners = listTuners().map(e => {
             const meta = (e.activeCh && !e.activeCh.hasOwnProperty("end")) ? nowPlaying(e.activeCh.ch) : (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? getEvent(undefined, watchdog_tuners[e.id].player_guid) : false
             const activeJob = activeJobs.filter(j => j.queue.slice(4) === e.id)
             const channelMeta = (activeJob.length > 0) ? activeJob.map(j => getEvent(undefined, j.guid))[0] : (meta) ? meta : false
-            const state = (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playing" : (activeJob.length > 0) ? ("Recording " + jobQueue[activeJob[0].queue].length + " Jobs") : "Standby"
+            const state = (e.digital && watchdog_tuners[e.id] && watchdog_tuners[e.id].player_guid) ? "Playback" : (activeJob.length > 0) ? ("Recording " + jobQueue[activeJob[0].queue].length + " Jobs") : (e.airfoil_source && e.airfoil_source.name === source) ? "Active" : "Standby"
             const playing = (() => {
                 if (!channelMeta)
                     return false
