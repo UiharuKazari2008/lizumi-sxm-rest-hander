@@ -1504,8 +1504,8 @@
                 return ch.number
             })();
             return {
-                name: `${e.locked ? "⚠️" : ""}${e.digital ? "💿" : "🛰"} ${e.name}`,
-                value: `${(number) ? number : "--"}: ${(playing.length > 0) ? playing.join(" - ") : "--"} ${state}`
+                name: `${e.locked ? "⚠️" : ""}${e.digital ? "💿" : "🛰"} ${e.name} [${(number) ? number : "---"}]`,
+                value: `${(playing.length > 0) ? playing.join(" - ") : "----"} ${state}`
             }
         })
         let pendingJobs = []
@@ -1517,6 +1517,7 @@
         const events = (formatEventList(listEventsValidated(true, undefined, 50)))
             .slice(0)
             .filter(e => !e.event.isEpisode && !e.event.exists && !e.event.queued && (e.event.syncStart >= (Date.now() - 14400000)) && ((e.event.duration && e.event.duration > 15 * 60) || (!e.event.duration && (Date.now() - e.event.syncStart)) > 15 * 60000))
+            .reverse();
         sendData({
             status_data: {
                 embed: {
