@@ -166,6 +166,23 @@ module.exports = function (facility, subclient) {
         if (logServerisConnected && logServerConn.readyState === WebSocket.OPEN)
             logServerConn.send(JSON.stringify(logEntry));
     }
+    function sendData(data, no_ack = false) {
+        const logId = generateLogId();
+        const sendBlock = {
+            host_info: {
+                server_name: config.host_name,
+                name: facility,
+                instance: process.env.NODE_APP_INSTANCE,
+                time: new Date().valueOf(),
+            },
+            ...data,
+            id: logId
+        };
+        if (!no_ack)
+            unsentLogs[logId] = sendBlock;
+        if (logServerisConnected && logServerConn.readyState === WebSocket.OPEN)
+            logServerConn.send(JSON.stringify(sendBlock));
+    }
 
     if (config.log_server) {
         remoteLogger = true
@@ -194,6 +211,7 @@ module.exports = function (facility, subclient) {
         return `${Date.now()}-${rollingIndex}`;
     }
 
+    module.sendData = sendData;
     module.printLine = async function printLine(proccess, text, level, object, object2, no_ack = false) {
         let logObject = {}
         let logString =  `${text}`
