@@ -2444,7 +2444,7 @@
                 k++
                 await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
                 await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity'])
-                await sleep(3000)
+                await sleep(10000)
                 const tune = await adbCommand(device.serial, ['shell', 'am', 'start', '-a', 'android.intent.action.MAIN', '-n', 'com.sirius/.android.everest.welcome.WelcomeActivity', '-e', 'linkAction', `'"Api:tune:liveAudio:${channel}::${time}"'`])
                 if (tune.log.includes('Starting: Intent { act=android.intent.action.MAIN cmp=com.sirius/.android.everest.welcome.WelcomeActivity (has extras) }')) {
                     let i = -1;
