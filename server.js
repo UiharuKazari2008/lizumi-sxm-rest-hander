@@ -2477,7 +2477,8 @@
     // Stop Playback on Android Device aka Release Stream Entity
     async function releaseDigitalTuner(device) {
         printLine("Tuner", `Releasing Device ${device.serial}...`, "debug");
-        return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86'])
+        return await adbCommand(device.serial, ['shell', 'input', 'keyevent', '86']);
+        return await adbCommand(device.serial, ['shell', 'input', 'keyevent', 'KEYCODE_HOME']);
     }
     // Automatically deturns a tuner if playback is stopped
     async function digitalTunerWatcher(device) {
