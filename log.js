@@ -116,7 +116,7 @@ module.exports = function (facility, subclient) {
                             return;
                         }
                         if (action === 'start') {
-                            pm2.stop(processName || process.env.name, (err) => {
+                            pm2.start(processName || process.env.name, (err) => {
                                 if (err) console.error(`Failed to stop ${processName || process.env.name}:`, err);
                                 else console.log(`Stopped ${processName || process.env.name} via PM2`);
                             });
@@ -137,8 +137,6 @@ module.exports = function (facility, subclient) {
                         process.exit(-55);
                     }
                 }
-            } else {
-                console.log(data);
             }
         } catch (error) {
             console.error('[LogServer] Error parsing message:', error);
