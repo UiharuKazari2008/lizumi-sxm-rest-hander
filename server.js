@@ -2267,6 +2267,7 @@
                         }
                         if (watchdogi >= 4) {
                             printLine("DigitalDub", `Record/${tuner.id}: Fault Detected with tuner - Device has unexpectedly stopped playing audio! Job Failed`, "critical")
+                            process.exit(100);
                             fault = true
                             clearTimeout(stopwatch)
                             clearInterval(controller)
