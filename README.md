@@ -1,3 +1,5 @@
+# [Migrated to BlueSteel](https://yozora.bluesteel.737.jp.net/UiharuKazari2008/lizumi-sxm-server)
+
 # SXM Commander Server for SiriusXM
 Device Manager and Automated Recorder for SiriusXM.
 
